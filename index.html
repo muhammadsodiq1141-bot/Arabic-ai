@@ -914,6 +914,19 @@ button.tm-row.adm-g{text-align:left;font-family:var(--f-ui);color:var(--ink);cur
 <div class="app" id="app"></div>
 
 <script>
+/* Bitta telefonda bir nechta Telegram hisobi: har biriga alohida maʼlumot */
+(function(){try{var W=window.Telegram&&Telegram.WebApp,u=W&&W.initDataUnsafe&&W.initDataUnsafe.user;if(!u||!u.id)return;
+  var cur=String(u.id),L=localStorage,owner=L.getItem("acct.owner");
+  if(!owner){try{var m=JSON.parse(L.getItem("f.me")||"null");if(m&&m.tg)owner=String(m.tg);}catch(e){}}
+  if(!owner||owner===cur){L.setItem("acct.owner",cur);return;}
+  var re=/^(a1\.|bk\.|x\.|f\.)/,ks=[],snap={};for(var i=0;i<L.length;i++){var k=L.key(i);if(re.test(k))ks.push(k);}
+  ks.forEach(function(k){snap[k]=L.getItem(k);});
+  try{L.setItem("acct."+owner,JSON.stringify(snap));}catch(e){}
+  ks.forEach(function(k){L.removeItem(k);});
+  var back=L.getItem("acct."+cur);if(back){try{var o=JSON.parse(back);for(var k2 in o)L.setItem(k2,o[k2]);}catch(e){}L.removeItem("acct."+cur);}
+  L.setItem("acct.owner",cur);}catch(e){}})();
+
+
 let UNITS = [
 { n:1, uz:"Salomlashish va tanishuv", ar:"التَّحِيَّةُ وَالتَّعَارُفُ",
   words:[
