@@ -1010,6 +1010,9 @@ button.tm-row.adm-g{text-align:left;font-family:var(--f-ui);color:var(--ink);cur
 .a0-heat{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;direction:rtl}
 .a0-hc{border-radius:10px;padding:4px 0;display:flex;flex-direction:column;align-items:center;background:color-mix(in srgb,#3E8E5A calc(var(--p)*1%),var(--soft))}
 .a0-hc .ar{font-size:20px}.a0-hc small{font-size:10px}
+.kb-ins{display:block;align-self:flex-start;font-size:17px;font-weight:700;color:var(--ink);background:var(--accent-soft);border-radius:12px;padding:4px 12px;direction:rtl}
+.kb-full{flex-direction:column;align-items:center;gap:2px;border-top:1px dashed var(--accent-soft);padding-top:8px}
+.kb-wl .kb-w small{white-space:normal}
 </style>
 <style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <script src="https://telegram.org/js/telegram-web-app.js"></script><script>(function(){try{var w=window.Telegram&&Telegram.WebApp;if(!w||!w.initData&&!w.platform)return;w.ready();w.expand();document.documentElement.setAttribute("data-theme",w.colorScheme==="dark"?"dark":"light");w.onEvent&&w.onEvent("themeChanged",function(){document.documentElement.setAttribute("data-theme",w.colorScheme==="dark"?"dark":"light")});}catch(e){}})();</script>
@@ -5355,8 +5358,16 @@ say=function(t){t=String(t||"").replace(/<[^>]+>/g,"").replace(/×/g,"،").trim(
   if(!TTS_A){TTS_A=new Audio();TTS_A.preload="auto";}
   const a=TTS_A;try{a.pause();}catch(e){}
   a.onerror=()=>ttsServer(t,tok,a);
-  a.src=TTS_BASE+sha1Hex(t)+".mp3";
+  const hk=sha1Hex(t);a.src=KB_AUD[hk]||(TTS_BASE+hk+".mp3");
   const pr=a.play();if(pr&&pr.catch)pr.catch(er=>{if(er&&er.name==="NotAllowedError")ttsDevice(t,tok);});};
+/* Kitob audiosi (nashriyot ruxsati bilan): yopiq ombordan vaqtinchalik havolalar, faqat xotirada saqlanadi */
+const KB_AUD={},KB_AUD_AT={};
+function kitobTexts(L){const T=new Set();const add=t=>{if(t&&/[\u0600-\u06FF]/.test(t))T.add(String(t).replace(/<[^>]+>/g,"").replace(/×/g,"،").trim());};
+  (L.steps||[]).forEach(st=>(st.items||[]).forEach(it=>{(it.words||[]).forEach(w=>add(Array.isArray(w)?w[0]:w));(it.lines||[]).forEach(l=>add(l[1]));(it.rows||[]).forEach(r=>r.forEach(add));
+    (it.pairs||[]).forEach(p=>{add(p[0]);add(p[1]);});["say","ar","show","full","q","s"].forEach(k=>add(it[k]));(it.opts||[]).forEach(add);}));return [...T];}
+function kitobAudioLoad(dir){if(!dir||(KB_AUD_AT[dir]&&Date.now()-KB_AUD_AT[dir]<5*3600e3))return;if(typeof online==="function"&&!online())return;
+  const L=KB_LESSONS[dir.replace("/",":")];if(!L)return;const keys=kitobTexts(L).map(sha1Hex);
+  KB_AUD_AT[dir]=Date.now();api("kitobAudio",{dir,keys}).then(j=>{if(j&&j.urls)Object.assign(KB_AUD,j.urls);}).catch(()=>{KB_AUD_AT[dir]=0;});}
 
 /* ===== Yangi oʻquvchi: tanishuv, «Birinchi hafta» yoʻli, koʻrsatmalar va «?» yordam ===== */
 const OBK=k=>FK("ob."+k);
@@ -5659,11 +5670,11 @@ function kbPrep(it){const x=Object.assign({},it);
   if(x.opts)x.opts=kbShuf(x.opts);
   if(x.type==="letters")x.tiles=kbShuf(x.letters.map((l,i)=>({l,i})));
   if(x.type==="order")x.tiles=kbShuf(x.words.concat(x.extra?[x.extra]:[]));
-  if(x.type==="match"){x.right=kbShuf(x.pairs.map(p=>p[1]));x.done=[];x.miss=0;x.sel=null;}
+  if(x.type==="match"){x.right=kbShuf(x.pairs.map(p=>p[1]));x.done=[];x.used=[];x.miss=0;x.sel=null;}
   if(x.type==="pick"&&!x.pics){x.pics=kbShuf([x.ok].concat(kbShuf(x.pool.filter(p=>p!==x.ok)).slice(0,3)));}
   if(x.type==="classify"){x.order=kbShuf(x.words.map((w,i)=>i));x.put={};x.sel=null;}
   return x;}
-function kbOpen(key,si){const L=KB_LESSONS[key];if(!L)return;const st=L.steps[si];
+function kbOpen(key,si){const L=KB_LESSONS[key];if(!L)return;const st=L.steps[si];try{const m=/^a0:(\d+)/.exec(key);if(m)kitobAudioLoad("a0/"+m[1]);}catch(e){}
   KB={key,si,items:st.items.map(kbPrep),i:st.rule?-1:0,ok:0,ans:null,pick:null,built:[],bused:[]};
   S={view:"kitob",unit:S.unit,tab:"words",game:null};render();window.scrollTo(0,0);kbAutoPlay();}
 function kbHubHTML(key){const L=KB_LESSONS[key],B=kbBest(key);const done=L.steps.filter((s,i)=>B[i]!==undefined).length;
@@ -5688,17 +5699,17 @@ function kbHTML(){const L=KB_LESSONS[KB.key]||{title:"Harf yozish",uz:"Harf yozi
        '<button class="linkbtn kb-uz" data-act="kbuz">'+(KB.showUz?'Tarjimani yashirish':'Tarjimani koʻrsatish')+'</button>'
        :'<p class="muted kb-hint">Avval tinglang. Matnni tinglagandan keyin ochishingiz mumkin.</p><button class="linkbtn kb-uz" data-act="kbtext">Matnni koʻrsatish</button>');break;}
    case "choose":case "qa":body=(it.pic?'<div class="dr-pic">'+emoSpan(it.pic,90)+'</div>':'')+(it.say?'<div class="kb-q">'+kbSayBtn(it.say)+'</div>':'')+(it.type==="qa"?'<div class="kb-q">'+kbSayBtn(it.q,1)+'<p class="ar dr-q">'+it.q+'</p></div>':'<p class="'+(/[؀-ۿ]/.test(it.q)?'ar dr-q':'kb-qz')+'">'+esc(it.q).replace(/\n/g,"<br>")+'</p>')+(it.qz?'<p class="dr-uz">'+esc(it.qz)+'</p>':'')+
-     '<div class="dr-opts">'+it.opts.map(o=>'<button class="dr-opt '+(kbIsAr(o)?'ar ':'kb-lat ')+cls(o)+'" data-kba="'+esc(o)+'" '+(done?'disabled':'')+'>'+o+'</button>').join("")+'</div>';break;
+     '<div class="dr-opts">'+it.opts.map(o=>'<button class="dr-opt '+(kbIsAr(o)?'ar ':'kb-lat ')+cls(o)+'" data-kba="'+esc(o)+'" '+(done?'disabled':'')+'>'+o+'</button>').join("")+'</div>'+(done&&it.full?'<div class="kb-q kb-full">'+kbSayBtn(it.full)+'<p class="ar dr-q">'+it.full+'</p>'+(it.fz?'<small class="muted">'+esc(it.fz)+'</small>':'')+'</div>':'');break;
    case "listen1":body='<div class="kb-q">'+kbSayBtn(it.ar,1)+(done?'<p class="ar dr-q">'+it.ar+'</p>':'')+'</div><div class="dr-opts">'+it.opts.map(o=>'<button class="dr-opt kb-lat '+cls(o)+'" data-kba="'+esc(o)+'" '+(done?'disabled':'')+'>'+esc(o)+'</button>').join("")+'</div>';break;
    case "tf":body='<div class="kb-q">'+kbSayBtn(it.s,1)+'<p class="ar dr-q">'+it.s+'</p></div>'+(done?'<p class="dr-uz">'+esc(it.uz)+'</p>':'')+
      '<div class="kb-tf">'+[["1","✓ Toʻgʻri"],["0","✗ Notoʻgʻri"]].map(([v,l])=>'<button class="dr-opt kb-lat '+(!done?"":String(+it.ok)===v?"ok":KB.pick===v?"bad":"dim")+'" data-kbtf="'+v+'" '+(done?'disabled':'')+'>'+l+'</button>').join("")+'</div>';break;
-   case "letters":body='<p class="dr-uz">«'+esc(it.uz)+'» soʻzini yasang</p><div class="dr-line ar '+(done?(KB.ans?'ok':'bad'):'')+'">'+(KB.built.length?KB.built.map((t,k)=>'<button class="dr-tile on" data-kbl="-'+k+'" '+(done?'disabled':'')+'>'+t.l+'</button>').join(""):'<span class="muted">…</span>')+'</div>'+
+   case "letters":body=(it.pic?'<div class="dr-pic">'+emoSpan(it.pic,80)+'</div>':'')+(it.see?'<div class="kb-q">'+kbSayBtn(it.show)+'<p class="ar dr-q">'+it.see+'</p></div>':'')+'<p class="dr-uz">'+(it.q?esc(it.q):'«'+esc(it.uz)+'» soʻzini yasang')+'</p><div class="dr-line ar '+(done?(KB.ans?'ok':'bad'):'')+'">'+(KB.built.length?KB.built.map((t,k)=>'<button class="dr-tile on" data-kbl="-'+k+'" '+(done?'disabled':'')+'>'+t.l+'</button>').join(""):'<span class="muted">…</span>')+'</div>'+
      '<div class="dr-tiles ar">'+it.tiles.map((t,k)=>KB.bused.includes(k)?'<span class="dr-tile ghost">'+t.l+'</span>':'<button class="dr-tile" data-kbl="'+k+'" '+(done?'disabled':'')+'>'+t.l+'</button>').join("")+'</div>'+(done?'<p class="ar dr-q">'+it.show+'</p>':'');break;
    case "order":body='<p class="dr-uz">'+esc(it.uz)+'</p><div class="dr-line ar '+(done?(KB.ans?'ok':'bad'):'')+'">'+(KB.built.length?KB.built.map((w,k)=>'<button class="dr-tile on" data-kbo="-'+k+'" '+(done?'disabled':'')+'>'+w+'</button>').join(""):'<span class="muted">…</span>')+'</div>'+
      '<div class="dr-tiles ar">'+it.tiles.map((w,k)=>KB.bused.includes(k)?'<span class="dr-tile ghost">'+w+'</span>':'<button class="dr-tile" data-kbo="'+k+'" '+(done?'disabled':'')+'>'+w+'</button>').join("")+'</div>'+(done&&!KB.ans?'<p class="dr-why">Toʻgʻri: <span class="ar">'+it.ok+'</span></p>':'');break;
    case "match":{const left=it.pairs.map(p=>p[0]);
      body=(it.q?'<p class="dr-uz">'+esc(it.q)+'</p>':'')+'<div class="kb-match"><div>'+left.map((a,k)=>'<button class="kb-mt ar '+(it.done.includes(k)?'ok':it.sel===k?'sel':'')+'" data-kbm="L'+k+'" '+(it.done.includes(k)||done?'disabled':'')+'>'+a+'</button>').join("")+'</div><div>'+
-      it.right.map((b,k)=>{const used=it.done.some(d=>it.pairs[d][1]===b);return '<button class="kb-mt '+(/[؀-ۿ]/.test(b)?'ar ':'kb-lat ')+(used?'ok':it.flash===k?'bad':'')+'" data-kbm="R'+k+'" '+(used||done?'disabled':'')+'>'+esc(b)+'</button>';}).join("")+'</div></div>'+
+      it.right.map((b,k)=>{const used=it.used.includes(k);return '<button class="kb-mt '+(/[؀-ۿ]/.test(b)?'ar ':'kb-lat ')+(used?'ok':it.flash===k?'bad':'')+'" data-kbm="R'+k+'" '+(used||done?'disabled':'')+'>'+esc(b)+'</button>';}).join("")+'</div></div>'+
       (done?'<p class="dr-why">'+(it.miss?'Xatolar: '+it.miss:'Barchasi birinchi urinishda toʻgʻri!')+'</p>':'');break;}
    case "classify":{const left=it.order.filter(i=>it.put[i]===undefined);
      body='<p class="dr-uz">'+esc(it.q)+'</p><div class="kb-chips ar">'+(left.length?left.map(i=>'<button class="dr-tile '+(it.sel===i?'on':'')+'" data-kbc="w'+i+'">'+it.words[i][0]+'</button>').join(""):'<span class="muted">Barcha soʻzlar joylandi</span>')+'</div>'+
@@ -5716,9 +5727,9 @@ function kbHTML(){const L=KB_LESSONS[KB.key]||{title:"Harf yozish",uz:"Harf yozi
       '<textarea id="kbfree" class="typein kb-free" dir="rtl" rows="4" placeholder="Arabcha yozing…" '+(sent?'disabled':'')+'>'+esc(KB.freeText||"")+'</textarea>'+
       (sent?'<p class="dr-why">✓ '+(sent==="local"?'Saqlandi. Ilova bot orqali ochilganda ustozga yuboriladi.':'Ustozga yuborildi. Baho qoʻyilgach, Telegram orqali xabar keladi.')+'</p>':'<button class="btn primary dr-next" data-act="kbsend">Ustozga yuborish</button>');break;}
   }
-  return head+'<section class="dr-card"><span class="dr-k">'+esc(KB_TIP[it.type]||"")+'</span>'+body+'</section>'+(canNext?'<button class="btn primary dr-next" data-act="kbnext">Davom etish</button>':'');}
+  return head+'<section class="dr-card"><span class="dr-k">'+esc(KB_TIP[it.type]||"")+'</span>'+(it.ins?'<b class="ar kb-ins">'+it.ins+'</b>':'')+body+'</section>'+(canNext?'<button class="btn primary dr-next" data-act="kbnext">Davom etish</button>':'');}
 function kbMark(ok){KB.ans=!!ok;if(ok)KB.ok++;}
-function kbAnswer(o){const it=KB.items[KB.i];if(KB.ans!==null)return;KB.pick=o;kbMark(o===it.ok);try{if(typeof a0Hit==='function'&&/^a0:/.test(KB.key)){if(it.ltr)a0Hit(it.ltr,o===it.ok);a0Sk(it.type==='hear'?'tinglash':it.type==='pick'?'lugat':'oqish',o===it.ok);}}catch(e){}try{say(it.type==="hear"?it.say:it.type==="pick"?it.ar:it.say?it.say:it.type==="listen1"?it.ar:/[؀-ۿ]/.test(it.ok)?it.ok:it.q);}catch(e){}render();}
+function kbAnswer(o){const it=KB.items[KB.i];if(KB.ans!==null)return;KB.pick=o;kbMark(o===it.ok);try{if(typeof a0Hit==='function'&&/^a0:/.test(KB.key)){if(it.ltr)a0Hit(it.ltr,o===it.ok);a0Sk(it.type==='hear'?'tinglash':it.type==='pick'?'lugat':'oqish',o===it.ok);}}catch(e){}try{say(it.full?it.full:it.type==="hear"?it.say:it.type==="pick"?it.ar:it.say?it.say:it.type==="listen1"?it.ar:/[؀-ۿ]/.test(it.ok)?it.ok:it.q);}catch(e){}render();}
 function kbFinish(){const g=KB.items.filter(x=>KB_GRADED.includes(x.type)).length;const pc=g?Math.round(KB.ok/g*100):100;
   const B=kbBest(KB.key);if(B[KB.si]===undefined||pc>B[KB.si]){B[KB.si]=pc;store.set(FK("kb."+KB.key),B);}try{gain("game",Math.max(5,KB.ok*2));}catch(e){}try{scheduleSync();}catch(e){}}
 function kbAutoPlay(){const it=KB&&KB.items[KB.i];if(!it)return;const t=it.type==="hear"?it.say:it.type==="pick"?it.ar:it.say?it.say:it.type==="listen1"?it.ar:it.type==="qa"?it.q:it.type==="tf"?it.s:null;if(t)setTimeout(()=>{try{say(t);}catch(e){}},250);}
@@ -5755,7 +5766,7 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-kb],[data-
     render();return;}
   if(d.kbm!==undefined){if(KB.ans!==null)return;const side=d.kbm[0],k=+d.kbm.slice(1);it.flash=null;
     if(side==="L"){it.sel=k;try{say(it.pairs[k][0]);}catch(er){}}
-    else if(it.sel!==null){if(it.pairs[it.sel][1]===it.right[k]){it.done.push(it.sel);it.sel=null;if(it.done.length===it.pairs.length)kbMark(it.miss<=1);}else{it.miss++;it.flash=k;}}
+    else if(it.sel!==null){const P=it.pairs[it.sel],b=it.right[k];if(!it.used.includes(k)&&(P[1]===b||(P[2]||[]).includes(b))){it.done.push(it.sel);it.used.push(k);it.sel=null;if(it.done.length===it.pairs.length)kbMark(it.miss<=1);}else{it.miss++;it.flash=k;}}
     render();return;}
   if(d.kbc!==undefined){if(KB.ans!==null)return;if(d.kbc[0]==="w"){it.sel=+d.kbc.slice(1);try{say(it.words[it.sel][0]);}catch(er){}}else if(it.sel!==null){it.put[it.sel]=+d.kbc.slice(1);it.sel=null;}render();return;}},true);
 /* Internetsiz saqlangan javoblarni keyin yuborish */
@@ -5795,7 +5806,7 @@ const A0_LET=[["ا","alif","أَلِفٌ",2],["ب","ba","بَاءٌ",2],["ت","t
  ["ط","to","طَاءٌ",8],["ظ","zo","ظَاءٌ",8],["ع","ayn","عَيْنٌ",9],["غ","gʻayn","غَيْنٌ",9],["ف","fa","فَاءٌ",10],["ق","qof","قَافٌ",10],["ك","kof","كَافٌ",10],
  ["ل","lam","لَامٌ",11],["م","mim","مِيمٌ",11],["ن","nun","نُونٌ",12],["ه","ha (yengil)","هَاءٌ",12],["و","vav","وَاوٌ",13],["ي","ya","يَاءٌ",13]];
 const A0_NOJOIN="ادذرزو";
-const A0_TOPICS=["Salomlashuv va harakatlar","ا ب ت ث · «Ahvolingiz qanday?»","ج ح خ · «Qayerdansiz?»","د ذ · raqamlar 1–10","ر ز · soat","س ش · «Nima ish qilasiz?»","ص ض · sinf","ط ظ · joy soʻzlari","ع غ · «Qayerda yashaysiz?»","ف ق ك · ranglar","ل م · ovqat","ن ه · ة va ت","و ي · ob-havo, kunlar"];
+const A0_TOPICS=["Salomlashuv · harflar · harakatlar","ا ب ت ث · «Kayfa holuk?» · هَذَا / هَذِهِ","ج ح خ · «Qayerdansan?» · مَنْ / مَا","د ذ · raqamlar 1–10 · هَلْ","ر ز · soat · feʼllar","س ش · «Nima ish qilasan?» · olmoshlar","ص ض · sinf","ط ظ · joy soʻzlari · bekat","ع غ · «Qayerda yashaysan?»","ف ق ك · ranglar","ل م · ovqat · shamsiy va qamariy","ن ه · «Senga nima boʻldi?» · ة / ت","و ي · sifatlar · kunlar va oylar"];
 function a0Forms(l){const j=!A0_NOJOIN.includes(l);return [l,j?l+"ـ":l,j?"ـ"+l+"ـ":"ـ"+l,"ـ"+l];}
 function a0Info(l){const x=A0_LET.find(r=>r[0]===l||(l==="أ"&&r[0]==="ا"));return x||[l,l,l,0];}
 /* --- harf oʻzlashtirish hisobi --- */
@@ -5869,14 +5880,14 @@ KB_LESSONS["a0:2"]={title:"2-dars · ا ب ت ث",uz:"ا ب ت ث · Ahvolingiz 
 function a0Done(n){const B=kbBest("a0:"+n);return Object.keys(B).length;}
 function a0Counts(){let g=0,y=0;A0_LET.forEach(r=>{const s=a0State(r[0]);if(s===2)g++;else if(s===1)y++;});return {g,y};}
 function a0Grid(small){return '<div class="a0-grid'+(small?' sm':'')+'">'+A0_LET.map(r=>'<button class="a0-c s'+a0State(r[0])+'" data-a0l="'+r[0]+'" aria-label="'+esc(r[1])+'"><span class="ar">'+r[0]+'</span></button>').join("")+'</div>';}
-function a0HomeHTML(){const C=a0Counts();
+function a0HomeHTML(){try{kitobAudioLoad("a0/1");}catch(e){}const C=a0Counts();
   return '<header class="hm-ph"><span>Alifbodan boshlash</span><h1>A0 · Alifbo</h1></header>'+
    '<section class="a0-hero"><div class="a0-ht"><span>HARFLAR XARITASI</span><b>'+C.g+' / 28</b></div>'+a0Grid(1)+'<div class="a0-lg"><i class="s0"></i>boshlanmagan <i class="s1"></i>oʻrganilmoqda <i class="s2"></i>oʻzlashtirildi</div>'+
    '<div class="row2"><button class="btn ghost" data-go="a0map">Harflarni koʻrish</button><button class="btn primary" data-go="a0grow">📈 Mening oʻsishim</button></div></section>'+
    '<div class="hm-h" style="margin:16px 2px 8px"><b>Darslar</b><span>13 ta</span></div><div class="a0-path">'+
    A0_TOPICS.map((t,i)=>{const n=i+1,L=KB_LESSONS["a0:"+n];const d=L?a0Done(n):0,tot=L?L.steps.length:0;const st=!L?'soon':d>=tot?'done':d?'now':'';
      return '<button class="a0-st '+st+'" '+(L?'data-a0d="'+n+'"':'disabled')+'><span class="a0-n">'+(st==="done"?'✓':n)+'</span><span class="a0-t"><b>'+n+'-dars</b><small>'+esc(t)+'</small></span><span class="a0-p">'+(L?d+'/'+tot:'tez orada')+'</span></button>';}).join("")+'</div>';}
-function a0LessonHTML(n){const key="a0:"+n,L=KB_LESSONS[key],B=kbBest(key);
+function a0LessonHTML(n){const key="a0:"+n,L=KB_LESSONS[key],B=kbBest(key);try{kitobAudioLoad("a0/"+n);}catch(e){}
   return '<header class="bhead"><button class="linkbtn" data-go="a0">← A0 · Alifbo</button><div class="bh-t"><span class="muted">'+n+'-dars</span><h1>'+esc(L.uz)+'</h1></div></header>'+
    '<div class="tm-list">'+L.steps.map((s,i)=>{const b=B[i];return '<button class="dr-ses" data-kb="'+key+'|'+i+'"><span class="dr-n">'+(b!==undefined&&b>=80?'✓':i+1)+'</span><span class="dr-st"><b>'+esc(s.t)+' <span class="ar kb-sar">'+s.ar+'</span></b><small>'+esc(s.d)+'</small></span>'+(b!==undefined?'<span class="dr-sc">'+b+'%</span>':'')+'</button>';}).join("")+'</div>';}
 function a0MapHTML(){const sel=S.a0l||"ب";const I=a0Info(sel);const F=a0Forms(I[0]);const x=a0L()[I[0]]||{c:0,w:0,t:0};
@@ -5971,6 +5982,82 @@ function trCheck(){if(!TR||!TR.n)return {ok:false,cov:0,pre:0};const m=document.
   const cov=g?gc/g:0,pre=us?ui/us:0;return {ok:cov>=0.55&&pre>=0.7,cov,pre};}
 /* roʻyxatdan oʻtishda A0 darajasi */
 if(!REGL.some(x=>x[0]==="a0"))REGL.unshift(["a0","A0","Alifbo","Arab harflarini endi oʻrganasiz. A0 alifbo kursidan boshlaysiz."]);
+
+/* ===== A0 · «Al-Manhaj Al-ʻAlamiy» (At-Tamhidiy) kitobi mashqlari — Senabel ruxsati bilan (2026-10-30).
+   Mashqlar kitob betlari tartibida. Ovoz: kitob audiosi (yopiq ombor "kitob/a0/N"), boʻlmasa sunʼiy ovoz. ===== */
+const A0K_INS=(ins,arr)=>arr.map(x=>Object.assign({ins},x));
+const A0K_W9=[["كِتَابٌ","kitob","📕"],["قَلَمٌ","ruchka, qalam","🖊️"],["دَفْتَرٌ","daftar","📓"],["حَقِيبَةٌ","sumka","🎒"],["طَالِبٌ","talaba (erkak)","🧑‍🎓"],["مُعَلِّمٌ","oʻqituvchi (erkak)","👨‍🏫"],["طَاوِلَةٌ","stol",""],["كُرْسِيٌّ","stul","🪑"],
+ ["بَابٌ","eshik","🚪"],["سَبُّورَةٌ","doska",""],["صَفٌّ","sinf","🏫"],["سَاعَةٌ","soat","⏰"],["هَاتِفٌ","telefon","📱"],["تِلْفَازٌ","televizor","📺"],["نُقُودٌ","pul","💵"],["مَاءٌ","suv","💧"]];
+const A0K_W10=[["شَارِعٌ","koʻcha","🛣️"],["سَيَّارَةٌ","mashina","🚗"],["حَافِلَةٌ","avtobus","🚌"],["مَصْرِفٌ","bank","🏦"],["بَيْتٌ","uy","🏠"],["حَمَّامٌ","hammom, vannaxona","🛁"],["مَتْجَرٌ","doʻkon","🏪"],["صَيْدَلِيَّةٌ","dorixona","💊"],
+ ["مَرِيضٌ","bemor","🤒"],["طَبِيبٌ","shifokor","👨‍⚕️"],["شَمْسٌ","quyosh","☀️"],["رَجُلٌ","erkak kishi","👨"],["امْرَأَةٌ","ayol","👩"],["آسِفٌ","kechirasiz, afsusdaman","😔"],["مَشْغُولٌ","band",""],["شُكْرًا","rahmat",""],["خُبْزٌ","non","🍞"],["طَعَامٌ","taom","🍽️"],["عَصِيرٌ","sharbat","🧃"]];
+const A0K_LET="أ ب ت ث ج ح خ د ذ ر ز س ش ص ض ط ظ ع غ ف ق ك ل م ن ه و ي".split(" ");
+const A0K_SH=l=>l==="أ"?["أَ","أُ","إِ"]:[l+"َ",l+"ُ",l+"ِ"];
+const A0K_LG=l=>l==="أ"?["آ","أُو","إِي"]:[l+"َا",l+"ُو",l+"ِي"];
+const A0K_CH=(a,n)=>{const r=[];for(let i=0;i<a.length;i+=n)r.push(a.slice(i,i+n));return r;};
+const A0K_PICK=(W,list)=>{const pool=W.filter(w=>w[2]).map(w=>w[2]);return list.map(ar=>{const w=W.find(x=>x[0]===ar);return {type:"pick",ar,ok:w[2],pool};});};
+
+KB_LESSONS["a0:1"]={title:"1-dars · Salomlashuv, harflar, harakatlar",uz:"Salomlashuv, harflar, harakatlar",a0:1,book:"Al-Manhaj · At-Tamhidiy",steps:[
+ {k:"salom",t:"8-bet · Salomlashuv",ar:"السَّلَامُ عَلَيْكُمْ",d:"Tinglang, takrorlang, suhbat, ulash",items:[
+  {type:"intro",ins:"اِسْتَمِعْ وَكَرِّرْ",words:[["السَّلَامُ عَلَيْكُمْ","Assalomu alaykum"],["مَرْحَبًا","Salom (marhabo)"],["أَهْلًا وَسَهْلًا","Xush kelibsiz"],["اسْمِي","Mening ismim"]]},
+  {type:"read",ins:"اِسْتَمِعْ وَتَحَدَّثْ",title:"السَّلَامُ عَلَيْكُمْ",lines:[["مُحَمَّدٌ","السَّلَامُ عَلَيْكُمْ.","Assalomu alaykum."],["كَرِيمٌ","وَعَلَيْكُمُ السَّلَامُ.","Va alaykum assalom."],["مُحَمَّدٌ","مَرْحَبًا.","Salom."],["كَرِيمٌ","أَهْلًا وَسَهْلًا.","Xush kelibsiz."],["مُحَمَّدٌ","اسْمِي مُحَمَّدٌ.","Mening ismim Muhammad."],["كَرِيمٌ","اسْمِي كَرِيمٌ.","Mening ismim Karim."],["مُحَمَّدٌ","أَنَا مِنْ مِصْرَ.","Men Misrdanman."]]},
+  {type:"match",ins:"صِلِ التَّرَاكِيبَ الْآتِيَةَ بِمَا يُنَاسِبُهَا",q:"Har bir iboraga javobini toping",pairs:[["السَّلَامُ عَلَيْكُمْ.","وَعَلَيْكُمُ السَّلَامُ."],["مَرْحَبًا.","أَهْلًا وَسَهْلًا."],["اسْمِي مُحَمَّدٌ.","اسْمِي كَرِيمٌ."],["أَنَا مِنْ مِصْرَ.","أَنَا مِنْ طَشْقَنْدَ."]]},
+  {type:"free",ins:"اِسْتَمِعْ وَتَحَدَّثْ",q:"Oʻzingizni tanishtiring: salom bering, ismingizni va qayerdan ekaningizni arabcha yozing.",hint:"السَّلَامُ عَلَيْكُمْ. اسْمِي ... أَنَا مِنْ ..."}]},
+ {k:"soz9",t:"9-bet · Mashhur soʻzlar",ar:"كَلِمَاتٌ مَشْهُورَةٌ",d:"16 soʻz: sinf va kundalik hayot",items:[
+  {type:"intro",ins:"اِسْتَمِعْ وَكَرِّرْ",words:A0K_W9.map(w=>[w[0],(w[2]?w[2]+" ":"")+w[1]])},
+  ...A0K_PICK(A0K_W9,["قَلَمٌ","حَقِيبَةٌ","كُرْسِيٌّ","سَاعَةٌ","هَاتِفٌ","نُقُودٌ","مُعَلِّمٌ","مَاءٌ"])]},
+ {k:"soz10",t:"10-bet · Mashhur soʻzlar",ar:"كَلِمَاتٌ مَشْهُورَةٌ",d:"19 soʻz: shahar, odamlar, ovqat",items:[
+  {type:"intro",ins:"اِسْتَمِعْ وَكَرِّرْ",words:A0K_W10.map(w=>[w[0],(w[2]?w[2]+" ":"")+w[1]])},
+  ...A0K_PICK(A0K_W10,["سَيَّارَةٌ","حَافِلَةٌ","صَيْدَلِيَّةٌ","طَبِيبٌ","شَمْسٌ","امْرَأَةٌ","خُبْزٌ","عَصِيرٌ"]),
+  {type:"listen1",ar:"شُكْرًا",opts:["Rahmat","Kechirasiz","Band"],ok:"Rahmat"},
+  {type:"listen1",ar:"مَشْغُولٌ",opts:["Band","Bemor","Rahmat"],ok:"Band"}]},
+ {k:"harf",t:"11-bet · Harflar",ar:"الْحُرُوفُ",d:"28 harf: nomi va shakli",items:[
+  {type:"alphabet",ins:"اِسْتَمِعْ وَكَرِّرْ"},
+  {type:"hear",say:"بَ",opts:["ب","ن","ي"],ok:"ب",ltr:"ب"},{type:"hear",say:"جَ",opts:["ج","ح","خ"],ok:"ج",ltr:"ج"},
+  {type:"hear",say:"سَ",opts:["ش","س","ص"],ok:"س",ltr:"س"},{type:"hear",say:"مَ",opts:["ن","م","ل"],ok:"م",ltr:"م"},
+  {type:"hear",say:"قَ",opts:["ف","ق","ك"],ok:"ق",ltr:"ق"},{type:"hear",say:"دَ",opts:["د","ذ","ر"],ok:"د",ltr:"د"}]},
+ {k:"qisqa",t:"12-bet · Qisqa harakatlar",ar:"الْحَرَكَاتُ الْقَصِيرَةُ",d:"Fatha, damma, kasra — 28 harf",rule:{h:"ـَ  ـُ  ـِ",p:["<b>Fatha</b> ( ـَ ) — «a»: <span class=\"ar\">بَ</span> «ba».","<b>Damma</b> ( ـُ ) — «u»: <span class=\"ar\">بُ</span> «bu».","<b>Kasra</b> ( ـِ ) — «i»: <span class=\"ar\">بِ</span> «bi».","Har bir boʻgʻinni bosing: kitobdagi ovozni eshitasiz va qaytarasiz."]},items:[
+  ...A0K_INS("اِسْتَمِعْ وَكَرِّرْ",A0K_CH(A0K_LET,7).map(g=>({type:"ladder",rows:g.map(A0K_SH)}))),
+  {type:"hear",say:"بُ",opts:["بَ","بُ","بِ"],ok:"بُ",ltr:"ب"},{type:"hear",say:"سِ",opts:["سَ","سُ","سِ"],ok:"سِ",ltr:"س"},
+  {type:"hear",say:"خَ",opts:["خَ","خُ","خِ"],ok:"خَ",ltr:"خ"},{type:"hear",say:"لُ",opts:["لَ","لُ","لِ"],ok:"لُ",ltr:"ل"},
+  {type:"hear",say:"عِ",opts:["عَ","عُ","عِ"],ok:"عِ",ltr:"ع"},{type:"hear",say:"نَ",opts:["نَ","نُ","نِ"],ok:"نَ",ltr:"ن"}]},
+ {k:"tavil",t:"12-bet · Choʻziq harakatlar",ar:"الْحَرَكَاتُ الطَّوِيلَةُ",d:"Choʻziq unlilar — 28 harf",rule:{h:"ـَا  ـُو  ـِي",p:["Fatha + <span class=\"ar\">ا</span> — choʻziq «aa»: <span class=\"ar\">بَا</span>.","Damma + <span class=\"ar\">و</span> — choʻziq «uu»: <span class=\"ar\">بُو</span>.","Kasra + <span class=\"ar\">ي</span> — choʻziq «ii»: <span class=\"ar\">بِي</span>."]},items:[
+  ...A0K_INS("اِسْتَمِعْ وَكَرِّرْ",A0K_CH(A0K_LET,7).map(g=>({type:"ladder",rows:g.map(A0K_LG)}))),
+  {type:"hear",say:"بَا",opts:["بَ","بَا"],ok:"بَا",ltr:"ب"},{type:"hear",say:"تُ",opts:["تُ","تُو"],ok:"تُ",ltr:"ت"},
+  {type:"hear",say:"دِي",opts:["دِ","دِي"],ok:"دِي",ltr:"د"},{type:"hear",say:"مُو",opts:["مَا","مُو","مِي"],ok:"مُو",ltr:"م"},
+  {type:"hear",say:"رِي",opts:["رَا","رُو","رِي"],ok:"رِي",ltr:"ر"},{type:"hear",say:"كَا",opts:["كَا","كُو","كِي"],ok:"كَا",ltr:"ك"}]},
+ {k:"yozish",t:"13-bet · Harflarni yozish",ar:"الْكِتَابَةُ",d:"Chiziq ustida va ostida",rule:{h:"فَوْقَ السَّطْرِ · تَحْتَهُ",p:["Baʼzi harflar butunlay <b>chiziq ustida</b> yoziladi: <span class=\"ar\">أ ب ت ث د ذ ط ظ ف ك ه</span>.","Baʼzilari <b>chiziq ostiga ham tushadi</b>: <span class=\"ar\">ج ح خ س ش ص ض ع غ ق ل م ن ي</span>, shuningdek <span class=\"ar\">ر ز و</span>.","Yozuv oʻngdan chapga."]},items:[
+  {type:"classify",ins:"اُكْتُبِ الْحُرُوفَ",q:"Harfni bosing, keyin ustunini tanlang",cols:["فَوْقَ السَّطْرِ","فَوْقَ السَّطْرِ وَتَحْتَهُ"],words:[["ب",0],["د",0],["ف",0],["ط",0],["ج",1],["س",1],["ع",1],["م",1]]},
+  ...A0K_INS("أَظْهِرْ شَكْلَ الْحَرْفِ ثُمَّ اكْتُبْهُ",["ا","ب","ج","د","س","ع"].map(l=>({type:"trace",l})))]},
+ {k:"tartib",t:"14-bet · Harflar mashqi",ar:"تَدْرِيبَاتٌ",d:"Toʻldiring, ulang, tartiblang",items:[
+  ...A0K_INS("أَكْمِلْ كِتَابَةَ الْحُرُوفِ",[["أ","ت","ب",["ب","ن","ي"]],["ت","ج","ث",["ث","ش","ن"]],["ج","خ","ح",["ح","ع","هـ"]],["خ","ذ","د",["د","ر","ز"]],["ز","ش","س",["س","ص","ض"]],["ض","ظ","ط",["ط","ك","ق"]],["ظ","غ","ع",["ع","ح","ف"]],["ق","ل","ك",["ك","م","ن"]]]
+   .map(([a,b,ok,o])=>({type:"choose",q:a+"   …   "+b,qz:"Qaysi harf tushib qolgan?",opts:o,ok,full:a+" "+ok+" "+b,ltr:ok}))),
+  {type:"match",ins:"صِلِ الْحُرُوفَ الْمُتَشَابِهَةَ",q:"Bir-biriga oʻxshash harflarni juftlang",pairs:[["ب","ت"],["د","ذ"],["ف","ق"],["ج","ح"],["ص","ض"],["ر","ز"],["س","ش"]]},
+  {type:"order",ins:"رَتِّبِ الْحُرُوفَ الْآتِيَةَ",uz:"Harflarni alifbo tartibida bosing (birinchisi — oʻngda)",words:["ف","س","ض","ق","ت","و","غ","ل"],ok:"ت س ض غ ف ق ل و"}]},
+ {k:"ulanish",t:"14-bet · Ulanmaydigan harflar",ar:"تَعَلَّمْ",d:"أ د ذ ر ز و",rule:{h:"أ  د  ذ  ر  ز  و",p:["Bu 6 harf <b>oʻzidan oldingi</b> harfga ulanadi ( ✓ <span class=\"ar\">ـأ ـد ـذ ـر ـز ـو</span> ),","lekin <b>oʻzidan keyingi</b> harfga ulanmaydi ( ✗ ).","Masalan: <span class=\"ar\">دَارٌ</span>, <span class=\"ar\">وَرْدٌ</span> — harflar alohida turadi."]},items:[
+  {type:"choose",q:"Qaysi harf keyingi harfga ulanmaydi?",opts:["د","ب","م"],ok:"د",ltr:"د"},
+  {type:"choose",q:"Qaysi harf keyingi harfga ulanmaydi?",opts:["ن","و","ك"],ok:"و",ltr:"و"},
+  {type:"choose",q:"Qaysi harf keyingi harfga ulanmaydi?",opts:["ل","ت","ر"],ok:"ر",ltr:"ر"},
+  {type:"choose",q:"Qaysi harf keyingi harfga ulanmaydi?",opts:["ز","س","ج"],ok:"ز",ltr:"ز"},
+  {type:"choose",q:"Qaysi qatordagi harflarning hammasi keyingi harfga ulanmaydi?",opts:["أ د ذ ر ز و","ب ت ث ن ي","ج ح خ ع غ"],ok:"أ د ذ ر ز و"}]},
+ {k:"tanvin",t:"15-bet · Tanvin",ar:"التَّنْوِينُ",d:"ـٌ  ـً  ـٍ",rule:{h:"ـٌ  ـً  ـٍ",p:["<b>Tanvin</b> — soʻz oxiridagi qoʻsh harakat, «-n» bilan oʻqiladi.","<span class=\"ar\">تَنْوِينٌ بِالضَّمِّ</span> — «-un»: <span class=\"ar\">بَيْتٌ</span>","<span class=\"ar\">تَنْوِينٌ بِالْفَتْحِ</span> — «-an»: <span class=\"ar\">بَيْتًا</span>","<span class=\"ar\">تَنْوِينٌ بِالْكَسْرِ</span> — «-in»: <span class=\"ar\">بَيْتٍ</span>"]},items:[
+  {type:"ladder",ins:"اِسْتَمِعْ وَكَرِّرْ ثُمَّ اقْرَأْ",rows:[["بَيْتٌ","قَلَمٌ","بَابٌ","كِتَابٌ"],["بَيْتًا","قَلَمًا","بَابًا","كِتَابًا"],["بَيْتٍ","قَلَمٍ","بَابٍ","كِتَابٍ"]]},
+  {type:"hear",say:"قَلَمٍ",opts:["قَلَمٌ","قَلَمًا","قَلَمٍ"],ok:"قَلَمٍ"},{type:"hear",say:"بَابًا",opts:["بَابٌ","بَابًا","بَابٍ"],ok:"بَابًا"},
+  {type:"hear",say:"كِتَابٌ",opts:["كِتَابٌ","كِتَابًا","كِتَابٍ"],ok:"كِتَابٌ"},{type:"hear",say:"بَيْتٍ",opts:["بَيْتٌ","بَيْتًا","بَيْتٍ"],ok:"بَيْتٍ"},
+  {type:"choose",q:"«-an» deb oʻqiladigan tanvin qaysi?",opts:["ـٌ","ـً","ـٍ"],ok:"ـً"}]},
+ {k:"shadda",t:"15-bet · Shadda",ar:"الشَّدَّةُ",d:"Shadda = ikki harf",rule:{h:"الشَّدَّةُ  ـّ  =  حَرْفَانِ",p:["<b>Shadda</b> ( ـّ ) — harf ikki marta: birinchisi sukunli, ikkinchisi harakatli.","<span class=\"ar\">شَدَّ = شَ + دْ + دَ</span>","<span class=\"ar\">مَرَّ = مَ + رْ + رَ</span>","<span class=\"ar\">رُمَّانٌ = رُ + مْ + مَ + ا + نٌ</span>"]},items:A0K_INS("حَلِّلِ الْكَلِمَاتِ التَّالِيَةَ إِلَى حُرُوفٍ",[
+  {type:"letters",see:"حَمَّامٌ",show:"حَمَّامٌ",q:"Soʻzni harflarga ajrating: harflarni tartib bilan bosing",letters:["حَ","مْ","مَ","ا","مٌ"]},
+  {type:"letters",see:"مُعَلِّمٌ",show:"مُعَلِّمٌ",q:"Soʻzni harflarga ajrating: harflarni tartib bilan bosing",letters:["مُ","عَ","لْ","لِ","مٌ"]},
+  {type:"letters",see:"كُرْسِيٌّ",show:"كُرْسِيٌّ",q:"Soʻzni harflarga ajrating: harflarni tartib bilan bosing",letters:["كُ","رْ","سِ","يْ","يٌ"]},
+  {type:"letters",see:"سَبُّورَةٌ",show:"سَبُّورَةٌ",q:"Soʻzni harflarga ajrating: harflarni tartib bilan bosing",letters:["سَ","بْ","بُ","و","رَ","ةٌ"]}])},
+ {k:"nazorat",t:"Nazorat · 1-dars",ar:"اخْتِبَارٌ",d:"8–15-betlar boʻyicha",items:[
+  {type:"listen1",ar:"أَهْلًا وَسَهْلًا",opts:["Xush kelibsiz","Rahmat","Mening ismim"],ok:"Xush kelibsiz"},
+  {type:"pick",ar:"حَقِيبَةٌ",ok:"🎒",pool:A0K_W9.concat(A0K_W10).filter(w=>w[2]).map(w=>w[2])},
+  {type:"pick",ar:"طَبِيبٌ",ok:"👨‍⚕️",pool:A0K_W9.concat(A0K_W10).filter(w=>w[2]).map(w=>w[2])},
+  {type:"hear",say:"ثُ",opts:["ثَ","ثُ","ثِ"],ok:"ثُ",ltr:"ث"},
+  {type:"hear",say:"فِي",opts:["فِ","فِي","فَا"],ok:"فِي",ltr:"ف"},
+  {type:"hear",say:"بَابٍ",opts:["بَابٌ","بَابًا","بَابٍ"],ok:"بَابٍ"},
+  {type:"choose",q:"Qaysi harf keyingi harfga ulanmaydi?",opts:["ذ","ف","ه"],ok:"ذ",ltr:"ذ"},
+  {type:"letters",see:"صَفٌّ",show:"صَفٌّ",q:"Soʻzni harflarga ajrating",letters:["صَ","فْ","فٌ"]}]}]};
 
 BOOKS[0].gen=RULE_GEN;try{setBook(store.get("a1.book","a1"))}catch(e){}
 if(S.view==="unit"){}
