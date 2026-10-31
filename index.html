@@ -7491,14 +7491,25 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-gkick],[da
 /* ===== Admin: kitob audiosini ilova ichidan yuklash (Supabase sahifasisiz) ===== */
 let KUP=null;
 {const _a=adminHTML;adminHTML=function(){const h=_a();const K=KUP||{};
-  const box='<section class="xcard kup"><b>📚 Kitob audiosi</b><small class="muted">Zipni kompyuterda oching, ichidagi barcha .mp3 fayllarni shu yerda tanlang (Ctrl + A). Ilova ularni yopiq «kitob» omboriga yuklaydi; bor fayllar oʻtkazib yuboriladi.</small>'+
+  const box='<section class="xcard kup"><b>📚 Kitob audiosi</b><small class="muted">Telegramdan yuklab olingan <b>zip faylni</b> shu yerda tanlang — ochish shart emas. Ilova ichidagi audiolarni yopiq «kitob» omboriga oʻzi yuklaydi; bor fayllar oʻtkazib yuboriladi.</small>'+
    (K.run?'<div class="a0hw-bar"><div><i style="width:'+Math.round(K.done/K.tot*100)+'%"></i></div><span>'+K.done+' / '+K.tot+'</span></div><small class="muted">Yuklanmoqda… ilovani yopmang.</small>':
-    '<label class="btn primary kup-pick">Fayllarni tanlash<input id="kupf" type="file" accept=".mp3,audio/mpeg" multiple hidden></label>')+
+    '<label class="btn primary kup-pick">📦 Zip faylni tanlash<input id="kupf" type="file" accept=".zip,application/zip,.mp3,audio/mpeg" multiple hidden></label>')+
    (K.res?'<p class="kup-res">✓ Yangi: <b>'+K.res.up+'</b> · bor edi: <b>'+K.res.skip+'</b>'+(K.res.bad?' · xato: <b style="color:var(--bad)">'+K.res.bad+'</b>':'')+'</p>':'')+
    '<button class="btn ghost sm" data-act="kupcount">Omborda nechta fayl bor?</button>'+(K.count!=null?'<small class="muted">Omborda: <b>'+K.count+'</b> ta audio</small>':'')+'</section>';
   return h+box;};}
-function kupRead(f){return new Promise(ok=>{const r=new FileReader();r.onload=()=>ok({name:f.name.toLowerCase(),b64:String(r.result).split(",")[1]||""});r.onerror=()=>ok(null);r.readAsDataURL(f);});}
-async function kupRun(list){const F=[...list].filter(f=>/^[0-9a-f]{40}\.mp3$/i.test(f.name));if(!F.length){toast("Mos .mp3 fayl topilmadi");return;}
+function kupRead(f){if(f.u8)return Promise.resolve({name:f.name,b64:kupB64(f.u8)});return new Promise(ok=>{const r=new FileReader();r.onload=()=>ok({name:f.name.toLowerCase(),b64:String(r.result).split(",")[1]||""});r.onerror=()=>ok(null);r.readAsDataURL(f);});}
+const kupB64=u8=>{let s="";for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s);};
+async function kupUnzip(file){const buf=new Uint8Array(await file.arrayBuffer());const dv=new DataView(buf.buffer);let e=-1;
+  for(let i=buf.length-22;i>=Math.max(0,buf.length-70000);i--){if(dv.getUint32(i,true)===0x06054b50){e=i;break;}}if(e<0)throw new Error("Zip fayl buzilgan");
+  const cnt=dv.getUint16(e+10,true);let p=dv.getUint32(e+16,true);const out=[];
+  for(let k=0;k<cnt;k++){if(dv.getUint32(p,true)!==0x02014b50)break;const meth=dv.getUint16(p+10,true),cs=dv.getUint32(p+20,true),nl=dv.getUint16(p+28,true),xl=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),lo=dv.getUint32(p+42,true);
+    const name=new TextDecoder().decode(buf.subarray(p+46,p+46+nl)).split("/").pop().toLowerCase();p+=46+nl+xl+cl;
+    if(!/^[0-9a-f]{40}\.mp3$/.test(name))continue;const ds=lo+30+dv.getUint16(lo+26,true)+dv.getUint16(lo+28,true);let data=buf.subarray(ds,ds+cs);
+    if(meth===8){if(typeof DecompressionStream==="undefined")throw new Error("Telefon zipni ocha olmadi");data=new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer());}
+    else if(meth!==0)continue;out.push({name,u8:data});}
+  return out;}
+async function kupRun(list){let F=[];try{for(const f of list){if(/\.zip$/i.test(f.name)||f.type==="application/zip"){toast("Zip ochilmoqda…");(await kupUnzip(f)).forEach(x=>F.push(x));}else if(/^[0-9a-f]{40}\.mp3$/i.test(f.name))F.push(f);}}catch(er){toast(er.message||"Zip ochilmadi");return;}
+  if(!F.length){toast("Zip ichida mos audio topilmadi");return;}
   KUP={run:true,done:0,tot:F.length,res:{up:0,skip:0,bad:0}};render();
   for(let i=0;i<F.length;i+=10){const part=(await Promise.all(F.slice(i,i+10).map(kupRead))).filter(Boolean);
     let tries=0;while(true){try{const j=await api("kitobPut",{files:part});KUP.res.up+=j.up;KUP.res.skip+=j.skip;KUP.res.bad+=j.bad;break;}catch(e){if(++tries>=3){KUP.res.bad+=part.length;break;}await new Promise(r=>setTimeout(r,1500));}}
