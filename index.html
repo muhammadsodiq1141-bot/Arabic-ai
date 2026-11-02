@@ -1072,7 +1072,7 @@ button.tm-row.adm-g{text-align:left;font-family:var(--f-ui);color:var(--ink);cur
 .sub-hw{margin:0;font-size:14px;line-height:1.5;background:var(--bg);border-radius:12px;padding:10px 12px}.sub-play{min-height:44px}
 .tm-act{display:flex;justify-content:flex-end}.tm-kick{color:var(--bad);font-size:13px;min-height:40px}.tm-kick.armed{font-weight:800;text-decoration:underline}
 .g-danger{gap:8px;border:1.5px solid var(--bad-soft)}.g-del{background:var(--bad-soft);color:var(--bad);border:0;min-height:48px;font-weight:800}.g-del.armed{background:var(--bad);color:#fff}
-.kup{gap:10px}.kup-pick{display:flex;align-items:center;justify-content:center;min-height:52px;cursor:pointer}.kup-res{margin:0;font-size:14px}.kup-rep{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:var(--soft,rgba(127,127,127,.08));cursor:pointer;line-height:1.35}.kup-rep input{width:20px;height:20px;margin:2px 0 0;flex:none;accent-color:var(--brand,#0f766e)}
+.kup{gap:10px}.kup-pick{display:flex;align-items:center;justify-content:center;min-height:52px;cursor:pointer}.kup-res{margin:0;font-size:14px}.kup-rep{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:var(--soft,rgba(127,127,127,.08));cursor:pointer;line-height:1.35}.kup-rep input{width:20px;height:20px;margin:2px 0 0;flex:none;accent-color:var(--accent)}
 /* --- jonli stikerlar --- */
 /* --- reaksiya stikerlari (3D emoji + ibora) --- */
 .rk{position:fixed;left:0;right:0;top:20%;z-index:9999;display:flex;justify-content:center;pointer-events:none}
@@ -9107,10 +9107,10 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-gkick],[da
 /* ===== Admin: kitob audiosini ilova ichidan yuklash (Supabase sahifasisiz) ===== */
 let KUP=null;
 {const _a=adminHTML;adminHTML=function(){const h=_a();const K=KUP||{};
-  const box='<section class="xcard kup"><b>📚 Kitob audiosi</b><small class="muted">Telegramdan yuklab olingan <b>zip faylni</b> shu yerda tanlang — ochish shart emas. Ilova ichidagi audiolarni yopiq «kitob» omboriga oʻzi yuklaydi; bor fayllar oʻtkazib yuboriladi.</small>'+
+  const box='<section class="xcard kup"><b>📚 Kitob audiosi</b><small class="muted">Telegramdan yuklab olingan <b>zip faylni</b> shu yerda tanlang — ochish shart emas. Ilova ichidagi audiolarni yopiq «kitob» omboriga oʻzi yuklaydi; '+(K.rep?'<b>nomi bir xil fayllar yangisiga almashtiriladi</b>':'bor fayllar oʻtkazib yuboriladi')+'.</small>'+
    (K.run?'<div class="a0hw-bar"><div><i style="width:'+Math.round(K.done/K.tot*100)+'%"></i></div><span>'+K.done+' / '+K.tot+'</span></div><small class="muted">Yuklanmoqda… ilovani yopmang.</small>':
     '<label class="kup-rep"><input type="checkbox" id="kuprep"'+(K.rep?' checked':'')+'> <span><b>Bor fayllarni almashtirish</b><br><small class="muted">Tozalangan audio yuborilganda yoqing — nomi bir xil fayllar yangisiga almashadi</small></span></label>'+'<label class="btn primary kup-pick">📦 Zip faylni tanlash<input id="kupf" type="file" accept=".zip,application/zip,.mp3,audio/mpeg" multiple hidden></label>')+
-   (K.res?'<p class="kup-res">✓ '+(K.rep?'Yuklandi (eskisi almashtirildi): <b>'+K.res.up+'</b>':'Yangi: <b>'+K.res.up+'</b> · bor edi: <b>'+K.res.skip+'</b>')+(K.res.bad?' · xato: <b style="color:var(--bad)">'+K.res.bad+'</b>':'')+'</p>':'')+
+   (K.res?'<p class="kup-res">✓ '+(K.res.rep?'Yuklandi (almashtirish rejimida): <b>'+K.res.up+'</b>'+(K.res.skip?' · almashtirilmadi: <b>'+K.res.skip+'</b>':''):'Yangi: <b>'+K.res.up+'</b> · bor edi: <b>'+K.res.skip+'</b>')+(K.res.bad?' · xato: <b style="color:var(--bad)">'+K.res.bad+'</b>':'')+'</p>':'')+
    '<button class="btn ghost sm" data-act="kupcount">Omborda nechta fayl bor?</button>'+(K.count!=null?'<small class="muted">Omborda: <b>'+K.count+'</b> ta audio</small>':'')+'</section>';
   return h+box;};}
 function kupRead(f){if(f.u8)return Promise.resolve({name:f.name,b64:kupB64(f.u8)});return new Promise(ok=>{const r=new FileReader();r.onload=()=>ok({name:f.name.toLowerCase(),b64:String(r.result).split(",")[1]||""});r.onerror=()=>ok(null);r.readAsDataURL(f);});}
@@ -9126,13 +9126,14 @@ async function kupUnzip(file){const buf=new Uint8Array(await file.arrayBuffer())
   return out;}
 async function kupRun(list){let F=[];try{for(const f of list){if(/\.zip$/i.test(f.name)||f.type==="application/zip"){toast("Zip ochilmoqda…");(await kupUnzip(f)).forEach(x=>F.push(x));}else if(/^[0-9a-f]{40}\.mp3$/i.test(f.name))F.push(f);}}catch(er){toast(er.message||"Zip ochilmadi");return;}
   if(!F.length){toast("Zip ichida mos audio topilmadi");return;}
-  const rep=!!(KUP&&KUP.rep);KUP={run:true,rep,done:0,tot:F.length,res:{up:0,skip:0,bad:0}};render();
+  const rep=!!(KUP&&KUP.rep);KUP={run:true,rep,done:0,tot:F.length,res:{up:0,skip:0,bad:0,rep}};render();
   for(let i=0;i<F.length;i+=10){const part=(await Promise.all(F.slice(i,i+10).map(kupRead))).filter(Boolean);
     let tries=0;while(true){try{const j=await api("kitobPut",{files:part,replace:rep});KUP.res.up+=j.up;KUP.res.skip+=j.skip;KUP.res.bad+=j.bad;break;}catch(e){if(++tries>=3){KUP.res.bad+=part.length;break;}await new Promise(r=>setTimeout(r,1500));}}
     KUP.done=Math.min(F.length,i+10);render();}
-  KUP.run=false;toast("Yuklash tugadi");render();}
-document.addEventListener("change",e=>{if(e.target&&e.target.id==="kuprep"){KUP=Object.assign(KUP||{},{rep:e.target.checked});return;}},true);
-document.addEventListener("change",e=>{if(e.target&&e.target.id==="kupf"&&e.target.files&&e.target.files.length)kupRun(e.target.files);},true);
+  KUP.run=false;KUP.rep=false;toast("Yuklash tugadi");render();}
+document.addEventListener("change",e=>{const t=e.target;if(!t)return;
+  if(t.id==="kuprep"){KUP=Object.assign(KUP||{},{rep:t.checked});render();}
+  else if(t.id==="kupf"&&t.files&&t.files.length)kupRun(t.files);},true);
 document.addEventListener("click",e=>{const t=e.target.closest("[data-act='kupcount']");if(!t)return;e.stopImmediatePropagation();t.disabled=true;
   api("kitobCount",{}).then(j=>{KUP=Object.assign(KUP||{},{count:j.n});render();}).catch(er=>{t.disabled=false;toast(er.message);});},true);
 
