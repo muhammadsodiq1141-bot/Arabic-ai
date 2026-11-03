@@ -1,7 +1,7 @@
 // Tasdiqlangan foydalanuvchi uchun asosiy qism: pastki menyu bo'limlari va ichki ekranlar.
 // 2-partiya: bosh sahifa. 3-partiya: darslar va uy vazifasi (unit, round, nazariya, test, saqlangan so'zlar).
-// 4-partiya: reyting (league), baholar (o'quvchi natijalari).
-import { BookOpen, Bookmark, ChevronRight, Clock, Moon, ShieldCheck, Sun, SunMoon } from "lucide-react";
+// 4-partiya: reyting (league), baholar (o'quvchi natijalari). 5-partiya: ustoz paneli (teacher, tsubs, thw, thwnew).
+import { BookOpen, Bookmark, ChevronRight, Clock, GraduationCap, Moon, ShieldCheck, Sun, SunMoon } from "lucide-react";
 import type { DayWord } from "../lib/data";
 import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
@@ -14,6 +14,9 @@ import { KbScreen } from "./Kitob";
 import { LeagueScreen } from "./League";
 import { Marks } from "./Marks";
 import { SavedScreen } from "./Saved";
+import { TeacherScreen } from "./Teacher";
+import { TeacherHwNewScreen, TeacherHwScreen } from "./TeacherHw";
+import { TeacherSubsScreen } from "./TeacherSubs";
 import { DayWordScreen, SoonScreen } from "./Small";
 import { TestScreen, TheoryScreen } from "./Theory";
 import { Lessons, RoundScreen, UnitScreen } from "./Unit";
@@ -53,6 +56,11 @@ function Profile() {
         <Avatar name={name} photo={tg.user?.photo_url} size={64} />
         <div><b>{name}</b><span>Login: {me?.login || "—"}</span><span>Daraja: {me?.level || "—"}{me?.group ? ` · ${me.group.title}` : ""}</span></div>
       </section>
+      {(me?.teacher || !!me?.myGroups?.length) && (
+        <button type="button" className="rowbtn" onClick={() => go("teacher")}>
+          <GraduationCap size={24} aria-hidden /><span><b>Ustoz paneli</b><small>Guruh, javoblar, uy vazifalari</small></span><ChevronRight size={20} aria-hidden />
+        </button>
+      )}
       {me?.admin && (
         <button type="button" className="rowbtn" onClick={() => go("adminRequests")}>
           <ShieldCheck size={24} aria-hidden /><span><b>Kirish so'rovlari</b><small>Yangi odamlarni tasdiqlash</small></span><ChevronRight size={20} aria-hidden />
@@ -76,6 +84,12 @@ export function Main() {
   if (route.view === "adminRequests") return <AdminRequests />;
   if (route.view === "dayword") return <DayWordScreen word={p.word as DayWord} />;
   if (route.view === "league") return <LeagueScreen />;
+  // ustoz paneli: code — guruh kodi
+  const gcode = String(p.code || "");
+  if (route.view === "teacher") return <TeacherScreen />;
+  if (route.view === "tsubs") return <TeacherSubsScreen key={gcode} code={gcode} />;
+  if (route.view === "thw") return <TeacherHwScreen key={gcode} code={gcode} />;
+  if (route.view === "thwnew") return <TeacherHwNewScreen code={gcode} />;
   if (route.view === "soon") return <SoonScreen title={String(p.title || "Bo'lim")} />;
   // uy vazifasi: book — kitob ID (a1, md1 ...), unit — vahda raqami, n — round raqami
   const book = String(p.book || "a1"), unit = Number(p.unit) || 1;

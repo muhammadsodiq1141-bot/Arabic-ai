@@ -4,6 +4,7 @@
 import { api } from "./api";
 import { loadData } from "./data";
 import { bkKey, dayKey, hwProgress, weekId, type Book } from "./progress";
+import { mySummary } from "./summary";
 import { tg } from "./tg";
 
 const PREFIX = /^(a1\.|bk\.|x\.|f\.)/;
@@ -124,7 +125,9 @@ export async function syncNow() {
         hw.push({ id: h.id, progress: { words: p.words, test: p.test, rules: p.rules, done: p.done }, done: p.done });
       } catch { /* kitob yuklanmadi */ }
     }
-    await api("sync", { data: collect(), week: weekId(), xpWeek, hw });
+    // _sum (qisqa hisobot) — eski ilova ham har sync'da yuboradi; yuborilmasa server uni o'chiradi va ustoz paneli bo'sh qoladi
+    const sum = await mySummary().catch(() => undefined);
+    await api("sync", { data: collect(), week: weekId(), xpWeek, hw, ...(sum ? { sum } : {}) });
     store.set("f.syncAt", Date.now());
   } catch { /* keyinroq */ }
   syncing = false;

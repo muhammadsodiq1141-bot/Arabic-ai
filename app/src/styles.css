@@ -685,3 +685,101 @@ html.obscured .app { filter: blur(22px); }
 .hwdone .btn { max-width: 360px; }
 @keyframes hw-in { from { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .hwdone { animation: none; } }
+
+/* ===== Ustoz paneli ===== */
+.rowbtn.tpanel { margin-top: 14px; background: var(--hero); color: var(--hero-ink); }
+.rowbtn.tpanel svg:first-child { color: var(--gold); }
+.rowbtn.tpanel small { color: var(--hero-ink); opacity: .78; }
+.teacher .chips { margin-bottom: 12px; }
+.t-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 4px 0 14px; }
+.t-stats div { background: var(--card); border-radius: 18px; padding: 12px 8px; box-shadow: var(--shadow); text-align: center; display: flex; flex-direction: column; gap: 2px; }
+.t-stats b { font-size: 24px; font-variant-numeric: tabular-nums; }
+.t-stats span { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.t-subs.has { box-shadow: 0 0 0 2px var(--gold), var(--shadow); }
+.t-badge { font-style: normal; min-width: 26px; height: 26px; padding: 0 8px; border-radius: 13px; background: var(--gold); color: #2A2418; font-weight: 800; font-size: 13px; display: grid; place-items: center; flex: none; }
+.t-act { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 6px; }
+.t-act .btn { padding: 0 10px; font-size: 14.5px; }
+.t-h { font-size: 18px; margin: 22px 2px 10px; }
+.t-h.first { margin-top: 0; }
+.t-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.t-mem { background: var(--card); border-radius: 20px; box-shadow: var(--shadow); padding: 4px 4px 12px; }
+.t-row { width: 100%; display: flex; align-items: center; gap: 12px; border: 0; background: none; padding: 10px 10px 6px; text-align: left; border-radius: 16px; }
+.t-row .ava { width: 44px; height: 44px; font-size: 15px; }
+.t-who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.t-who b { font-size: 15.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.t-who small { font-size: 13px; font-weight: 600; color: var(--muted); }
+.t-who small.on { color: var(--ok-line); font-weight: 800; }
+.t-who small.late { color: var(--bad); }
+.t-xp { font-weight: 800; font-size: 15px; color: var(--accent); font-variant-numeric: tabular-nums; }
+.t-chev { color: var(--muted); transition: transform .2s; flex: none; }
+.t-mem.open .t-chev { transform: rotate(180deg); }
+.t-days { display: grid; grid-template-columns: repeat(14, 1fr); gap: 4px; padding: 0 14px 0 66px; }
+.t-days i { height: 8px; border-radius: 3px; background: var(--soft); }
+.t-days i.on { background: var(--test); }
+.t-det { padding: 12px 14px 2px; margin-top: 10px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
+.t-kv { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; margin: 0; }
+.t-kv div { display: flex; flex-direction: column; }
+.t-kv dt { font-size: 12px; font-weight: 800; color: var(--muted); }
+.t-kv dd { margin: 0; font-weight: 700; font-size: 14.5px; display: inline-flex; align-items: center; gap: 4px; }
+.t-kv dd svg { color: var(--star); }
+.t-bk { display: grid; grid-template-columns: 96px 1fr auto; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 700; }
+.t-bk b { font-variant-numeric: tabular-nums; }
+.t-note { margin: 0; font-size: 13.5px; font-weight: 600; color: var(--muted); }
+.t-kick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+.t-kick span { flex: 1 1 100%; font-size: 14px; font-weight: 700; }
+.t-kick .btn { height: 44px; font-size: 14px; }
+.btn.bad-fill { background: var(--bad); color: var(--bg); }
+.t-code { margin: 18px 4px 0; font-size: 13.5px; color: var(--muted); font-weight: 600; }
+.t-code b { color: var(--ink); letter-spacing: .08em; }
+/* javoblar */
+.tsubs .seg button { font-size: 13px; padding: 0 4px; }
+.ts-list, .th-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.ts-card { background: var(--card); border-radius: 20px; box-shadow: var(--shadow); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.ts-card.dunno { background: var(--soft); box-shadow: none; }
+.ts-hd { display: flex; flex-direction: column; }
+.ts-hd b { font-size: 15.5px; }
+.ts-hd small { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.ts-lesson { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 10px; background: var(--bg); font-size: 12.5px; font-weight: 800; color: var(--accent); }
+.ts-text { display: block; font-size: 21px; line-height: 1.8; text-align: right; padding: 10px 12px; border-radius: 14px; background: var(--bg); -webkit-user-select: text; user-select: text; }
+.ts-plain { margin: 0; font-size: 14.5px; line-height: 1.55; }
+.ts-voice { align-self: flex-start; height: 44px; }
+.ts-grade { display: flex; flex-direction: column; gap: 10px; }
+.ts-stars { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.ts-stars button { height: 48px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--bg); font-weight: 800; font-size: 18px; }
+.ts-stars button.on { background: var(--hero); color: var(--gold); border-color: var(--hero); }
+:root[data-theme="dark"] .ts-stars button.on { background: var(--gold); color: #1E2118; border-color: var(--gold); }
+.ts-cmt { height: 48px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--bg); padding: 0 14px; font: 600 15px Manrope, sans-serif; color: var(--ink); }
+.ts-done { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.ts-g { padding: 4px 12px; border-radius: 12px; background: var(--ok-bg); color: var(--ok-line); font-weight: 800; font-size: 15px; }
+.ts-c { font-size: 14px; color: var(--muted); font-weight: 600; flex: 1; }
+.ts-done .kb-link { padding: 0 4px; }
+/* uy vazifalari */
+.th-card { background: var(--card); border-radius: 20px; box-shadow: var(--shadow); padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+.th-hd { display: flex; align-items: flex-start; gap: 12px; }
+.th-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.th-t b { font-size: 15.5px; }
+.th-t span { font-size: 13.5px; font-weight: 600; color: var(--muted); }
+.th-t em { font-style: normal; font-size: 13.5px; font-weight: 600; }
+.th-due { flex: none; text-align: right; font-weight: 800; font-size: 13.5px; display: flex; flex-direction: column; }
+.th-due small { font-weight: 600; color: var(--muted); font-size: 12.5px; }
+.th-due.late { color: var(--bad); }
+.th-prog { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; font-size: 13.5px; }
+.th-prog .mk-b { height: 8px; border-radius: 4px; }
+.th-prog .mk-b i { background: var(--test); }
+.th-who { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; min-height: 44px; border: 0; background: none; padding: 0; color: var(--accent); font-weight: 800; font-size: 14.5px; }
+.th-card:has(.th-rows) .th-who svg { transform: rotate(180deg); }
+.th-rows { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--line); padding-top: 10px; }
+.th-row { display: grid; grid-template-columns: 26px 1fr; align-items: center; gap: 2px 10px; padding: 6px 0; }
+.th-mark { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; grid-row: span 2; }
+.th-row.ok .th-mark { background: var(--good); border-color: var(--good); color: var(--good-ink); }
+.th-n { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.th-n b { font-size: 14.5px; }
+.th-n small { font-size: 12px; color: var(--muted); font-weight: 600; }
+.th-p { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.form select { height: 50px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--bg); padding: 0 12px; font: 600 15.5px Manrope, sans-serif; color: var(--ink); }
+.form input[type="date"] { font-variant-numeric: tabular-nums; }
+.th-field { border: 0; margin: 0; padding: 0; }
+.th-field legend { font-size: 13px; font-weight: 800; color: var(--muted); margin-bottom: 6px; padding: 0; }
+.th-field .chips { margin: 0; padding: 0; flex-wrap: wrap; }
+.th-hint { font-weight: 700; color: var(--accent); }
+.th-cond { margin: 0; font-size: 13px; line-height: 1.5; color: var(--muted); font-weight: 600; }

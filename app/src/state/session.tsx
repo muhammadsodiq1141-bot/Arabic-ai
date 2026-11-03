@@ -13,6 +13,8 @@ export type Me = {
   admin: boolean;
   tg?: number | null;
   access: Access;
+  teacher?: boolean; // ustozlik ruxsati (role=teacher, guruh egasi yoki admin)
+  myGroups?: { code: string; title: string }[]; // ustoz ochgan guruhlar
 };
 export type Phase = "loading" | "noauth" | "register" | "pending" | "rejected" | "ready" | "error";
 

@@ -2,7 +2,7 @@
 // hamma ma'lumot soxta. Haqiqiy saytda (github.io) yoqilmaydi.
 const q = new URLSearchParams(location.search);
 const local = ["localhost", "127.0.0.1"].includes(location.hostname);
-export const DEMO: string | null = local ? q.get("demo") : null; // pending | rejected | approved | admin | new
+export const DEMO: string | null = local ? q.get("demo") : null; // pending | rejected | approved | admin | new | teacher
 
 const people = [
   { sid: "tg101", name: "Aziz Karimov", tgName: "Aziz", user: "aziz_k", level: "A1", group: { code: "K7QX2M", title: "A1-ertalab", teacher: "Domla" }, at: new Date(Date.now() - 5 * 6e4).toISOString(), seen: null },
@@ -14,6 +14,15 @@ const people = [
 export async function demoApi(action: string, p: Record<string, unknown>): Promise<Record<string, unknown>> {
   await new Promise((r) => setTimeout(r, 250));
   const admin = DEMO === "admin";
+  const teacher = DEMO === "teacher";
+  if (action === "me" && teacher) {
+    return {
+      ok: true, id: "tg201", name: "Malika", full_name: "Malika Rahimova", login: "MJ-20017", level: "C1", tg: 201, admin: false, access: "approved",
+      group: { code: "K7QX2M", title: "A1-ertalab", teacher: true }, teacher: true,
+      myGroups: [{ code: "K7QX2M", title: "A1-ertalab" }, { code: "P4WZ8N", title: "A2-kechki" }],
+    };
+  }
+  if (teacher) { const t = teacherDemo(action, p); if (t) return t; }
   if (action === "me") {
     if (DEMO === "new") return { ok: true, id: "tg101", name: "Aziz", full_name: null, login: null, level: null, group: null, admin: false, access: "pending" };
     return {
@@ -52,4 +61,40 @@ export async function demoApi(action: string, p: Record<string, unknown>): Promi
   if (action === "tts") throw new Error("demo: server ovozi yo'q"); // telefonning o'z ovoziga o'tadi
   if (action === "subSend") return { ok: true, id: 1 };
   return { ok: true }; // sync va boshqalar
+}
+
+// ===== Ustoz rejimi (?demo=teacher): guruh o'quvchilari, javoblar, vazifalar =====
+const iso = (minAgo: number) => new Date(Date.now() - minAgo * 6e4).toISOString();
+const day = (n: number) => { const x = new Date(); x.setDate(x.getDate() + n); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
+const sum = (o: Record<string, unknown>) => ({ v: 1, at: iso(30), book: "a1", mlt: 0, sh: 0, ...o });
+const MEM: Record<string, unknown>[] = [
+  { name: "Aziz", full_name: "Aziz Karimov", login: "MJ-48213", level: "A1", username: "aziz_k", last_seen: iso(20), kid: "k1", xp: 95,
+    sum: sum({ streak: 4, xpw: 95, xpt: 40, days: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 5, 2, 3], books: { a1: [42, 302] }, test: 70, kb: { "a1:4": [2, 10, 92] } }) },
+  { name: "Madina", full_name: "Madina Yusupova", login: "MJ-48877", level: "A1", username: "madina_y", last_seen: iso(200), kid: "k2", xp: 160,
+    sum: sum({ streak: 9, xpw: 160, xpt: 25, days: [1, 2, 1, 3, 2, 0, 1, 2, 3, 2, 4, 2, 3, 1], books: { a1: [118, 302] }, test: 88, kb: { "a1:3": [10, 10, 95], "a1:4": [6, 10, 81] } }) },
+  { name: "Dilnoza", full_name: "Dilnoza Rahmonova", login: "MJ-49002", level: "A1", username: "", last_seen: iso(60 * 26), kid: "k3", xp: 102,
+    sum: sum({ streak: 0, xpw: 102, xpt: 0, days: [0, 1, 1, 0, 2, 0, 0, 1, 0, 2, 3, 1, 0, 0], books: { a1: [77, 302] }, test: 64 }) },
+  { name: "Sardor", full_name: "Sardor Aliyev", login: "MJ-49110", level: "A1", username: "sardor_a", last_seen: iso(60 * 24 * 5), kid: "k4", xp: 0,
+    sum: sum({ streak: 0, xpw: 0, xpt: 0, days: [1, 1, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], books: { a1: [20, 302] }, test: null }) },
+  { name: "Nilufar", full_name: "Nilufar Saidova", login: "MJ-49231", level: "A0", username: "nilu", last_seen: iso(90), kid: "k5", xp: 65,
+    sum: sum({ streak: 3, xpw: 65, xpt: 15, days: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1], books: { a1: [0, 302] }, test: null, a0: { m: "2222211110000000000000000000", sp: 18 } }) },
+  { name: "Otabek", full_name: "Otabek Umarov", login: "MJ-49360", level: "A1", username: "", last_seen: null, kid: "k6", xp: 0, sum: null },
+];
+function teacherDemo(action: string, p: Record<string, unknown>): Record<string, unknown> | null {
+  if (action === "groupMembers") return { ok: true, members: p.code === "P4WZ8N" ? MEM.slice(0, 2).map((m) => ({ ...m, level: "A2" })) : MEM };
+  if (action === "subList") return { ok: true, items: [
+    { id: 31, lesson: "a1:4", step: "suhbat", item: 5, text: "أَنَا طَالِبٌ فِي الْجَامِعَةِ. أَعْمَلُ مِنَ الصَّبَاحِ حَتَّى الْمَسَاءِ.", created_at: iso(35), grade: null, comment: null, audio: false, name: "Aziz Karimov", login: "MJ-48213" },
+    { id: 32, lesson: "a1:4", step: "yozish", item: 10, text: "🎙 Ovozli javob", created_at: iso(120), grade: null, comment: null, audio: true, name: "Madina Yusupova", login: "MJ-48877" },
+    { id: 33, lesson: "a1:4", step: "lmashq2", item: 302, text: "Tushunmadim: «Lugʻat mashqlari» topshirig'ida 2 ta savolni o'tkazib yubordi (3, 7-savol).", created_at: iso(240), grade: null, comment: null, audio: false, name: "Dilnoza Rahmonova", login: "MJ-49002" },
+    { id: 30, lesson: "a1:3", step: "yozish", item: 9, text: "هَذِهِ جَامِعَتِي. هِيَ كَبِيرَةٌ وَجَمِيلَةٌ.", created_at: iso(60 * 30), grade: 5, comment: "Barakalla!", audio: false, name: "Madina Yusupova", login: "MJ-48877" },
+  ] };
+  if (action === "subAudio") throw new Error("Sinov rejimida ovoz yo'q");
+  if (action === "hwList") return { ok: true, items: [
+    { id: 7, group_code: "K7QX2M", book: "a1", unit: 4, title: "Kasblar va ishlar", due: day(2), mine: null, teacher: true, stats: { total: 6, done: 2 } },
+    { id: 8, group_code: "P4WZ8N", book: "a2", unit: 2, title: "", due: day(-1), mine: null, teacher: true, stats: { total: 2, done: 0 } },
+  ] };
+  if (action === "hwStatus") return { ok: true, rows: MEM.map((m, i) => ({ n: m.full_name, lg: m.login, done: i === 1 || i === 2, progress: i < 3 ? { words: [60, 100, 95][i], test: [70, 90, 82][i], rules: [50, 100, 80][i] } : null })) };
+  if (["subGrade", "hwDelete", "groupKick"].includes(action)) return { ok: true };
+  if (action === "hwCreate") return { ok: true, id: 9 };
+  return null;
 }

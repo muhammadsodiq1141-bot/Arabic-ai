@@ -1,7 +1,7 @@
 // Bosh sahifa (shablon tuzilishi, Mezon ranglari). Haqiqiy ma'lumot: progress (eski ilova formati), uy vazifasi (hwList),
 // guruh reytingi (leaderboard), kun so'zi (DAY_WORDS). Hali tayyor bo'lmagan bo'limlar bitta sokin "Tez orada" ro'yxatida (bosilmaydi).
 import { useEffect, useState } from "react";
-import { ArrowUpRight, Gift, Headphones, MessageCircle, Search, Star, TrendingUp, Trophy } from "lucide-react";
+import { ArrowUpRight, Gift, GraduationCap, Headphones, MessageCircle, Search, Star, TrendingUp, Trophy } from "lucide-react";
 import { api } from "../lib/api";
 import { BOT_LINK } from "../lib/config";
 import { img, loadData, type BookIndex, type DayWord } from "../lib/data";
@@ -102,6 +102,14 @@ export function Home() {
           <span>{rank === "none" ? "Yulduzcha to'plang" : rank !== null && rank.scope === "all" ? "Butun markazda" : "Guruhingizda"}</span>
         </button>
       </div>
+
+      {(me?.teacher || !!me?.myGroups?.length) && (
+        <button type="button" className="rowbtn tpanel" onClick={() => go("teacher")}>
+          <GraduationCap size={26} aria-hidden />
+          <span><b>Ustoz paneli</b><small>Guruh natijalari, javoblarni baholash, vazifa berish</small></span>
+          <ArrowUpRight size={20} aria-hidden />
+        </button>
+      )}
 
       <SectionTitle ar="الْمُفْرَدَاتُ" uz="Lug'at" />
       <div className="voc">
