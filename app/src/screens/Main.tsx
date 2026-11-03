@@ -1,36 +1,15 @@
 // Tasdiqlangan foydalanuvchi uchun asosiy qism: pastki menyu bo'limlari va ichki ekranlar.
-// 1-partiya: bosh sahifa sarlavhasi, profil, admin so'rovlari; qolgan bo'limlar keyingi partiyalarda to'ldiriladi.
-import { Bell, BookOpen, ChevronRight, ClipboardCheck, MessageCircle, Mic, Moon, ShieldCheck, Sun, SunMoon, Trophy } from "lucide-react";
+// 2-partiya: bosh sahifa. Darslar, mashq va baholar — keyingi partiyalarda.
+import { BookOpen, ChevronRight, ClipboardCheck, Mic, Moon, ShieldCheck, Sun, SunMoon } from "lucide-react";
+import type { DayWord } from "../lib/data";
 import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
 import { useTheme, type ThemePref } from "../state/theme";
 import { Avatar, BottomNav, Empty, SectionTitle } from "../ui/kit";
 import { AdminRequests } from "./AdminRequests";
-
-function HomeHeader() {
-  const { me } = useSession();
-  const name = me?.full_name || me?.name || "O'quvchi";
-  return (
-    <header className="top">
-      <Avatar name={name} photo={tg.user?.photo_url} />
-      <div className="who"><b>{name}</b><span>{me?.level || "—"}{me?.group ? ` · ${me.group.title}` : ""}</span></div>
-      <button type="button" className="ibtn" aria-label="Reyting"><Trophy size={22} aria-hidden /></button>
-      <button type="button" className="ibtn" aria-label="Bildirishnomalar"><Bell size={22} aria-hidden /></button>
-      <button type="button" className="ibtn" aria-label="Xabarlar"><MessageCircle size={22} aria-hidden /></button>
-    </header>
-  );
-}
-
-function Home() {
-  return (
-    <main className="screen">
-      <HomeHeader />
-      <SectionTitle ar="الْوَاجِبُ الْمَنْزِلِيُّ" uz="Uy vazifasi" />
-      <Empty icon={<BookOpen size={28} />} title="Bosh sahifa tayyorlanmoqda" text="Uy vazifasi, yulduzcha, tanga va reyting kartalari keyingi partiyada qo'shiladi." />
-    </main>
-  );
-}
+import { Home } from "./Home";
+import { DayWordScreen, SoonScreen } from "./Small";
 
 function Soon({ title, ar, Icon }: { title: string; ar: string; Icon: typeof Mic }) {
   return (
@@ -78,8 +57,11 @@ function Profile() {
 
 export function Main() {
   const { tab, route } = useNav();
-  const inner = route.view === "adminRequests" ? <AdminRequests /> : null;
-  if (inner) return inner;
+  const p = route.params || {};
+  if (route.view === "adminRequests") return <AdminRequests />;
+  if (route.view === "dayword") return <DayWordScreen word={p.word as DayWord} />;
+  if (route.view === "league") return <SoonScreen title="Reyting" />;
+  if (route.view === "soon") return <SoonScreen title={String(p.title || "Bo'lim")} />;
   return (
     <>
       {tab === "home" && <Home />}

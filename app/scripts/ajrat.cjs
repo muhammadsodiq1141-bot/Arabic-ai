@@ -57,6 +57,17 @@ for (const n of NAMES) {
   report.push(`${n}: ${(json.length / 1024).toFixed(0)} KB${fns ? ` (funksiya tashlab ketildi: ${fns})` : ""}`);
 }
 console.log(report.join("\n"));
+
+// Kitoblar alohida fayllarda (telefonda faqat keraklisi yuklanadi) + qisqa ro'yxat
+const books = JSON.parse(fs.readFileSync(path.join(OUT, "BOOKS.json"), "utf8"));
+fs.mkdirSync(path.join(OUT, "books"), { recursive: true });
+const index = books.map((b) => {
+  fs.writeFileSync(path.join(OUT, "books", b.id + ".json"), JSON.stringify(b), "utf8");
+  return { id: b.id, title: b.title, sub: b.sub, emo: b.emo, units: b.units.length,
+    words: b.units.reduce((a, u) => a + (u.words || []).length + (u.phrases || []).length, 0) };
+});
+fs.writeFileSync(path.join(OUT, "books", "index.json"), JSON.stringify(index), "utf8");
+console.log("kitoblar alohida:", index.map((b) => `${b.id}(${b.units})`).join(" "));
 if (skipped.length) console.log("O'tkazilgan e'lonlar (DOM bilan bog'liq bo'lishi mumkin):\n  " + skipped.slice(0, 40).join("\n  "));
 
 // 3D rasmlar: rasm.js -> alohida webp fayllar
