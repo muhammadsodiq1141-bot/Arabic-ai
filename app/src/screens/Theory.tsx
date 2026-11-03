@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, Video, X } from "lucide-react";
 import { img, loadData } from "../lib/data";
+import { theoryKey } from "../lib/next";
 import { bkKey, type Book } from "../lib/progress";
 import { gain, setBest, store } from "../lib/store";
 import { tg } from "../lib/tg";
@@ -11,7 +12,6 @@ import { useNav } from "../state/nav";
 import { Ar, ScreenHeader } from "../ui/kit";
 
 type Rule = { t: string; ar: string; html: string; quiz: [string, string[], number, string?][] };
-export const theoryKey = (book: string, unit: number) => `f.theory.${book}.${unit}`;
 
 function useRules(bookId: string, unit: number) {
   const [r, setR] = useState<{ rules: Rule[]; unitAr: string } | null>(null);

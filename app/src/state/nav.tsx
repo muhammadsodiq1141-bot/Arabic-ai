@@ -1,6 +1,7 @@
 // Ekranlar orasida yurish: pastki menyu bo'limlari (tab) va ichma-ich ekranlar (stack).
 // Telefon "orqaga" tugmasi ham ishlashi uchun brauzer tarixi bilan bog'langan.
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { clearToast } from "../ui/Toast";
 
 export type Tab = "home" | "lessons" | "practice" | "marks" | "profile";
 export type Route = { view: string; params?: Record<string, unknown> };
@@ -26,6 +27,8 @@ export function NavProvider({ children }: { children: ReactNode }) {
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
+
+  useEffect(() => { clearToast(); }, [stack, tab]); // ekran almashsa eski qisqa xabar yopiladi
 
   const go = useCallback((view: string, params?: Record<string, unknown>) => {
     history.pushState({ d: ++depth.current }, "");

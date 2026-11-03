@@ -3,6 +3,7 @@ import { SessionProvider, useSession } from "./state/session";
 import { useTheme } from "./state/theme";
 import { usePrivacy, Watermark } from "./ui/Guard";
 import { Logo } from "./ui/kit";
+import { Toaster } from "./ui/Toast";
 import { NoAuth, Pending, Problem, Register, Rejected } from "./screens/Gate";
 import { Main } from "./screens/Main";
 
@@ -27,7 +28,7 @@ export function App() {
   usePrivacy();
   return (
     <SessionProvider>
-      <div className="app"><Gate /></div>
+      <div className="app"><Gate /><Toaster /></div>
     </SessionProvider>
   );
 }

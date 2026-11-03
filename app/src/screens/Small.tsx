@@ -27,7 +27,7 @@ export function SoonScreen({ title }: { title: string }) {
   return (
     <main className="screen">
       <ScreenHeader title={title} />
-      <Empty icon={<Clock size={28} />} title="Tez orada" text="Bu bo'lim keyingi navbatlarda quriladi." />
+      <Empty icon={<Clock size={28} />} title="Tez orada" text="Bu bo'lim tayyorlanmoqda. Hozircha uy vazifasi va darslardan foydalaning." />
     </main>
   );
 }

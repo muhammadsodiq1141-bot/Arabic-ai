@@ -12,6 +12,8 @@ import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
 import { Emo, EmoLead } from "../ui/Emo";
 import { Ar } from "../ui/kit";
+import { CountUp } from "../ui/CountUp";
+import { Scale } from "../ui/Scale";
 
 export function KbScreen({ lessonKey, si, unitN }: { lessonKey: string; si: number; unitN: number }) {
   const { back } = useNav();
@@ -102,7 +104,6 @@ function Run({ L, st, lessonKey, si, unitN }: { L: KbLesson; st: KbStep; lessonK
       <main className="round kb">
         {head}
         <section className="kb-card kb-rule">
-          <span className="kb-k">QOIDA · {label}</span>
           <Ar className="kb-rh">{st.rule.h}</Ar>
           {st.rule.p.map((p, k) => <p key={k} dangerouslySetInnerHTML={{ __html: p }} />)}
         </section>
@@ -114,15 +115,16 @@ function Run({ L, st, lessonKey, si, unitN }: { L: KbLesson; st: KbStep; lessonK
   // Yakun
   if (i >= n || !it) {
     const p = pct ?? 0;
-    const stars = p >= 90 ? 3 : p >= 70 ? 2 : p >= 40 ? 1 : 0;
     const last = si >= L.steps.length - 1;
     return (
       <main className="round kb">
         <div className="r-done">
-          <div className="kb-stars" aria-label={`${stars} yulduz`}>{[1, 2, 3].map((k) => <Star key={k} size={44} className={k <= stars ? "on" : ""} aria-hidden />)}</div>
+          {/* tarozi: 70% dan yuqori bo'lsa muvozanatga keladi, past bo'lsa qiyshiq qoladi */}
+          <Scale size={150} balanced={p >= 70} star={p >= 70} />
           <h1>{p >= 90 ? "Mukammal!" : p >= 70 ? "Ajoyib!" : p >= 40 ? "Yaxshi, davom eting!" : "Yana bir bor urinib ko'ring"}</h1>
           <span className="kb-big">{p}%</span>
           <p>{label} · {ok} / {graded} to'g'ri</p>
+          <p className="r-earn"><Star size={22} aria-hidden /><CountUp to={Math.max(5, ok * 2)} />&nbsp;yulduzcha</p>
           {!last && <button type="button" className="btn primary wide" onClick={() => replace("kb", { key: lessonKey, si: si + 1, book: "a1", unit: unitN })}>Keyingi topshiriq: {L.steps[si + 1].t.split(" · ")[0]}</button>}
           <button type="button" className="btn ghost wide" onClick={() => replace("kb", { key: lessonKey, si, book: "a1", unit: unitN, n: Date.now() })}><RotateCcw size={18} aria-hidden />Qayta ishlash</button>
           <button type="button" className="btn ghost wide" onClick={back}>Vahdaga qaytish</button>
@@ -215,6 +217,7 @@ function Opts({ opts, ok, done, onPick }: { opts: string[]; ok: string; done: bo
         return (
           <button key={o} type="button" className={`opt ${s} ${isAr(o) ? "opt-r" : ""}`} disabled={done} onClick={() => { setPick(o); onPick(o); }}>
             {isAr(o) ? <Ar className="opt-ar">{o}</Ar> : o}
+            <Mark s={s} />
           </button>
         );
       })}
@@ -222,11 +225,18 @@ function Opts({ opts, ok, done, onPick }: { opts: string[]; ok: string; done: bo
   );
 }
 
+/** Javob belgisi: to'g'ri/xato faqat rang bilan bildirilmasin */
+function Mark({ s }: { s: string }) {
+  if (s === "ok") return <Check size={20} strokeWidth={3} className="opt-mark" aria-hidden />;
+  if (s === "no") return <X size={20} strokeWidth={3} className="opt-mark" aria-hidden />;
+  return null;
+}
+
 function Feedback({ it, good, n }: { it: KbItem; good: boolean; n: number }) {
   const r = rightOf(it);
   return (
     <div className={`kb-fb ${good ? "ok" : "bad"}`} role="status">
-      <b>{good ? PRAISE[n % 4] : "Xato"}</b>
+      <b>{good ? <Check size={18} strokeWidth={3} aria-hidden /> : <X size={18} strokeWidth={3} aria-hidden />}{good ? PRAISE[n % 4] : "Bu safar xato"}</b>
       {!good && r && !["match", "classify"].includes(it.type) && <span>To'g'ri javob: {isAr(r) ? <Ar>{r}</Ar> : r}</span>}
       {it.why && (!good || it.type !== "pick") && <Mixed text={it.why} className="kb-why" />}
     </div>
@@ -313,7 +323,7 @@ function Pick({ it, done, mark }: P) {
       <div className="r-opts grid">
         {(it.pics || []).map((p) => {
           const s = !done ? "" : p === it.ok ? "ok" : p === pick ? "no" : "dim";
-          return <button key={p} type="button" className={`opt ${s}`} disabled={done} onClick={() => { setPick(p); mark(p === it.ok); void say(it.ar || ""); }}><Emo e={p} size={72} /></button>;
+          return <button key={p} type="button" className={`opt ${s}`} disabled={done} aria-label={p} onClick={() => { setPick(p); mark(p === it.ok); void say(it.ar || ""); }}><Emo e={p} size={72} /><Mark s={s} /></button>;
         })}
       </div>
     </>
@@ -475,7 +485,7 @@ function Free({ it, sent, onSent, sub }: { it: KbItem; sent: "srv" | "local" | n
     <>
       {it.q && <Mixed text={it.q} />}
       {it.hint && <Ar className="kb-hint">{it.hint}</Ar>}
-      <textarea className="kb-free" dir="rtl" lang="ar" rows={4} placeholder="Arabcha yozing…" value={text} disabled={!!sent || busy} onChange={(e) => setText(e.target.value)} />
+      <textarea className="kb-free" dir="rtl" lang="ar" rows={4} placeholder="Arabcha yozing" value={text} disabled={!!sent || busy} onChange={(e) => setText(e.target.value)} />
       {!sent && <><div className="kb-or"><span>yoki</span></div><VoiceRec value={voice} onChange={setVoice} disabled={busy} /></>}
       {err && <p className="err">{err}</p>}
       {sent

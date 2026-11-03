@@ -35,7 +35,17 @@ export async function demoApi(action: string, p: Record<string, unknown>): Promi
     } };
   }
   if (action === "hwList") return { ok: true, items: [{ id: 7, group_code: "K7QX2M", book: "a1", unit: 4, title: "Kasblar va ishlar", due: new Date(Date.now() + 2 * 864e5).toISOString().slice(0, 10), mine: null, teacher: false }] };
-  if (action === "leaderboard") return { ok: true, week: p.week, top: [], me: { rank: 3, x: 95 }, group: "K7QX2M" };
+  if (action === "leaderboard") {
+    // soxta reyting: haftalik yoki umumiy, guruh yoki butun markaz, daraja bo'yicha filtr (server 12-versiya javobi shaklida)
+    const all = p.period === "all";
+    const names = ["Madina Y.", "Bekzod T.", "Aziz K.", "Dilnoza R.", "Javohir M.", "Sardor A.", "Nilufar S.", "Otabek U.", "Shahzoda B.", "Jasur N.", "Kamola H.", "Ulug'bek D.", "Mohira E.", "Sanjar O."];
+    const lv = ["A1", "A2", "A1", "A1", "B1", "A1", "A2", "A0", "A1", "A1", "B1", "A1", "A2", "A1"];
+    let rows = names.map((n, i) => ({ n, x: Math.round((all ? 2600 : 160) * Math.pow(0.86, i)), me: n === "Aziz K.", lvl: lv[i] }));
+    if (p.level) rows = rows.filter((r) => r.lvl === p.level);
+    if (p.scope === "group") rows = rows.filter((_, i) => i % 3 !== 1);
+    const k = rows.findIndex((r) => r.me);
+    return { ok: true, week: p.week, period: all ? "all" : "week", level: p.level || null, top: rows, me: k >= 0 ? { rank: k + 1, x: rows[k].x } : null, group: p.scope === "group" ? "K7QX2M" : null };
+  }
   if (action === "adminRequests") return { ok: true, status: p.status || "pending", items: p.status === "rejected" ? people.slice(3) : people.slice(0, 3) };
   if (action === "adminApprove") return { ok: true, n: Array.isArray(p.sids) ? p.sids.length : 1 };
   if (action === "kitobAudio") return { ok: true, urls: {} }; // kitob audiosi yo'q — ovoz tts omboridan yoki telefondan

@@ -2,14 +2,15 @@
 // Xato javobda to'g'risi ko'rsatiladi va so'z round oxirida qayta so'raladi. Rasmi yo'q so'zda 4-bosqich "eshitib topish".
 // Round tugaganda so'zlar eski ilova formatida "yodlangan" deb belgilanadi, so'z testi natijasi (aniqlik %) va XP yoziladi.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bookmark, BookmarkCheck, Check, HelpCircle, Mic, Play, RotateCcw, Square, Volume2, X } from "lucide-react";
+import { Bookmark, BookmarkCheck, Check, HelpCircle, Mic, Play, RotateCcw, Square, Star, Volume2, X } from "lucide-react";
 import { say } from "../lib/audio";
 import { savedHas, toggleSaved } from "../lib/saved";
 import { gain, markKnown, setTest } from "../lib/store";
 import { tg } from "../lib/tg";
 import { posLabel, shuffle, type Word } from "../lib/words";
-import { img } from "../lib/data";
 import { Ar } from "../ui/kit";
+import { CountUp } from "../ui/CountUp";
+import { Scale } from "../ui/Scale";
 
 type Stage = "learn" | "tr" | "pr" | "pic" | "done";
 const STAGES: { id: Stage; title: string; hint: string }[] = [
@@ -22,16 +23,17 @@ const STAGES: { id: Stage; title: string; hint: string }[] = [
 // Rasm bosqichi: so'zning rasmi bo'lsa va tanlash uchun yana kamida 2 ta boshqa rasm topilsa; aks holda "eshitib topish"
 const picMode = (w: Word, pool: Word[]) => (w.img && new Set(pool.filter((x) => x.img && x.img !== w.img).map((x) => x.img)).size >= 2 ? "pic" : "ear");
 
-export function Round({ bookId, unit, n, words, pool, onExit }: { bookId: string; unit: number; n: number; words: Word[]; pool: Word[]; onExit: (done: boolean) => void }) {
+export function Round({ bookId, unit, n, words, pool, onExit, onNextRound }: { bookId: string; unit: number; n: number; words: Word[]; pool: Word[]; onExit: (done: boolean) => void; onNextRound?: () => void }) {
   const [stage, setStage] = useState<Stage>("learn");
   const [queue, setQueue] = useState<Word[]>(words);
   const [pos, setPos] = useState(0);
   const [picked, setPicked] = useState<string | null>(null);
   const [mistakes, setMistakes] = useState(0);
+  const [earned, setEarned] = useState(0);
   const [, force] = useState(0);
   const cur = queue[pos];
   const si = STAGES.findIndex((s) => s.id === stage);
-  const total = queue.length;
+  const base = words.length; // xato bo'lsa navbat uzayadi, lekin hisoblagich so'zlar soni bo'yicha qoladi
 
   const startStage = (s: Stage) => {
     setStage(s); setPicked(null); setPos(0);
@@ -54,6 +56,7 @@ export function Round({ bookId, unit, n, words, pool, onExit }: { bookId: string
     const asked = 2 * words.length;
     setTest(bookId, unit, Math.max(0, Math.round(((asked - mistakes) / asked) * 100)));
     gain("fc", fresh + 5);
+    setEarned(fresh + 5);
     tg.haptic("success");
     setStage("done");
   };
@@ -63,11 +66,17 @@ export function Round({ bookId, unit, n, words, pool, onExit }: { bookId: string
   if (stage === "done") {
     return (
       <main className="round">
+        {/* yakun lahzasi: tarozi muvozanatga keladi, olingan yulduzcha sanab ko'rsatiladi, o'rganilgan so'zlar va keyingi round */}
         <div className="r-done">
-          <img src={img("medal")} alt="" />
-          <h1>{n}-round tugadi!</h1>
-          <p>{words.length} ta so'z yodlandi{mistakes ? ` · ${mistakes} ta xato tuzatildi` : " · xatosiz"}. Barakalla!</p>
-          <button type="button" className="btn primary wide" onClick={() => onExit(true)}>Davom etish</button>
+          <Scale size={156} />
+          <h1>{n}-round tugadi</h1>
+          <p className="r-earn"><Star size={22} aria-hidden /><CountUp to={earned} />&nbsp;yulduzcha</p>
+          <p>{mistakes === 0 ? "Xatosiz o'tdingiz — zo'r natija!" : mistakes <= 3 ? `${mistakes} ta xatoni tuzatdingiz — yaxshi natija.` : `${mistakes} ta xato ustida ishladingiz — so'zlar endi mustahkamroq.`}</p>
+          <ul className="r-learned" aria-label="O'rganilgan so'zlar">{words.map((w) => <li key={w.ar}><Ar>{w.ar}</Ar></li>)}</ul>
+          {onNextRound
+            ? <><button type="button" className="btn primary wide" onClick={onNextRound}>{n + 1}-roundni boshlash</button>
+                <button type="button" className="btn ghost wide" onClick={() => onExit(true)}>Vahdaga qaytish</button></>
+            : <button type="button" className="btn primary wide" onClick={() => onExit(true)}>Vahdaga qaytish</button>}
         </div>
       </main>
     );
@@ -78,10 +87,13 @@ export function Round({ bookId, unit, n, words, pool, onExit }: { bookId: string
       <header className="r-top">
         <button type="button" className="r-close" aria-label="Chiqish" onClick={() => onExit(false)}><X size={22} aria-hidden />Chiqish</button>
         <b>{n}-round · {STAGES[si].title}</b>
-        <span className="r-count">{Math.min(pos + 1, total)} / {total}</span>
+        {/* hisoblagich so'zlar soni bo'yicha turadi; xato so'z qayta so'ralganda "takror" belgisi chiqadi */}
+        <span className="r-count">{pos >= base ? <span className="r-tag">takror</span> : `${pos + 1} / ${base}`}</span>
       </header>
       <div className="r-steps" aria-hidden>{STAGES.map((s, i) => <i key={s.id} className={i < si ? "ok" : i === si ? "now" : ""} />)}</div>
-      <div className="r-bar"><i style={{ width: `${((pos + (picked ? 1 : 0)) / total) * 100}%` }} /></div>
+      <div className="r-bar" role="progressbar" aria-label={`${STAGES[si].title} bosqichi`} aria-valuemin={0} aria-valuemax={base} aria-valuenow={Math.min(pos, base)}>
+        <i style={{ width: `${(Math.min(pos + (picked ? 1 : 0), base) / base) * 100}%` }} />
+      </div>
       <p className="r-hint">{stage === "pic" && picMode(cur, pool) === "ear" ? "Eshiting va to'g'ri so'zni tanlang" : STAGES[si].hint}</p>
 
       {stage === "learn" && <Learn w={cur} onNext={next} onSave={() => { toggleSaved(cur.ar, cur.uz); tg.haptic("light"); force((x) => x + 1); }} />}
@@ -150,14 +162,17 @@ function Choice({ w, pool, mode, picked, onPick, onNext }: { w: Word; pool: Word
         {opts.map((o) => {
           const st = picked === null ? "" : o.ok ? "ok" : o.v === picked ? "no" : "dim";
           return (
-            <button key={o.v} type="button" className={`opt ${st}`} disabled={picked !== null} onClick={() => onPick(o.ok, o.v)}>
+            <button key={o.v} type="button" className={`opt ${st} ${mode === "ear" ? "opt-r" : ""}`} disabled={picked !== null} onClick={() => onPick(o.ok, o.v)}
+              aria-label={mode === "pic" ? o.w.uz : undefined}>
               {mode === "pic" ? <img src={o.v} alt="" /> : mode === "ear" ? <Ar className="opt-ar">{o.v}</Ar> : o.v}
+              {st === "ok" && <Check size={20} strokeWidth={3} className="opt-mark" aria-hidden />}
+              {st === "no" && <X size={20} strokeWidth={3} className="opt-mark" aria-hidden />}
             </button>
           );
         })}
       </div>
       {wrong && (
-        <div className="r-fix">
+        <div className="r-fix" role="status">
           <p>To'g'ri javob: <b>{mode === "pic" ? w.uz : mode === "ear" ? w.ar : w.uz}</b>. Bu so'z round oxirida yana so'raladi.</p>
           <button type="button" className="btn dark wide" onClick={onNext}>Davom etish</button>
         </div>
