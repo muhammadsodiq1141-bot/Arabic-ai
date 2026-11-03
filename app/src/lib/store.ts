@@ -3,7 +3,7 @@
 // Kalitlar: a1.* / bk.<kitob>.* / x.* / f.*  (qiymat — JSON). Server bilan "load" (bo'sh telefonga tiklash) va "sync".
 import { api } from "./api";
 import { loadData } from "./data";
-import { bkKey, dayKey, hwProgress, weekId, type Book } from "./progress";
+import { bkKey, dayKey, hash, hwProgress, weekId, type Book } from "./progress";
 import { mySummary } from "./summary";
 import { tg } from "./tg";
 
@@ -65,7 +65,24 @@ export function bootSync(meCache: { tg?: number | null }): Promise<void> {
   return booted;
 }
 
-// XP va faollik (eski gain/logAct ning asosiy qismi: kunlik va jami XP, hisoblagichlar, faol kunlar)
+// Kunlik vazifalar (eski dailyTasks bilan bir xil): "lesson" + sanadan tanlangan 2 ta. Madina kitoblarida qoida yo'q → "rule" almashtiriladi.
+const TASK_N: Record<string, [number, number]> = { lesson: [1, 2], fc: [10, 1], game: [1, 1], test80: [1, 2], rule: [1, 1], xp: [60, 2] }; // [kerak, yulduz]
+export function dailyTasks(day = dayKey()) {
+  const rest = ["fc", "game", "test80", "rule", "xp"];
+  const out: string[] = [];
+  let h = hash(day);
+  for (let g = 0; g < 50 && out.length < 2; g++) { const k = rest[h % 5]; if (!out.includes(k)) out.push(k); h = Math.floor(h / 7) + 13 + g; }
+  for (const k of rest) if (out.length < 2 && !out.includes(k)) out.push(k);
+  const list = ["lesson", ...out];
+  if (/^md/.test(store.get("a1.book", "a1")) && list.includes("rule")) {
+    const alt = ["fc", "game", "test80", "xp"].find((k) => !list.includes(k));
+    if (alt) list[list.indexOf("rule")] = alt;
+  }
+  return list;
+}
+
+// XP va faollik — eski gain bilan bir xil yozuvlar: x.d, x.t, x.c.<sana>, kunlik vazifa yulduzlari (x.cl, x.s), haftalik bonus (x.w).
+// Farq (ataylab): yangi ilovada har qanday mashq faol kun hisoblanadi (a1.days) — eskisida kitob mashqlari seriyani oshirmasdi.
 export function gain(kind: string, xp: number) {
   const t = dayKey();
   const D = store.get<Record<string, number>>("x.d", {});
@@ -78,7 +95,31 @@ export function gain(kind: string, xp: number) {
   const L = store.get<Record<string, number>>("a1.days", {});
   L[t] = (L[t] || 0) + 1;
   store.set("a1.days", L);
+  // kunlik vazifalar va haftalik bonus — yulduzlar (x.s) eski ilovadagi "muzlatish" uchun kerak
+  try {
+    let got = 0;
+    const cl = store.get<Record<string, number>>(`x.cl.${t}`, {});
+    for (const k of dailyTasks(t)) {
+      const val = k === "xp" ? D[t] : c[k] || 0;
+      if (!cl[k] && val >= TASK_N[k][0]) { cl[k] = 1; got += TASK_N[k][1]; }
+    }
+    const wk = weekId();
+    if (!store.get(`x.w.${wk}`, 0)) {
+      const w = wk.split("-").map(Number);
+      let days = 0;
+      for (let i = 0; i < 7; i++) if ((D[dayKey(new Date(w[0], w[1] - 1, w[2] + i))] || 0) > 0) days++;
+      if (days >= 5) { store.set(`x.w.${wk}`, 1); got += 5; }
+    }
+    if (got) { store.set(`x.cl.${t}`, cl); store.set("x.s", store.get("x.s", 0) + got); }
+  } catch { /* */ }
   scheduleSync();
+}
+
+/** Mashq natijasi rekordi: {BK}best.<o'yin>.<vahda>. lowerBetter — kamroq yaxshi (Juftini top: urinishlar). Yangi rekord bo'lsa true */
+export function saveRecord(key: string, score: number, lowerBetter = false) {
+  const b = store.get<number | null>(key, null);
+  if (b === null || (lowerBetter ? score < b : score > b)) { store.set(key, score); scheduleSync(); return true; }
+  return false;
 }
 
 export function markKnown(bookId: string, unit: number, ar: string) {
