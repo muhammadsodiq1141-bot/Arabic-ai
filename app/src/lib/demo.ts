@@ -38,5 +38,8 @@ export async function demoApi(action: string, p: Record<string, unknown>): Promi
   if (action === "leaderboard") return { ok: true, week: p.week, top: [], me: { rank: 3, x: 95 }, group: "K7QX2M" };
   if (action === "adminRequests") return { ok: true, status: p.status || "pending", items: p.status === "rejected" ? people.slice(3) : people.slice(0, 3) };
   if (action === "adminApprove") return { ok: true, n: Array.isArray(p.sids) ? p.sids.length : 1 };
-  return { ok: true };
+  if (action === "kitobAudio") return { ok: true, urls: {} }; // kitob audiosi yo'q — ovoz tts omboridan yoki telefondan
+  if (action === "tts") throw new Error("demo: server ovozi yo'q"); // telefonning o'z ovoziga o'tadi
+  if (action === "subSend") return { ok: true, id: 1 };
+  return { ok: true }; // sync va boshqalar
 }

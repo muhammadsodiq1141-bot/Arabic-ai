@@ -1,0 +1,225 @@
+// Lug'at roundi (10 so'z): 1) tanishish → 2) tarjimani topish → 3) talaffuz → 4) rasmni topish.
+// Xato javobda to'g'risi ko'rsatiladi va so'z round oxirida qayta so'raladi. Rasmi yo'q so'zda 4-bosqich "eshitib topish".
+// Round tugaganda so'zlar eski ilova formatida "yodlangan" deb belgilanadi, so'z testi natijasi (aniqlik %) va XP yoziladi.
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Bookmark, BookmarkCheck, Check, HelpCircle, Mic, Play, RotateCcw, Square, Volume2, X } from "lucide-react";
+import { say } from "../lib/audio";
+import { savedHas, toggleSaved } from "../lib/saved";
+import { gain, markKnown, setTest } from "../lib/store";
+import { tg } from "../lib/tg";
+import { posLabel, shuffle, type Word } from "../lib/words";
+import { img } from "../lib/data";
+import { Ar } from "../ui/kit";
+
+type Stage = "learn" | "tr" | "pr" | "pic" | "done";
+const STAGES: { id: Stage; title: string; hint: string }[] = [
+  { id: "learn", title: "Tanishish", hint: "So'zlarni diqqat bilan o'rganing" },
+  { id: "tr", title: "Tarjima", hint: "To'g'ri tarjimani tanlang" },
+  { id: "pr", title: "Talaffuz", hint: "So'zni ovoz chiqarib ayting" },
+  { id: "pic", title: "Rasm", hint: "To'g'ri rasmni tanlang" },
+];
+
+// Rasm bosqichi: so'zning rasmi bo'lsa va tanlash uchun yana kamida 2 ta boshqa rasm topilsa; aks holda "eshitib topish"
+const picMode = (w: Word, pool: Word[]) => (w.img && new Set(pool.filter((x) => x.img && x.img !== w.img).map((x) => x.img)).size >= 2 ? "pic" : "ear");
+
+export function Round({ bookId, unit, n, words, pool, onExit }: { bookId: string; unit: number; n: number; words: Word[]; pool: Word[]; onExit: (done: boolean) => void }) {
+  const [stage, setStage] = useState<Stage>("learn");
+  const [queue, setQueue] = useState<Word[]>(words);
+  const [pos, setPos] = useState(0);
+  const [picked, setPicked] = useState<string | null>(null);
+  const [mistakes, setMistakes] = useState(0);
+  const [, force] = useState(0);
+  const cur = queue[pos];
+  const si = STAGES.findIndex((s) => s.id === stage);
+  const total = queue.length;
+
+  const startStage = (s: Stage) => {
+    setStage(s); setPicked(null); setPos(0);
+    setQueue(s === "learn" || s === "pr" ? words : shuffle(words));
+  };
+  const next = () => {
+    setPicked(null);
+    if (pos + 1 < queue.length) { setPos(pos + 1); return; }
+    if (stage === "learn") startStage("tr");
+    else if (stage === "tr") startStage("pr");
+    else if (stage === "pr") startStage("pic");
+    else finish();
+  };
+  const requeue = () => setQueue((q) => [...q, q[pos]]);
+
+  const finish = () => {
+    let fresh = 0;
+    for (const w of words) if (markKnown(bookId, unit, w.ar)) fresh++;
+    // so'z testi natijasi (eski ilova {BK}tests formatida, eng yaxshisi saqlanadi): har so'z 2 marta tekshiriladi — tarjima va rasm/eshitish
+    const asked = 2 * words.length;
+    setTest(bookId, unit, Math.max(0, Math.round(((asked - mistakes) / asked) * 100)));
+    gain("fc", fresh + 5);
+    tg.haptic("success");
+    setStage("done");
+  };
+
+  useEffect(() => { if (cur && (stage === "learn" || stage === "pr" || (stage === "pic" && picMode(cur, pool) === "ear"))) void say(cur.ar); }, [cur, stage, pool]);
+
+  if (stage === "done") {
+    return (
+      <main className="round">
+        <div className="r-done">
+          <img src={img("medal")} alt="" />
+          <h1>{n}-round tugadi!</h1>
+          <p>{words.length} ta so'z yodlandi{mistakes ? ` · ${mistakes} ta xato tuzatildi` : " · xatosiz"}. Barakalla!</p>
+          <button type="button" className="btn primary wide" onClick={() => onExit(true)}>Davom etish</button>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="round">
+      <header className="r-top">
+        <button type="button" className="r-close" aria-label="Chiqish" onClick={() => onExit(false)}><X size={22} aria-hidden />Chiqish</button>
+        <b>{n}-round · {STAGES[si].title}</b>
+        <span className="r-count">{Math.min(pos + 1, total)} / {total}</span>
+      </header>
+      <div className="r-steps" aria-hidden>{STAGES.map((s, i) => <i key={s.id} className={i < si ? "ok" : i === si ? "now" : ""} />)}</div>
+      <div className="r-bar"><i style={{ width: `${((pos + (picked ? 1 : 0)) / total) * 100}%` }} /></div>
+      <p className="r-hint">{stage === "pic" && picMode(cur, pool) === "ear" ? "Eshiting va to'g'ri so'zni tanlang" : STAGES[si].hint}</p>
+
+      {stage === "learn" && <Learn w={cur} onNext={next} onSave={() => { toggleSaved(cur.ar, cur.uz); tg.haptic("light"); force((x) => x + 1); }} />}
+      {stage === "tr" && <Choice key={`tr${pos}${cur.ar}`} w={cur} pool={pool} mode="tr" picked={picked}
+        onPick={(ok, v) => { setPicked(v); if (ok) { tg.haptic("light"); setTimeout(next, 650); } else { tg.haptic("error"); setMistakes((m) => m + 1); requeue(); } }} onNext={next} />}
+      {stage === "pr" && <Pronounce key={`pr${pos}${cur.ar}`} w={cur} onOk={next} onRetry={() => { setQueue((q) => [...q, q[pos]]); setPicked(null); setPos(pos + 1); }} />}
+      {stage === "pic" && <Choice key={`pic${pos}${cur.ar}`} w={cur} pool={pool} mode={picMode(cur, pool)} picked={picked}
+        onPick={(ok, v) => { setPicked(v); if (ok) { tg.haptic("light"); setTimeout(next, 650); } else { tg.haptic("error"); setMistakes((m) => m + 1); requeue(); } }} onNext={next} />}
+    </main>
+  );
+}
+
+function WordHead({ w, hideImg }: { w: Word; hideImg?: boolean }) {
+  return (
+    <>
+      <div className="r-img">{hideImg ? <HelpCircle size={72} className="r-q" aria-hidden /> : w.img ? <img src={w.img} alt="" /> : <Ar className="r-big">{w.ar}</Ar>}</div>
+      <div className="r-word">
+        {/* rasmsiz so'zda arabcha so'z yuqoridagi katta kartada turadi — ikki marta yozilmaydi */}
+        <div>{(hideImg || w.img) && <Ar className="r-ar">{w.ar}</Ar>}{w.card?.t && <span className="r-pos">{posLabel(w.card.t)}</span>}</div>
+        <button type="button" className="say" aria-label="Tinglash" onClick={() => void say(w.ar)}><Volume2 size={22} aria-hidden /></button>
+      </div>
+    </>
+  );
+}
+
+function Learn({ w, onNext, onSave }: { w: Word; onNext: () => void; onSave: () => void }) {
+  const ex = w.card?.ex?.[0];
+  const saved = savedHas(w.ar);
+  return (
+    <>
+      <WordHead w={w} />
+      <section className="r-card">
+        <div className="r-tr"><b>{w.uz}</b>
+          <button type="button" className="mark" aria-pressed={saved} aria-label="Saqlanganlarga qo'shish" onClick={onSave}>{saved ? <BookmarkCheck size={22} aria-hidden /> : <Bookmark size={22} aria-hidden />}</button>
+        </div>
+        {w.hint && <small className="muted">Talaffuz: {w.hint}</small>}
+        {ex && (
+          <div className="r-ex">
+            <span className="lbl">Misol</span>
+            <Ar className="r-exar">{ex[0]}</Ar>
+            <p>{ex[1]}</p>
+          </div>
+        )}
+      </section>
+      <button type="button" className="btn dark wide r-next" onClick={onNext}>Keyingisi</button>
+    </>
+  );
+}
+
+function Choice({ w, pool, mode, picked, onPick, onNext }: { w: Word; pool: Word[]; mode: "tr" | "pic" | "ear"; picked: string | null; onPick: (ok: boolean, v: string) => void; onNext: () => void }) {
+  const opts = useMemo(() => {
+    const others = shuffle(pool.filter((x) => x.ar !== w.ar && (mode !== "pic" || x.img) && (mode !== "tr" || x.uz !== w.uz)));
+    const val = (x: Word) => (mode === "tr" ? x.uz : mode === "pic" ? x.img! : x.ar);
+    const seen = new Set([val(w)]);
+    const pick: Word[] = [];
+    for (const o of others) { if (pick.length >= 3) break; if (!seen.has(val(o))) { seen.add(val(o)); pick.push(o); } }
+    return shuffle([w, ...pick]).map((x) => ({ v: val(x), ok: x.ar === w.ar, w: x }));
+  }, [w, pool, mode]);
+  const wrong = picked !== null && !opts.find((o) => o.v === picked)?.ok;
+  return (
+    <>
+      {mode === "ear"
+        ? <div className="r-ear"><button type="button" className="ear" onClick={() => void say(w.ar)} aria-label="Qayta eshitish"><Volume2 size={44} aria-hidden /></button><span>Bosib, qayta eshiting</span></div>
+        : <WordHead w={w} hideImg /> /* tarjima va rasm bosqichida so'z rasmi yashiriladi — javob oldindan ko'rinmasin */}
+      <div className={`r-opts ${mode === "pic" ? "grid" : ""}`}>
+        {opts.map((o) => {
+          const st = picked === null ? "" : o.ok ? "ok" : o.v === picked ? "no" : "dim";
+          return (
+            <button key={o.v} type="button" className={`opt ${st}`} disabled={picked !== null} onClick={() => onPick(o.ok, o.v)}>
+              {mode === "pic" ? <img src={o.v} alt="" /> : mode === "ear" ? <Ar className="opt-ar">{o.v}</Ar> : o.v}
+            </button>
+          );
+        })}
+      </div>
+      {wrong && (
+        <div className="r-fix">
+          <p>To'g'ri javob: <b>{mode === "pic" ? w.uz : mode === "ear" ? w.ar : w.uz}</b>. Bu so'z round oxirida yana so'raladi.</p>
+          <button type="button" className="btn dark wide" onClick={onNext}>Davom etish</button>
+        </div>
+      )}
+    </>
+  );
+}
+
+function Pronounce({ w, onOk, onRetry }: { w: Word; onOk: () => void; onRetry: () => void }) {
+  const can = typeof MediaRecorder !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
+  const [rec, setRec] = useState(false);
+  const [url, setUrl] = useState<string | null>(null);
+  const [err, setErr] = useState("");
+  const [wait, setWait] = useState(false); // mikrofon ruxsati so'ralmoqda
+  const mr = useRef<MediaRecorder | null>(null);
+  const chunks = useRef<Blob[]>([]);
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
+  // ekrandan chiqilganda yozuv va mikrofon o'chiriladi
+  useEffect(() => () => { clearTimeout(timer.current); if (mr.current?.state === "recording") mr.current.stop(); }, []);
+
+  // Bir bosish — yozish, ikkinchi bosish — to'xtatish (5 soniyada o'zi to'xtaydi). Ushlab turish shart emas:
+  // birinchi marta ruxsat oynasi chiqqanda barmoq qo'yib yuborilsa ham yozuv buzilmaydi.
+  const stop = () => { clearTimeout(timer.current); if (mr.current?.state === "recording") mr.current.stop(); setRec(false); };
+  const start = async () => {
+    setErr(""); setWait(true);
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const m = new MediaRecorder(s);
+      chunks.current = [];
+      m.ondataavailable = (e) => chunks.current.push(e.data);
+      m.onstop = () => { s.getTracks().forEach((t) => t.stop()); setUrl(URL.createObjectURL(new Blob(chunks.current, { type: m.mimeType }))); };
+      m.start(); mr.current = m; setRec(true); tg.haptic("medium");
+      timer.current = window.setTimeout(stop, 5000);
+    } catch { setErr("Mikrofonga ruxsat berilmadi. So'zni ovoz chiqarib ayting va o'zingiz baholang."); }
+    setWait(false);
+  };
+
+  return (
+    <>
+      <WordHead w={w} />
+      <section className="r-mic">
+        {can && !err ? (
+          <>
+            <span className="muted">{rec ? "Gapiring… tugatgach yana bosing" : wait ? "Mikrofonga ruxsat bering" : url ? "O'z ovozingizni namuna bilan solishtiring" : "Bosing va so'zni ayting"}</span>
+            <button type="button" className={`mic ${rec ? "on" : ""}`} aria-label={rec ? "To'xtatish" : "Yozish"} disabled={wait}
+              onClick={() => (rec ? stop() : void start())}>
+              {rec ? <Square size={34} aria-hidden /> : <Mic size={38} aria-hidden />}
+            </button>
+            {url && (
+              <div className="r-cmp">
+                <button type="button" className="btn ghost" onClick={() => void new Audio(url).play()}><Play size={18} aria-hidden />Mening ovozim</button>
+                <button type="button" className="btn ghost" onClick={() => void say(w.ar)}><Volume2 size={18} aria-hidden />Namuna</button>
+              </div>
+            )}
+          </>
+        ) : <p className="muted">{err || "Bu telefonda ovoz yozib bo'lmaydi. So'zni ovoz chiqarib ayting va o'zingiz baholang."}</p>}
+      </section>
+      <div className="r-cmp two">
+        <button type="button" className="btn ghost" onClick={onRetry}><RotateCcw size={18} aria-hidden />Keyinroq qaytaman</button>
+        <button type="button" className="btn good" disabled={rec} onClick={onOk}><Check size={18} aria-hidden />To'g'ri aytdim</button>
+      </div>
+    </>
+  );
+}

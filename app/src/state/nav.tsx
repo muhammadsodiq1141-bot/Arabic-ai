@@ -4,7 +4,12 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 
 export type Tab = "home" | "lessons" | "practice" | "marks" | "profile";
 export type Route = { view: string; params?: Record<string, unknown> };
-type Nav = { tab: Tab; route: Route; depth: number; go: (view: string, params?: Record<string, unknown>) => void; back: () => void; setTab: (t: Tab) => void };
+type Nav = {
+  tab: Tab; route: Route; depth: number;
+  go: (view: string, params?: Record<string, unknown>) => void;
+  replace: (view: string, params?: Record<string, unknown>) => void; // joriy ekranni almashtirish (masalan nazariya → test)
+  back: () => void; setTab: (t: Tab) => void;
+};
 
 const Ctx = createContext<Nav | null>(null);
 
@@ -28,6 +33,11 @@ export function NavProvider({ children }: { children: ReactNode }) {
     window.scrollTo(0, 0);
   }, []);
 
+  const replace = useCallback((view: string, params?: Record<string, unknown>) => {
+    setStack((s) => [...s.slice(0, -1), { view, params }]);
+    window.scrollTo(0, 0);
+  }, []);
+
   const back = useCallback(() => {
     if (depth.current > 0) history.back();
   }, []);
@@ -40,7 +50,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
     window.scrollTo(0, 0);
   }, []);
 
-  return <Ctx.Provider value={{ tab, route: stack[stack.length - 1], depth: stack.length - 1, go, back, setTab }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ tab, route: stack[stack.length - 1], depth: stack.length - 1, go, replace, back, setTab }}>{children}</Ctx.Provider>;
 }
 
 export function useNav() {

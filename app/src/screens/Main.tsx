@@ -1,6 +1,6 @@
 // Tasdiqlangan foydalanuvchi uchun asosiy qism: pastki menyu bo'limlari va ichki ekranlar.
-// 2-partiya: bosh sahifa. Darslar, mashq va baholar — keyingi partiyalarda.
-import { BookOpen, ChevronRight, ClipboardCheck, Mic, Moon, ShieldCheck, Sun, SunMoon } from "lucide-react";
+// 2-partiya: bosh sahifa. 3-partiya: darslar va uy vazifasi (unit, round, nazariya, test, saqlangan so'zlar).
+import { ChevronRight, ClipboardCheck, Mic, Moon, ShieldCheck, Sun, SunMoon } from "lucide-react";
 import type { DayWord } from "../lib/data";
 import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
@@ -9,7 +9,11 @@ import { useTheme, type ThemePref } from "../state/theme";
 import { Avatar, BottomNav, Empty, SectionTitle } from "../ui/kit";
 import { AdminRequests } from "./AdminRequests";
 import { Home } from "./Home";
+import { KbScreen } from "./Kitob";
+import { SavedScreen } from "./Saved";
 import { DayWordScreen, SoonScreen } from "./Small";
+import { TestScreen, TheoryScreen } from "./Theory";
+import { Lessons, RoundScreen, UnitScreen } from "./Unit";
 
 function Soon({ title, ar, Icon }: { title: string; ar: string; Icon: typeof Mic }) {
   return (
@@ -62,10 +66,18 @@ export function Main() {
   if (route.view === "dayword") return <DayWordScreen word={p.word as DayWord} />;
   if (route.view === "league") return <SoonScreen title="Reyting" />;
   if (route.view === "soon") return <SoonScreen title={String(p.title || "Bo'lim")} />;
+  // uy vazifasi: book — kitob ID (a1, md1 ...), unit — vahda raqami, n — round raqami
+  const book = String(p.book || "a1"), unit = Number(p.unit) || 1;
+  if (route.view === "unit") return <UnitScreen key={`${book}:${unit}`} bookId={book} unitN={unit} />;
+  if (route.view === "round") return <RoundScreen key={`${book}:${unit}:${p.n}`} bookId={book} unitN={unit} n={Number(p.n) || 1} />;
+  if (route.view === "theory") return <TheoryScreen bookId={book} unitN={unit} />;
+  if (route.view === "test") return <TestScreen key={`${book}:${unit}`} bookId={book} unitN={unit} />;
+  if (route.view === "saved") return <SavedScreen />;
+  if (route.view === "kb") return <KbScreen key={`${p.key}:${p.si}:${p.n || 0}`} lessonKey={String(p.key)} si={Number(p.si) || 0} unitN={unit} />;
   return (
     <>
       {tab === "home" && <Home />}
-      {tab === "lessons" && <Soon title="Darslar" ar="الدُّرُوسُ" Icon={BookOpen} />}
+      {tab === "lessons" && <Lessons />}
       {tab === "practice" && <Soon title="Mashq" ar="التَّمَارِينُ" Icon={Mic} />}
       {tab === "marks" && <Soon title="Baholar" ar="الدَّرَجَاتُ" Icon={ClipboardCheck} />}
       {tab === "profile" && <Profile />}

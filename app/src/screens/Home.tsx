@@ -5,14 +5,16 @@ import { ArrowUpRight, Bell, Headphones, MessageCircle, Play, Star, Trophy } fro
 import { api } from "../lib/api";
 import { BOT_LINK } from "../lib/config";
 import { img, loadData, type BookIndex, type DayWord } from "../lib/data";
-import { hash, dayKey, hwProgress, loadProgress, summarize, weekId, type Book, type Raw, type Summary } from "../lib/progress";
+import { hash, dayKey, hwProgress, localRaw, summarize, weekId, type Book, type Raw, type Summary } from "../lib/progress";
+import { kbFlush } from "../lib/kb";
+import { bootSync, store } from "../lib/store";
 import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
 import { Ar, Avatar, SectionTitle } from "../ui/kit";
 
 type Hw = { id: number; book: string; unit: number; title: string; due: string; mine: { done?: boolean } | null; teacher?: boolean };
-type HwCard = { title: string; unitAr: string; unitN: number; pct: number; due: string } | null | "none" | "nogroup";
+type HwCard = { book: string; title: string; unitAr: string; unitN: number; pct: number; due: string } | null | "none" | "nogroup";
 
 export function Home() {
   const { me } = useSession();
@@ -28,7 +30,9 @@ export function Home() {
     if (!me) return;
     let alive = true;
     (async () => {
-      const { raw } = await loadProgress(me.id);
+      await bootSync(me);
+      void kbFlush(); // internetsiz yozilgan javoblar (f.kbq) — eski ilovadagi kabi ochilganda yuboriladi
+      const raw = localRaw();
       if (!alive) return;
       setSum(summarize(raw));
       void loadHomework(raw);
@@ -43,12 +47,13 @@ export function Home() {
       if (!me?.group) { setHw("nogroup"); return; }
       try {
         const r = await api<{ items: Hw[] }>("hwList");
+        store.set("f.hw", r.items); // eski ilova bilan bir xil kesh: sinxronlashda uy vazifasi holati shundan hisoblanadi
         const open = r.items.filter((h) => !h.teacher && !h.mine?.done).sort((a, b) => a.due.localeCompare(b.due));
         const h = open[0];
         if (!h) { if (alive) setHw("none"); return; }
         const book = await loadData<Book>(`books/${h.book}`);
         const u = book.units.find((x) => x.n === h.unit);
-        if (alive) setHw({ title: h.title || u?.uz || "", unitAr: u?.ar || "", unitN: h.unit, pct: hwProgress(raw, book, h.unit).pct, due: h.due });
+        if (alive) setHw({ book: h.book, title: h.title || u?.uz || "", unitAr: u?.ar || "", unitN: h.unit, pct: hwProgress(raw, book, h.unit).pct, due: h.due });
       } catch { if (alive) setHw("none"); }
     }
     return () => { alive = false; };
@@ -86,7 +91,7 @@ export function Home() {
           <div><Star size={40} className="st" aria-hidden /><b>{sum ? sum.xp.toLocaleString("ru-RU") : "…"}</b><span>Yulduzcha</span></div>
           <div><img src={img("coin")} alt="" /><b>0</b><span>Tanga</span></div>
         </div>
-        <HomeworkCard hw={hw} onOpen={() => setTab("lessons")} />
+        <HomeworkCard hw={hw} onOpen={() => (hw && typeof hw === "object" ? go("unit", { book: hw.book, unit: hw.unitN }) : setTab("lessons"))} />
         <button type="button" className="rank" onClick={() => go("league")}>
           <img src={img("trophy")} alt="" />
           <b>{rank === null ? "…" : rank === "none" ? "—" : `${rank.n}-o'rin`}</b>

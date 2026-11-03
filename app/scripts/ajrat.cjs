@@ -68,6 +68,18 @@ const index = books.map((b) => {
 });
 fs.writeFileSync(path.join(OUT, "books", "index.json"), JSON.stringify(index), "utf8");
 console.log("kitoblar alohida:", index.map((b) => `${b.id}(${b.units})`).join(" "));
+
+// So'z kartalari (turkum, misollar, sinonim...) ham kitob bo'yicha
+const wf = JSON.parse(fs.readFileSync(path.join(OUT, "WF.json"), "utf8"));
+fs.mkdirSync(path.join(OUT, "wf"), { recursive: true });
+for (const [bid, words] of Object.entries(wf)) fs.writeFileSync(path.join(OUT, "wf", bid + ".json"), JSON.stringify(words), "utf8");
+console.log("so'z kartalari alohida:", Object.keys(wf).join(" "));
+
+// Kitob mashqlari (KB) dars bo'yicha: kb/a1-4.json (":" fayl nomida ishlatilmaydi)
+const kb = JSON.parse(fs.readFileSync(path.join(OUT, "KB_LESSONS.json"), "utf8"));
+fs.mkdirSync(path.join(OUT, "kb"), { recursive: true });
+for (const [key, lesson] of Object.entries(kb)) fs.writeFileSync(path.join(OUT, "kb", key.replace(":", "-") + ".json"), JSON.stringify(lesson), "utf8");
+console.log("kitob mashqlari alohida:", Object.keys(kb).length, "ta dars");
 if (skipped.length) console.log("O'tkazilgan e'lonlar (DOM bilan bog'liq bo'lishi mumkin):\n  " + skipped.slice(0, 40).join("\n  "));
 
 // 3D rasmlar: rasm.js -> alohida webp fayllar
