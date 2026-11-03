@@ -1,0 +1,43 @@
+# Yangi ilova (app/) o'zgarsa — avtomatik yig'ib, natijani v2/ papkasiga yozadi.
+# Shunda telefondan (GitHub sayti yoki Claude Code) kiritilgan o'zgarish ham /v2/ sahifasiga o'zi chiqadi.
+name: v2 yig'ish
+
+on:
+  push:
+    branches: [main]
+    paths: ["app/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v2-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: O'rnatish
+        working-directory: app
+        run: npm ci --no-audit --no-fund
+      - name: Yig'ish
+        working-directory: app
+        run: npm run build
+      - name: v2/ ni saqlash
+        run: |
+          if git diff --quiet -- v2 && [ -z "$(git ls-files --others --exclude-standard v2)" ]; then
+            echo "v2/ o'zgarmadi"; exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add v2
+          git commit -m "v2: avtomatik yig'ish (${GITHUB_SHA::7})"
+          git push

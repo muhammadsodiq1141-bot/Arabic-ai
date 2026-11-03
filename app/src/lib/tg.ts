@@ -1,0 +1,60 @@
+// Telegram Mini App bilan ishlash. Ilova Telegram'siz (brauzer, keyinchalik App Store / Play Market) ham ochiladi,
+// shuning uchun Telegram'ga bog'liq hamma narsa shu faylda.
+export type TgUser = { id: number; first_name?: string; last_name?: string; username?: string; photo_url?: string };
+
+type WebApp = {
+  initData: string;
+  initDataUnsafe?: { user?: TgUser; start_param?: string };
+  colorScheme?: "light" | "dark";
+  ready(): void;
+  expand(): void;
+  isVersionAtLeast?(v: string): boolean;
+  disableVerticalSwipes?(): void;
+  setHeaderColor?(c: string): void;
+  setBackgroundColor?(c: string): void;
+  openTelegramLink?(url: string): void;
+  onEvent?(e: string, cb: () => void): void;
+  HapticFeedback?: { impactOccurred(s: string): void; notificationOccurred(s: string): void };
+};
+
+declare global {
+  interface Window { Telegram?: { WebApp?: WebApp } }
+}
+
+const W = (): WebApp | undefined => window.Telegram?.WebApp;
+
+export const tg = {
+  get inTelegram() { return !!W()?.initData; },
+  get initData() { return W()?.initData || ""; },
+  get user(): TgUser | null { return W()?.initDataUnsafe?.user || null; },
+  get startParam() { return W()?.initDataUnsafe?.start_param || ""; },
+  get scheme(): "light" | "dark" { return W()?.colorScheme === "dark" ? "dark" : "light"; },
+  haptic(kind: "light" | "medium" | "success" | "error" = "light") {
+    const h = W()?.HapticFeedback;
+    try {
+      if (kind === "success" || kind === "error") h?.notificationOccurred(kind);
+      else h?.impactOccurred(kind);
+    } catch { /* eski Telegram */ }
+  },
+  openLink(url: string) {
+    const w = W();
+    try {
+      if (url.startsWith("https://t.me/") && w?.openTelegramLink) return w.openTelegramLink(url);
+    } catch { /* oddiy havola */ }
+    window.open(url, "_blank", "noopener");
+  },
+  paint(bg: string) {
+    const w = W();
+    try {
+      if (w?.isVersionAtLeast?.("6.1")) { w.setHeaderColor?.(bg); w.setBackgroundColor?.(bg); }
+    } catch { /* eski Telegram */ }
+  },
+  onTheme(cb: () => void) { W()?.onEvent?.("themeChanged", cb); },
+};
+
+export function initTelegram() {
+  const w = W();
+  if (!w) return;
+  try { w.ready(); w.expand(); } catch { /* */ }
+  try { if (w.isVersionAtLeast?.("7.7")) w.disableVerticalSwipes?.(); } catch { /* */ }
+}
