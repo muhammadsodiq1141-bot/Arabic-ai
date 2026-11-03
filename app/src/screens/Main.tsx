@@ -1,9 +1,10 @@
 // Tasdiqlangan foydalanuvchi uchun asosiy qism: pastki menyu bo'limlari va ichki ekranlar.
 // 2-partiya: bosh sahifa. 3-partiya: darslar va uy vazifasi (unit, round, nazariya, test, saqlangan so'zlar).
 // 4-partiya: reyting (league), baholar (o'quvchi natijalari). 5-partiya: ustoz paneli (teacher, tsubs, thw, thwnew).
-// 6-partiya: Mashq bo'limi (game, cards, wtest, errors, night, known, qs).
+// 6-partiya: Mashq bo'limi (game, cards, wtest, errors, night, known, qs; mults, mult, mvoc, shadow).
 import { ChevronRight, GraduationCap, Moon, ShieldCheck, Sun, SunMoon } from "lucide-react";
 import type { DayWord } from "../lib/data";
+import type { ShItem } from "../lib/mult";
 import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
@@ -16,10 +17,12 @@ import { Home } from "./Home";
 import { KbScreen } from "./Kitob";
 import { LeagueScreen } from "./League";
 import { Marks } from "./Marks";
+import { MultScreen, MultsScreen, MultVocScreen } from "./Mult";
 import { Practice } from "./Practice";
 import { QuizScreen, type QConf } from "./Quiz";
 import { ErrorsScreen, KnownWordsScreen, NightScreen } from "./Review";
 import { SavedScreen } from "./Saved";
+import { ShadowScreen } from "./Shadow";
 import { TeacherScreen } from "./Teacher";
 import { TeacherHwNewScreen, TeacherHwScreen } from "./TeacherHw";
 import { TeacherSubsScreen } from "./TeacherSubs";
@@ -95,6 +98,11 @@ export function Main() {
   if (route.view === "night") return <NightScreen bookId={book} />;
   if (route.view === "known") return <KnownWordsScreen />;
   if (route.view === "qs") return <QuizScreen key={String(p.n || "")} conf={p.conf as QConf} />;
+  // multfilmlar va shadowing: id — multfilm, i — lug'at so'zi, items — iboralar ({m, i}), daily — kunlik mashq
+  if (route.view === "mults") return <MultsScreen />;
+  if (route.view === "mult") return <MultScreen key={String(p.id)} id={String(p.id)} />;
+  if (route.view === "mvoc") return <MultVocScreen id={String(p.id)} i={Number(p.i) || 0} />;
+  if (route.view === "shadow") return <ShadowScreen key={String(p.n || "")} items={(p.items as ShItem[]) || []} mode={p.mode === "flow" ? "flow" : "card"} daily={!!p.daily} />;
   if (route.view === "kb") return <KbScreen key={`${p.key}:${p.si}:${p.n || 0}`} lessonKey={String(p.key)} si={Number(p.si) || 0} unitN={unit} />;
   return (
     <>

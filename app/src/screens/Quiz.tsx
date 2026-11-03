@@ -8,10 +8,11 @@ import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
 import { CountUp } from "../ui/CountUp";
 import { Ar } from "../ui/kit";
+import { MixedText } from "../ui/Mixed";
 import { Scale } from "../ui/Scale";
 
 export type QItem = { q: string; qAr?: boolean; hint?: string; opts: string[]; optsAr?: boolean; ans: number; why?: string; it?: { ar: string; b: string } };
-export type QEnd = { title: string; sub: string; xp: number; again?: () => void; againLabel?: string };
+export type QEnd = { title: string; sub: string; xp: number; again?: () => void; againLabel?: string; backLabel?: string };
 export type QConf = { title: string; items: QItem[]; track?: boolean; auto?: boolean; onOk?: (it: QItem) => void; onEnd: (score: number, n: number, wrong: QItem[]) => QEnd };
 
 export function QuizScreen({ conf }: { conf: QConf }) {
@@ -49,7 +50,7 @@ export function QuizScreen({ conf }: { conf: QConf }) {
           <p>{end.sub}</p>
           {end.xp > 0 && <p className="r-earn"><CountUp to={end.xp} />&nbsp;yulduzcha</p>}
           {end.again && <button type="button" className="btn primary wide" onClick={end.again}>{end.againLabel || "Yana o'ynash"}</button>}
-          <button type="button" className={`btn ${end.again ? "ghost" : "primary"} wide`} onClick={back}>Mashqqa qaytish</button>
+          <button type="button" className={`btn ${end.again ? "ghost" : "primary"} wide`} onClick={back}>{end.backLabel || "Mashqqa qaytish"}</button>
         </div>
       </main>
     );
@@ -76,7 +77,7 @@ export function QuizScreen({ conf }: { conf: QConf }) {
       </header>
       <div className="r-bar" role="progressbar" aria-valuenow={i} aria-valuemin={0} aria-valuemax={n} aria-label="Test"><i style={{ width: `${(i / n) * 100}%` }} /></div>
       <section className="r-card tq">
-        {it.qAr ? <Ar className="qz-ar">{it.q}</Ar> : <span dir="auto">{it.q}</span>}
+        {it.qAr ? <Ar className="qz-ar">{it.q}</Ar> : <span dir="ltr"><MixedText text={it.q} /></span>}
         {it.hint && <small className="qz-hint">{it.hint}</small>}
       </section>
       <div className="r-opts">
@@ -84,7 +85,7 @@ export function QuizScreen({ conf }: { conf: QConf }) {
           const s = pick === null ? "" : k === it.ans ? "ok" : k === pick ? "no" : "dim";
           return (
             <button key={k} type="button" className={`opt ${s} ${it.optsAr ? "opt-r" : ""}`} disabled={pick !== null} onClick={() => answer(k)}>
-              {it.optsAr ? <Ar className="opt-ar">{o}</Ar> : o}
+              {it.optsAr ? <Ar className="opt-ar">{o}</Ar> : <span dir="ltr"><MixedText text={o} /></span>}
               {s === "ok" && <Check size={20} strokeWidth={3} className="opt-mark" aria-hidden />}
               {s === "no" && <X size={20} strokeWidth={3} className="opt-mark" aria-hidden />}
             </button>
@@ -93,7 +94,7 @@ export function QuizScreen({ conf }: { conf: QConf }) {
       </div>
       {pick !== null && (
         <div className={`r-fix ${pick === it.ans ? "good" : ""}`} role="status">
-          <p>{pick === it.ans ? "To'g'ri!" : <>To'g'ri javob: {it.optsAr ? <Ar>{it.opts[it.ans]}</Ar> : <b>{it.opts[it.ans]}</b>}</>}{it.why ? <><br /><span dir="auto">{it.why}</span></> : null}</p>
+          <p>{pick === it.ans ? "To'g'ri!" : <>To'g'ri javob: {it.optsAr ? <Ar>{it.opts[it.ans]}</Ar> : <b><MixedText text={it.opts[it.ans]} /></b>}</>}{it.why ? <><br /><span dir="ltr"><MixedText text={it.why} /></span></> : null}</p>
           <button type="button" className="btn dark wide" onClick={next}>{i + 1 >= n ? "Natija" : "Davom etish"}</button>
         </div>
       )}

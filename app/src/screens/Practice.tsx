@@ -1,9 +1,12 @@
 // Mashq bo'limi (pastki menyu): vahda tanlanadi → 8 ta so'z o'yini (rekordlar bilan), kartochka, so'z testi;
-// takrorlash: xatolar daftari, sokin takrorlash, saqlangan so'zlar, "Siz bilasiz". Multfilm, shadowing, bellashuv — keyingi bosqichda.
+// takrorlash: xatolar daftari, sokin takrorlash, saqlangan so'zlar, "Siz bilasiz"; tinglash: multfilmlar va kunlik shadowing.
+// Bellashuv va daraja testi — keyingi bosqichda.
 import { useEffect, useState } from "react";
 import { ArrowLeftRight, Bookmark, ChevronRight, CircleDot, Clapperboard, ClipboardCheck, Coins, Image, Layers, ListOrdered, Mic, Moon, PenLine, Puzzle, RotateCcw, Sparkles, Swords, Target, Zap } from "lucide-react";
 import { loadData } from "../lib/data";
 import { bestKey, lastUnit, setLastUnit, usePics, type Err, type PBook } from "../lib/practice";
+import { useMults } from "./Mult";
+import { shDaily } from "./Shadow";
 import { bkKey } from "../lib/progress";
 import { savedAll } from "../lib/saved";
 import { store } from "../lib/store";
@@ -36,6 +39,8 @@ export function Practice() {
   const [unit, setUnit] = useState(() => lastUnit(bookId) || store.get<{ book: string; unit: number; teacher?: boolean }[]>("f.hw", []).find((h) => !h.teacher && h.book === bookId)?.unit || 1);
   useEffect(() => { loadData<PBook>(`books/${bookId}`).then(setBook).catch(() => {}); }, [bookId]);
 
+  const ms = useMults();
+  const sh = ms?.length ? shDaily(ms, me?.level) : null;
   const errN = Object.keys(store.get<Err>("f.err", {})).length;
   const savedN = Object.keys(savedAll()).length;
   const test = store.get<Record<string, number>>(bkKey(bookId, "tests"), {})[unit];
@@ -89,6 +94,17 @@ export function Practice() {
         </button>
       </div>
 
+      <h2 className="t-h">Tinglash va gapirish</h2>
+      <button type="button" className="rowbtn" onClick={() => (ms && !ms.length ? toast("Multfilmlar tez orada qo'shiladi") : go("mults"))}>
+        <Clapperboard size={24} aria-hidden /><span><b>Multfilmlar</b><small>{ms ? `${ms.length} ta · arabcha subtitr va tarjima bilan` : "…"}</small></span><ChevronRight size={20} aria-hidden />
+      </button>
+      <button type="button" className="rowbtn" disabled={!sh?.picks.length}
+        onClick={() => sh && go("shadow", { items: sh.items, mode: "card", daily: true, n: Date.now() })}>
+        <Mic size={24} aria-hidden />
+        <span><b>Shadowing</b><small>{!sh ? "…" : sh.done >= sh.picks.length ? "Bugungi mashq bajarildi · yana takrorlash mumkin" : `Bugungi ${sh.picks.length} ta ibora · ${sh.done} / ${sh.picks.length} · ~5 daqiqa`}</small></span>
+        <ChevronRight size={20} aria-hidden />
+      </button>
+
       <h2 className="t-h">Takrorlash</h2>
       <button type="button" className="rowbtn" onClick={() => go("errors")}>
         <RotateCcw size={24} aria-hidden /><span><b>Xatolar daftari</b><small>{errN ? `${errN} ta so'z takrorlashni kutyapti` : "Hozircha xato yo'q"}</small></span><ChevronRight size={20} aria-hidden />
@@ -105,8 +121,6 @@ export function Practice() {
 
       <h2 className="t-h">Tez orada</h2>
       <ul className="soonlist" aria-label="Tez orada qo'shiladigan mashqlar">
-        <li><Clapperboard size={20} aria-hidden /><span><b>Multfilmlar</b><small>Arabcha subtitr bilan</small></span></li>
-        <li><Mic size={20} aria-hidden /><span><b>Shadowing</b><small>Iboralarni tinglab takrorlash</small></span></li>
         <li><Swords size={20} aria-hidden /><span><b>Bellashuv</b><small>Do'stingiz bilan 10 ta savol</small></span></li>
         <li><Target size={20} aria-hidden /><span><b>Daraja testi</b><small>Sertifikat bilan</small></span></li>
       </ul>
