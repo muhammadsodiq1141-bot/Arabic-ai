@@ -74,7 +74,7 @@ export async function mySummary(): Promise<Record<string, unknown>> {
   // kitob mashqlari: {dars: [bajarilgan qadamlar, jami qadamlar, o'rtacha %]}
   try {
     const K: Record<string, [number, number, number]> = {};
-    for (const k of localKeys(/^f\.kb\.(a0|a1):\d+$/)) {
+    for (const k of localKeys(/^f\.kb\.(a0|a1|md1|md2):\d+$/)) {
       const key = k.slice(5);
       const v = Object.values(get<Record<string, number>>(k, {}));
       if (!v.length) continue;

@@ -2,7 +2,7 @@
 // Pastda doim "Davom etish: <keyingi qadam>" tugmasi; keyingi qadam kartasi oltin halqa bilan belgilanadi; qulf sababini aytadi.
 // Shuningdek "Darslar" bo'limi: joriy kitobning barcha vahdalari (uy vazifasi berilgani belgilanadi).
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, BookOpen, Bookmark, Check, ChevronDown, ChevronUp, KeyRound, Library, Lock, Star } from "lucide-react";
+import { ArrowRight, BookOpen, Bookmark, Check, ChevronDown, ChevronRight, ChevronUp, KeyRound, Library, Lock, Star } from "lucide-react";
 import { preloadKitob } from "../lib/audio";
 import { img, loadData } from "../lib/data";
 import { GRADED, isReadStep, kbBest, kbKeyOf, kbOpen, loadKb, type KbLesson, type KbStep } from "../lib/kb";
@@ -17,6 +17,7 @@ import { Emo } from "../ui/Emo";
 import { Ar, ScreenHeader, SectionTitle } from "../ui/kit";
 import { Scale } from "../ui/Scale";
 import { toast } from "../ui/Toast";
+import { DrillHub } from "./Madina";
 import { Round } from "./Round";
 
 // topshiriq turi (qadam kaliti) bo'yicha belgi
@@ -142,7 +143,7 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
 
   return (
     <main className="screen unit has-cta">
-      <ScreenHeader title={`${unitN}-vahda · ${u.uz}`} ar={u.ar}
+      <ScreenHeader title={`${(u as { lbl?: string }).lbl || `${unitN}-vahda`} · ${u.uz}`} ar={u.ar}
         actions={<>
           <button type="button" className="ibtn" aria-label={finished ? "Javoblar" : "Javoblar (vahda tugagach ochiladi)"}
             onClick={() => (finished ? go("soon", { title: "Javoblar" }) : lockMsg("Javoblar vahda to'liq bajarilgach ochiladi"))}>
@@ -220,6 +221,17 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
           )}
         </>
       )}
+
+      {bookId.startsWith("md") && !!(u as { mem?: unknown }).mem && (
+        <button type="button" className="ub v-ex v-mem" onClick={() => go("mem", { book: bookId, unit: unitN })}>
+          <span className="ub-deco" aria-hidden><Emo e="🧩" size={52} /><Emo e="📖" size={52} /></span>
+          <span className="ub-hd"><span className="ub-badge"><Star size={28} aria-hidden /></span>
+            <span className="ub-tt"><Ar className="ub-ar">الْحِفْظُ</Ar><span className="ub-uz">Yodlash · Beton usuli</span></span>
+            <span className="ub-chev"><ChevronRight size={18} /></span></span>
+          <span className="ub-pr"><span className="b" role="progressbar" aria-valuenow={vocPct} aria-valuemin={0} aria-valuemax={100} aria-label="Yodlash"><i style={{ width: `${vocPct}%` }} /></span><em>{vocPct}%</em></span>
+        </button>
+      )}
+      {bookId === "md1" && unitN === 1 && <DrillHub dkey="md1:1" />}
 
       {celebrate && <HwDone assigned={assigned} onClose={() => { store.set(celeKey, Date.now()); setCelebrate(false); }} />}
 

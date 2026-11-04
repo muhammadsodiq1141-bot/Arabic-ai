@@ -17,12 +17,14 @@ import { A0Grow, A0Home, A0Lesson, A0Map, HwSend } from "./A0";
 import { AdminScreen, AdminTeachersScreen, AdminUsersScreen } from "./Admin";
 import { AdminRequests } from "./AdminRequests";
 import { BooksScreen } from "./Books";
+import { CityScreen } from "./City";
 import { CardsScreen, WordTestScreen } from "./Drill";
 import { DuelScreen } from "./Duel";
 import { GameScreen } from "./Games";
 import { Home } from "./Home";
 import { KbScreen } from "./Kitob";
 import { LeagueScreen } from "./League";
+import { DrillScreen, MemScreen } from "./Madina";
 import { CertScreen, LevelTestScreen, type Cert } from "./Level";
 import { Marks } from "./Marks";
 import { MultScreen, MultsScreen, MultVocScreen } from "./Mult";
@@ -70,6 +72,9 @@ export function Main() {
   if (route.view === "ausers") return <AdminUsersScreen />;
   if (route.view === "books") return <BooksScreen />;
   // A0 · Alifbo: n — dars, l — harf, id — vazifa
+  if (route.view === "city") return <CityScreen />;
+  if (route.view === "mem") return <MemScreen key={`${p.book}:${p.unit}`} bookId={String(p.book || "md1")} unitN={Number(p.unit) || 1} />;
+  if (route.view === "darslik") return <DrillScreen key={`${p.key}:${p.si}:${p.n || 0}`} dkey={String(p.key)} si={Number(p.si) || 0} />;
   if (route.view === "a0") return <A0Home />;
   if (route.view === "a0d") return <A0Lesson key={String(p.n)} n={Number(p.n) || 1} />;
   if (route.view === "a0map") return <A0Map l={p.l ? String(p.l) : undefined} />;

@@ -185,7 +185,7 @@ function MemberRow({ m, open, onToggle, bookName, onKick }: { m: Member; open: b
                 <b>{v[0]}/{v[1]}</b></div>
             );
           })}
-          {s.kb && Object.entries(s.kb).map(([k, v]) => <p key={k} className="t-note">Mashqlar · {k.startsWith("a0:") ? `A0 ${k.slice(3)}-dars` : `${k.slice(3)}-vahda`}: {v[0]}/{v[1]} topshiriq · o'rtacha {v[2]}%</p>)}
+          {s.kb && Object.entries(s.kb).map(([k, v]) => <p key={k} className="t-note">Mashqlar · {k.startsWith("a0:") ? `A0 ${k.slice(3)}-dars` : k.startsWith("md") ? `Madina ${k[2]} · ${k.split(":")[1]}-vahda` : `${k.split(":")[1]}-vahda`}: {v[0]}/{v[1]} topshiriq · o'rtacha {v[2]}%</p>)}
           {s.a0 && <p className="t-note">A0 alifbo: {(s.a0.m.match(/2/g) || []).length}/28 harf{s.a0.sp ? ` · ${s.a0.sp} bo'g'in/daqiqa` : ""}</p>}
           {s.ob && <p className="t-note">Birinchi hafta: {s.ob.d > 7 ? "tugadi" : `${s.ob.d}-kun`} · {s.ob.n} / 21 vazifa</p>}
           {!m.sum && <p className="t-note">Natijalar hali serverga kelmagan.</p>}

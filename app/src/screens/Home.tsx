@@ -16,6 +16,8 @@ import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
 import { Ar, Avatar, SectionTitle } from "../ui/kit";
 import { A0Entry } from "./A0";
+import { bookOfLevel } from "./Unit";
+import { ensureWeek, WeekCard } from "./Week";
 
 type Hw = { id: number; book: string; unit: number; title: string; due: string; mine: { done?: boolean } | null; teacher?: boolean };
 type HwCard = { book: string; title: string; unitAr: string; unitN: number; pct: number; due: string; next: string } | null | "none" | "nogroup";
@@ -35,6 +37,7 @@ export function Home() {
     let alive = true;
     (async () => {
       await bootSync(me);
+      ensureWeek(); // birinchi hafta yo'li (yangi o'quvchi uchun)
       void kbFlush(); // internetsiz yozilgan javoblar (f.kbq) — eski ilovadagi kabi ochilganda yuboriladi
       const raw = localRaw();
       if (!alive) return;
@@ -112,6 +115,7 @@ export function Home() {
         </button>
       </div>
 
+      {sum && <WeekCard bookId={store.get("a1.book", bookOfLevel(me?.level))} />}
       {me?.level === "A0" && <A0Entry />}
 
       {(me?.teacher || !!me?.myGroups?.length) && (

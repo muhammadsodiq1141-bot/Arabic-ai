@@ -16,6 +16,7 @@ export type QEnd = { title: string; sub: string; xp: number; again?: () => void;
 /** onEnd — yakun ekrani shu yerda; finish — yakunda boshqa sahifaga o'tiladi (bellashuv, daraja testi), sec — sarflangan soniya */
 export type QConf = {
   title: string; items: QItem[]; track?: boolean; auto?: boolean; onOk?: (it: QItem) => void;
+  repeatWrong?: boolean; // birinchi o'tishdagi xatolar oxirida bir marta qaytadi (Beton mashq)
   onEnd?: (score: number, n: number, wrong: QItem[]) => QEnd; finish?: (score: number, n: number, wrong: QItem[], sec: number) => void;
 };
 
@@ -28,11 +29,19 @@ export function QuizScreen({ conf }: { conf: QConf }) {
   const [end, setEnd] = useState<QEnd | null>(null);
   const [waiting, setWaiting] = useState(false);
   const t0 = useRef(Date.now());
-  const n = conf.items.length;
-  const it = conf.items[i];
+  const [items, setItems] = useState(conf.items);
+  const [again, setAgain] = useState(false);
+  const n = items.length;
+  const it = items[i];
 
   const next = () => {
     setPick(null);
+    if (i + 1 >= n && conf.repeatWrong && !again && wrong.current.length) {
+      // xatolar o'sha variantlar tartibida oxiriga bir marta qo'shiladi
+      setItems([...items, ...wrong.current.map((x) => ({ ...x }))]);
+      wrong.current = []; setAgain(true); setI(i + 1);
+      return;
+    }
     if (i + 1 >= n) {
       tg.haptic("success");
       const sec = Math.round((Date.now() - t0.current) / 1000);

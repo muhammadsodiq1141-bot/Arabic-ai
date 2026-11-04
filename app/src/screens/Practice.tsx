@@ -2,7 +2,7 @@
 // takrorlash: xatolar daftari, sokin takrorlash, saqlangan so'zlar, "Siz bilasiz"; tinglash: multfilmlar va kunlik shadowing.
 // sinov: bellashuv (do'st bilan) va daraja testi (sertifikat).
 import { useEffect, useState } from "react";
-import { ALargeSmall, ArrowLeftRight, Bookmark, ChevronRight, CircleDot, Clapperboard, ClipboardCheck, Coins, Image, Layers, ListOrdered, Mic, Moon, PenLine, Puzzle, RotateCcw, Sparkles, Swords, Target, Zap } from "lucide-react";
+import { ALargeSmall, ArrowLeftRight, Building2, Bookmark, ChevronRight, CircleDot, Clapperboard, ClipboardCheck, Coins, Image, Layers, ListOrdered, Mic, Moon, PenLine, Puzzle, RotateCcw, Sparkles, Swords, Target, Zap } from "lucide-react";
 import { loadData } from "../lib/data";
 import { bestKey, lastUnit, setLastUnit, usePics, type Err, type PBook } from "../lib/practice";
 import { useMults } from "./Mult";
@@ -109,6 +109,10 @@ export function Practice() {
         <Mic size={24} aria-hidden />
         <span><b>Shadowing</b><small>{!sh ? "…" : sh.done >= sh.picks.length ? "Bugungi mashq bajarildi · yana takrorlash mumkin" : `Bugungi ${sh.picks.length} ta ibora · ${sh.done} / ${sh.picks.length} · ~5 daqiqa`}</small></span>
         <ChevronRight size={20} aria-hidden />
+      </button>
+
+      <button type="button" className="rowbtn" onClick={() => go("city")}>
+        <Building2 size={24} aria-hidden /><span><b>Shahrim</b><small>Har bir vahda — yangi bino</small></span><ChevronRight size={20} aria-hidden />
       </button>
 
       <h2 className="t-h">Takrorlash</h2>
