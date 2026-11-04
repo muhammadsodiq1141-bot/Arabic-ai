@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Check, Delete, Eraser, Heart, X } from "lucide-react";
 import { loadData } from "../lib/data";
 import { AB, bestKey, emoOf, itemsOf, picOf, poolFor, usePics, type Item, type PBook } from "../lib/practice";
+import { report } from "../lib/report";
 import { gain, saveRecord, store } from "../lib/store";
 import { tg } from "../lib/tg";
 import { shuffle, strip } from "../lib/words";
@@ -44,6 +45,7 @@ function useFinish(book: PBook, unit: number, game: string) {
     if (done.current) return false;
     done.current = true;
     gain("game", 10);
+    report(`oʻyin: ${GAME_NAMES[game] || game}`, book.units.find((x) => x.n === unit)?.uz || "", score, null, true, unit);
     tg.haptic("success");
     return saveRecord(bestKey(book.id, game, unit), score, LOWER.has(game));
   };

@@ -6,6 +6,8 @@ import { Logo } from "./ui/kit";
 import { Toaster } from "./ui/Toast";
 import { NoAuth, Pending, Problem, Register, Rejected } from "./screens/Gate";
 import { Main } from "./screens/Main";
+import { MotivHost } from "./screens/Motiv";
+import { CoachHost } from "./screens/Onboard";
 
 function Gate() {
   const { phase, me } = useSession();
@@ -18,6 +20,8 @@ function Gate() {
   return (
     <NavProvider>
       <Main />
+      <MotivHost />
+      <CoachHost />
       <Watermark name={me?.full_name || me?.name || ""} login={me?.login || null} />
     </NavProvider>
   );

@@ -14,6 +14,7 @@ import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
 import { SectionTitle } from "../ui/kit";
+import { HelpButton } from "./Onboard";
 import { toast } from "../ui/Toast";
 import { gameAvailable, GAME_NAMES } from "./Games";
 import { synAntConf } from "./Review";
@@ -61,7 +62,7 @@ export function Practice() {
 
   return (
     <main className="screen practice">
-      <SectionTitle ar="التَّمَارِينُ" uz="Mashq" />
+      <SectionTitle ar="التَّمَارِينُ" uz="Mashq" right={<HelpButton k="practice" />} />
       <label className="pr-unit">
         <span>Qaysi vahda so'zlari bilan?</span>
         <select value={unit} onChange={(e) => pickUnit(Number(e.target.value))} aria-label="Vahda">

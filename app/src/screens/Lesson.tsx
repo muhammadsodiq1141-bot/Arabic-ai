@@ -9,6 +9,7 @@ import { say } from "../lib/audio";
 import { pctOf } from "../lib/next";
 import { allItems, checkTyped, dayNum, errAdd, itemsOf, picOf, SRS_INT, srsOf, usePics, type Item } from "../lib/practice";
 import { bkKey } from "../lib/progress";
+import { report } from "../lib/report";
 import type { RQ } from "../lib/rx";
 import { gain, knownOf, markKnown, scheduleSync, store } from "../lib/store";
 import { tg } from "../lib/tg";
@@ -127,6 +128,7 @@ export function LessonScreen({ bookId, plan }: { bookId: string; plan: Plan }) {
   const [rq, setRq] = useState({ ok: 0, n: 0 });
   const [end, setEnd] = useState<{ mins: number; sk: number } | null>(null);
   const t0 = useRef(Date.now());
+  const okN = useRef(0); // birinchi urinishda to'g'ri yozilganlar (eski L.ok)
   const inp = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (!book) return;
@@ -152,6 +154,7 @@ export function LessonScreen({ bookId, plan }: { bookId: string; plan: Plan }) {
       store.set(key, Math.max(store.get<number | null>(key, null) || 0, Math.round((rq.ok / rq.n) * 100)));
     }
     gain("lesson", 20);
+    report("bugungi dars", plan.u.uz || "", okN.current + rq.ok, steps.filter((s) => s.k !== "intro").length, true, plan.u.n);
     tg.haptic("success");
     setEnd({ mins: Math.max(1, Math.round((Date.now() - t0.current) / 60000)), sk: lessonStreak(bookId) });
   };
@@ -167,6 +170,7 @@ export function LessonScreen({ bookId, plan }: { bookId: string; plan: Plan }) {
     if (!r) return;
     if (r !== "no") {
       // "yaqin" javob ham to'g'ri; ikkinchi urinishdagi to'g'ri javob takrorlash uchun xato hisoblanadi (eski)
+      if (!tries) okN.current++;
       setSt("ok"); lessonSrs(book, cur.it, tries === 0); gain("fc", tries ? 1 : 3); tg.haptic("success");
     } else {
       const t = tries + 1;

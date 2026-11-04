@@ -14,6 +14,7 @@ import { useNav } from "../state/nav";
 import { Emo, EmoLead } from "../ui/Emo";
 import { Ar } from "../ui/kit";
 import { CountUp } from "../ui/CountUp";
+import { reactMark, reactReset, reactStepEnd } from "../ui/Reaction";
 import { Scale } from "../ui/Scale";
 import { Alphabet, Hear, Ladder, LetterItem, Trace } from "./KbA0";
 
@@ -101,6 +102,7 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
     setAns(v);
     if (v) setOk((o) => o + 1);
     tg.haptic(v ? "success" : "error");
+    reactMark(v); // reaksiya stikeri
     if (a0) {
       a0Answer(it, v); // harf va ko'nikma hisobi
       if (lessonKey === "a0:rev" && refs?.[i] && it.type !== "trace") revAnswer(refs[i], v);
@@ -117,6 +119,7 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
       if (lessonKey !== "a0:map") gain("game", Math.max(5, ok * 2));
       report();
       setPct(p);
+      reactStepEnd(p);
     }
     setI(i + 1);
     window.scrollTo(0, 0);
@@ -126,7 +129,7 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
   const head = (
     <>
       <header className="r-top">
-        <button type="button" className="r-close" aria-label="Chiqish" onClick={back}><X size={22} aria-hidden />Chiqish</button>
+        <button type="button" className="r-close" aria-label="Chiqish" onClick={() => { reactReset(); back(); }}><X size={22} aria-hidden />Chiqish</button>
         <b>{virt ? L.title : `${si + 1}-topshiriq · ${label}`}</b>
         <span className="r-count">{Math.max(0, Math.min(i, n))} / {n}</span>
       </header>
@@ -167,7 +170,7 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
             return hw && s && s.full && !s.sent ? <button type="button" className="btn primary wide a0-go" onClick={() => replace("hwsend", { id: hw.id })}><Send size={18} aria-hidden />Dars tugadi — ustozga topshirish</button> : null; })()}
           {!last && <button type="button" className="btn primary wide" onClick={() => replace("kb", { key: lessonKey, si: si + 1, book, unit: unitN })}>Keyingi topshiriq: {L.steps[si + 1].t.split(" · ")[0]}</button>}
           <button type="button" className="btn ghost wide" onClick={() => replace("kb", { key: lessonKey, si, book, unit: unitN, l: letter, n: Date.now() })}><RotateCcw size={18} aria-hidden />Qayta ishlash</button>
-          <button type="button" className="btn ghost wide" onClick={back}>{virt ? "Orqaga" : a0 ? "Darsga qaytish" : "Vahdaga qaytish"}</button>
+          <button type="button" className="btn ghost wide" onClick={() => { reactReset(); back(); }}>{virt ? "Orqaga" : a0 ? "Darsga qaytish" : "Vahdaga qaytish"}</button>
         </div>
       </main>
     );

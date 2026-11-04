@@ -14,6 +14,7 @@ import { CountUp } from "../ui/CountUp";
 import { Emo } from "../ui/Emo";
 import { Ar, ScreenHeader } from "../ui/kit";
 import { MixedText } from "../ui/Mixed";
+import { reactMark } from "../ui/Reaction";
 import { Scale } from "../ui/Scale";
 import type { QConf, QItem } from "./Quiz";
 
@@ -247,6 +248,7 @@ export function DrillScreen({ dkey, si }: { dkey: string; si: number }) {
     if (ans !== null || !it) return;
     const v = o === it.ok; setPicked(o); setAns(v); if (v) setOk((x) => x + 1);
     tg.haptic(v ? "success" : "error");
+    reactMark(v); // reaksiya stikeri (eskida faqat variantli javobda — gap tuzish drAnswer'dan o'tmasdi)
     void say(it.type === "listen" ? it.ar || "" : String(it.ok).replace(/…/g, ""));
   };
   const tap = (k: number) => {

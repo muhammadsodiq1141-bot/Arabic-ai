@@ -8,6 +8,7 @@ import { fmtT, kLag, kPaint, multLevel, shEnd, shKey, shMore, shPicks, SHSP, shR
 import { gain, store } from "../lib/store";
 import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
+import { HelpButton, useCoach } from "./Onboard";
 import { useSession } from "../state/session";
 import { Ar } from "../ui/kit";
 import { CountUp } from "../ui/CountUp";
@@ -23,6 +24,7 @@ const recMime = () => ["audio/webm;codecs=opus", "audio/ogg;codecs=opus", "audio
   .find((t) => { try { return MediaRecorder.isTypeSupported(t); } catch { return false; } });
 
 export function ShadowScreen({ items, mode, daily }: { items: ShItem[]; mode: Mode; daily: boolean }) {
+  useCoach("shadow", items.length > 0);
   const { back, replace } = useNav();
   const { me } = useSession();
   const ms = useMults();
@@ -255,6 +257,7 @@ export function ShadowScreen({ items, mode, daily }: { items: ShItem[]; mode: Mo
       <header className="r-top">
         <button type="button" className="r-close" aria-label="Chiqish" onClick={back}><X size={22} aria-hidden />Chiqish</button>
         <b>Shadowing</b>
+        <HelpButton k="shadow" />
         <span className="r-count">{st.k + 1} / {n}</span>
       </header>
       <div className="r-bar" role="progressbar" aria-valuenow={st.k} aria-valuemin={0} aria-valuemax={n} aria-label="Shadowing"><i style={{ width: `${(st.k / n) * 100}%` }} /></div>

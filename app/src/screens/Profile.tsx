@@ -1,7 +1,7 @@
 // Profil: hisob (ism va daraja, guvohnoma — login va yangi PIN), kitob tanlash, guruh (qo'shilish va chiqish),
 // ustozlik so'rovi, ustoz va admin panellariga kirish, ko'rinish. Server amallari eski ilova bilan umumiy.
 import { useEffect, useState } from "react";
-import { BookOpen, ChevronRight, Copy, GraduationCap, IdCard, KeyRound, LogOut, Moon, Send, ShieldCheck, Sun, SunMoon, UserPen, Users } from "lucide-react";
+import { BookOpen, ChevronRight, Copy, GraduationCap, IdCard, KeyRound, LogOut, Moon, MoonStar, Send, ShieldCheck, Sun, SunMoon, UserPen, Users } from "lucide-react";
 import { api } from "../lib/api";
 import { BOT_LINK } from "../lib/config";
 import { loadData, type BookIndex } from "../lib/data";
@@ -11,8 +11,10 @@ import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
 import { useTheme, type ThemePref } from "../state/theme";
 import { useArm } from "../ui/arm";
+import { ReactionSettings, Switch } from "../ui/Reaction";
 import { Avatar, Logo, ScreenHeader, SectionTitle } from "../ui/kit";
 import { toast } from "../ui/Toast";
+import { BadgesCard, FreezeCard, ProfActions, ProfMotiv } from "./Motiv";
 import { bookOfLevel } from "./Unit";
 
 const LEVELS = ["A0", "A1", "A2", "B1", "B2", "C1"];
@@ -32,7 +34,7 @@ export function useBookIndex() {
 export function Profile() {
   const { me } = useSession();
   const { go } = useNav();
-  const { pref, set } = useTheme();
+  const { pref, set, night, setNight } = useTheme();
   const books = useBookIndex();
   const name = me?.full_name || me?.name || "O'quvchi";
   const bookId = store.get("a1.book", bookOfLevel(me?.level));
@@ -44,6 +46,8 @@ export function Profile() {
         <Avatar name={name} photo={tg.user?.photo_url} size={64} />
         <div><b>{name}</b><span>Login: {me?.login || "—"}</span><span>Daraja: {me?.level || "—"}{me?.group ? ` · ${me.group.title}` : ""}</span></div>
       </section>
+      <section className="card pm-card"><ProfMotiv name={name} /></section>
+      <ProfActions />
 
       <h2 className="t-h">Hisob</h2>
       <button type="button" className="rowbtn" onClick={() => go("books")}>
@@ -55,6 +59,9 @@ export function Profile() {
       <button type="button" className="rowbtn" onClick={() => go("account")}>
         <UserPen size={24} aria-hidden /><span><b>Ism va daraja</b><small>{name} · {me?.level || "—"}</small></span><ChevronRight size={20} aria-hidden />
       </button>
+
+      <BadgesCard />
+      <FreezeCard />
 
       <h2 className="t-h">Guruh</h2>
       <GroupCard />
@@ -76,7 +83,13 @@ export function Profile() {
             <button key={id} type="button" className={pref === id ? "on" : ""} aria-pressed={pref === id} onClick={() => set(id)}><Icon size={16} aria-hidden />{label}</button>
           ))}
         </div>
+        <div className="rk-row pf-night">
+          <span className="rk-ic" aria-hidden><MoonStar size={24} /></span>
+          <div><b>Kechqurun o'zi almashsin</b><small>21:00 dan 06:00 gacha tungi rejim</small></div>
+          <Switch on={night} label="Kechqurun o'zi almashsin" onClick={() => setNight(!night)} />
+        </div>
       </section>
+      <ReactionSettings />
     </main>
   );
 }

@@ -8,6 +8,8 @@ import { img, loadData } from "../lib/data";
 import { GRADED, isReadStep, kbBest, kbKeyOf, kbOpen, loadKb, type KbLesson, type KbStep } from "../lib/kb";
 import { dueText, gramPct, nextStep, pctOf, ROUND, rulesOf, theoryKey } from "../lib/next";
 import { hwProgress, localRaw, type Book } from "../lib/progress";
+import { itemsOf } from "../lib/practice";
+import { report } from "../lib/report";
 import { knownOf, store, syncNow } from "../lib/store";
 import { tg } from "../lib/tg";
 import { loadWords, type Word } from "../lib/words";
@@ -18,6 +20,7 @@ import { Ar, ScreenHeader, SectionTitle } from "../ui/kit";
 import { Scale } from "../ui/Scale";
 import { toast } from "../ui/Toast";
 import { DrillHub } from "./Madina";
+import { HelpButton, useCoach } from "./Onboard";
 import { ruleStats, type RBook } from "./Rules";
 import { Round } from "./Round";
 
@@ -96,6 +99,7 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
   const nextKind = next?.kind;
   const ready = !!book && (!kbKey || !!kb);
   const [celebrate, setCelebrate] = useState(false);
+  useCoach("vahda", ready && !celebrate);
   const inited = useRef(false);
   useEffect(() => {
     if (!ready || inited.current) return;
@@ -107,7 +111,11 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
   // vahda endigina to'liq bajarilgan bo'lsa (shart: so'zlar, so'z testi, qoidalar ≥80%) — bir martalik tabrik, natija darhol serverga
   useEffect(() => {
     if (!ready || !book || store.get(`f.cele.${bookId}.${unitN}`, 0)) return;
-    if (hwProgress(localRaw(), book, unitN).done) { setCelebrate(true); void syncNow(); tg.haptic("success"); }
+    if (hwProgress(localRaw(), book, unitN).done) {
+      setCelebrate(true); void syncNow(); tg.haptic("success");
+      const bu = book.units.find((x) => x.n === unitN), kk = knownOf(bookId, unitN);
+      if (bu) { const all = itemsOf(bu as Parameters<typeof itemsOf>[0]); report("boʻlim tugadi", bu.uz || "", all.filter((x) => kk[x.ar]).length, all.length, true, unitN); }
+    }
   }, [ready, book, bookId, unitN]);
 
   if (!book || !u || !next) return <main className="screen"><ScreenHeader title="Uy vazifasi" /><p className="muted pad">Yuklanmoqda…</p></main>;
@@ -154,6 +162,7 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
     <main className="screen unit has-cta">
       <ScreenHeader title={`${(u as { lbl?: string }).lbl || `${unitN}-vahda`} · ${u.uz}`} ar={u.ar}
         actions={<>
+          <HelpButton k="vahda" />
           <button type="button" className="ibtn" aria-label={finished ? "Javoblar" : "Javoblar (vahda tugagach ochiladi)"}
             onClick={() => (finished ? go("soon", { title: "Javoblar" }) : lockMsg("Javoblar vahda to'liq bajarilgach ochiladi"))}>
             {finished ? <KeyRound size={22} aria-hidden /> : <Lock size={20} aria-hidden />}

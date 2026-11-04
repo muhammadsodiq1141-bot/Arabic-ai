@@ -7,6 +7,7 @@ import { ArrowRight, CircleCheck, Target, X } from "lucide-react";
 import { loadData } from "../lib/data";
 import type { PBook } from "../lib/practice";
 import { bkKey } from "../lib/progress";
+import { report } from "../lib/report";
 import { ruleQs, type RQ, type RuleBook } from "../lib/rx";
 import { gain, store } from "../lib/store";
 import { tg } from "../lib/tg";
@@ -170,6 +171,7 @@ export function RulePractice({ bookId, list, title }: { bookId: string; list: [n
     const xp = okAll / total >= 0.8 ? 15 : 10;
     gain("rule", xp);
     tg.haptic("success");
+    report(`qoida: ${title}`, book.title, okAll, total, true);
     setRes({ p: Math.round((okAll / total) * 100), ok: okAll, xp });
   };
   return (

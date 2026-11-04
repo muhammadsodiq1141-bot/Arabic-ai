@@ -28,11 +28,13 @@ export function weekId() { const d = new Date(); d.setDate(d.getDate() - ((d.get
 export function hash(s: string) { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; }
 export const bkKey = (bid: string, name: string) => (bid === "a1" ? `a1.${name}` : `bk.${bid}.${name}`);
 
-export function streak(days: Record<string, number>) {
+/** ketma-ket faol kunlar; muzlatilgan kunlar (x.fz) ham hisoblanadi — eski streak yamog'i, ustozga ketadigan streakFz bilan bir xil */
+export function streak(days: Record<string, number>, fz: string[] = []) {
+  const on = (k: string) => !!days[k] || fz.includes(k);
   let c = 0;
   const d = new Date();
-  if (!days[dayKey()]) d.setDate(d.getDate() - 1);
-  while (days[dayKey(d)]) { c++; d.setDate(d.getDate() - 1); }
+  if (!on(dayKey())) d.setDate(d.getDate() - 1);
+  while (on(dayKey(d))) { c++; d.setDate(d.getDate() - 1); }
   return c;
 }
 
@@ -45,7 +47,7 @@ export function summarize(raw: Raw): Summary {
   const wk = weekId();
   const weekXp = Object.entries(daily).filter(([d]) => d >= wk).reduce((a, [, v]) => a + (+v || 0), 0);
   return {
-    xp: parse(raw["x.t"], 0), stars: parse(raw["x.s"], 0), streak: streak(parse(raw["a1.days"], {})), known,
+    xp: parse(raw["x.t"], 0), stars: parse(raw["x.s"], 0), streak: streak(parse(raw["a1.days"], {}), parse(raw["x.fz"], [])), known,
     todayXp: daily[dayKey()] || 0, weekXp, book: parse(raw["a1.book"], "a1"),
   };
 }

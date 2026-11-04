@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Crown, RefreshCw, Star, Users } from "lucide-react";
 import { api } from "../lib/api";
 import { weekId } from "../lib/progress";
+import { report } from "../lib/report";
 import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
@@ -29,6 +30,7 @@ export function LeagueScreen() {
   const [res, setRes] = useState<Res | null | "err">(null);
   const [nonce, setNonce] = useState(0);
   const lvl = me?.level || null;
+  useEffect(() => { report("reyting", "", null, null, true); }, []);
 
   useEffect(() => {
     let alive = true;

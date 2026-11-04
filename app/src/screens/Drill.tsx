@@ -5,6 +5,7 @@ import { say } from "../lib/audio";
 import { loadData } from "../lib/data";
 import { checkTyped, errAdd, itemsOf, picOf, srsSet, usePics, type Item, type PBook } from "../lib/practice";
 import { bkKey } from "../lib/progress";
+import { report } from "../lib/report";
 import { gain, knownOf, store } from "../lib/store";
 import { tg } from "../lib/tg";
 import { shuffle, strip } from "../lib/words";
@@ -60,6 +61,7 @@ function Cards({ book, unit }: { book: PBook; unit: number }) {
       const first = !tries && !hint;
       srsSet(book, card.ar, first); // birinchi urinishda — yodlandi; aks holda takrorlashga va xatolar daftariga
       gain("fc", first ? 3 : 1);
+      report("kartochka", book.units.find((x) => x.n === unit)?.uz || "", null, null, false, unit);
       setState(r); tg.haptic("success");
       timer.current = window.setTimeout(() => nextCard(first), 900);
     } else {
@@ -166,6 +168,7 @@ function WordTest({ book, unit, scope, setScope, again }: { book: PBook; unit: n
     T[unit] = Math.max(T[unit] || 0, Math.round(p * 100));
     store.set(k, T);
     gain(p >= 0.8 ? "test80" : "test", 5 + sc);
+    report("test", book.units.find((x) => x.n === unit)?.uz || "", sc, n, true, unit);
     for (const w of wrong.current) errAdd(w.ar, book.id);
     setDone(true); tg.haptic("success");
   };

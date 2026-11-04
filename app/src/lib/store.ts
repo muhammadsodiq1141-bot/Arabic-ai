@@ -86,6 +86,9 @@ export function dailyTasks(day = dayKey()) {
 export function gain(kind: string, xp: number) {
   const t = dayKey();
   const D = store.get<Record<string, number>>("x.d", {});
+  const before = D[t] || 0, goal = store.get("x.goal", 50);
+  const msgs: string[] = [];
+  if (before < goal && before + xp >= goal) msgs.push("Kunlik maqsad bajarildi!");
   D[t] = (D[t] || 0) + xp;
   store.set("x.d", D);
   store.set("x.t", store.get("x.t", 0) + xp);
@@ -108,11 +111,13 @@ export function gain(kind: string, xp: number) {
       const w = wk.split("-").map(Number);
       let days = 0;
       for (let i = 0; i < 7; i++) if ((D[dayKey(new Date(w[0], w[1] - 1, w[2] + i))] || 0) > 0) days++;
-      if (days >= 5) { store.set(`x.w.${wk}`, 1); got += 5; }
+      if (days >= 5) { store.set(`x.w.${wk}`, 1); got += 5; msgs.push("Haftalik vazifa bajarildi"); }
     }
-    if (got) { store.set(`x.cl.${t}`, cl); store.set("x.s", store.get("x.s", 0) + got); }
+    if (got) { store.set(`x.cl.${t}`, cl); store.set("x.s", store.get("x.s", 0) + got); msgs.push(`+${got} tanga`); }
   } catch { /* */ }
   scheduleSync();
+  // motivatsiya: xabar (toast) va unvon/nishon tabrigi — Motiv.tsx dagi MotivHost tinglaydi (x.s = «tanga»)
+  try { window.dispatchEvent(new CustomEvent("mezon:gain", { detail: msgs })); } catch { /* */ }
 }
 
 /** Mashq natijasi rekordi: {BK}best.<o'yin>.<vahda>. lowerBetter — kamroq yaxshi (Juftini top: urinishlar). Yangi rekord bo'lsa true */

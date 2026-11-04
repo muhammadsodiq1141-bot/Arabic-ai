@@ -23,13 +23,20 @@ const PLAN = [["words", "cards", "shadow"], ["rules", "games", "shadow"], ["mult
 const DAY = ["Tanishuv", "Qoidalar", "Multfilm", "Guruh", "Reyting", "Bellashuv", "Yakun"];
 const BOOK_TASK = ["words", "cards", "games", "test", "rules"];
 
-/** Bosh sahifa yuklanganda (bootSync'dan keyin): hafta yo'li hali yaratilmagan bo'lsa — yangi o'quvchiga ochiladi, eskisiga yashirin */
-export function ensureWeek() {
-  if (store.get("f.ob.intro", 0)) return;
+/** Bosh sahifa yuklanganda (bootSync'dan keyin). Eski o'quvchi: tanishuvsiz, hafta yo'li yashirin. Yangi o'quvchi: true —
+ *  tanishuv ko'rsatiladi, f.ob.intro va hafta yo'li tanishuv yopilganda yoziladi (introDone, eskidagi obIntroClose kabi) */
+export function ensureWeek(): boolean {
+  if (store.get("f.ob.intro", 0)) return false;
   const days = store.get<Record<string, number>>("a1.days", {});
   const isNew = !Object.keys(days).some((k) => days[k] > 0 && k !== dayKey());
+  if (isNew) return true;
   store.set("f.ob.intro", 1);
-  if (!store.get<Wk | null>("f.ob.wk", null)) store.set("f.ob.wk", { start: Date.now(), done: {}, ...(isNew ? {} : { hide: true }) });
+  if (!store.get<Wk | null>("f.ob.wk", null)) store.set("f.ob.wk", { start: Date.now(), done: {}, hide: true });
+  return false;
+}
+export function introDone() {
+  store.set("f.ob.intro", 1);
+  if (!store.get<Wk | null>("f.ob.wk", null)) store.set("f.ob.wk", { start: Date.now(), done: {} });
 }
 const obDay = (W: Wk) => Math.floor((new Date().setHours(0, 0, 0, 0) - new Date(W.start).setHours(0, 0, 0, 0)) / 864e5) + 1;
 

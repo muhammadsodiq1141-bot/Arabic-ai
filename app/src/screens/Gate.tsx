@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Check, KeyRound, RefreshCw, Send } from "lucide-react";
 import { api, setLogin } from "../lib/api";
 import { BOT_LINK } from "../lib/config";
+import { report } from "../lib/report";
 import { store } from "../lib/store";
 import { startGo, tg } from "../lib/tg";
 import { useSession } from "../state/session";
@@ -63,6 +64,7 @@ export function Register() {
     try {
       const r = await api<{ login: string; pin?: string }>("register", { name: name.trim(), level });
       setCred(r);
+      report("roʻyxatdan oʻtdi", "", null, null, true);
     } catch (e) { setErr(e instanceof Error ? e.message : String(e)); }
     setBusy(false);
   };

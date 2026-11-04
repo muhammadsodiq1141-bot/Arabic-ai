@@ -7,15 +7,18 @@ import { useEffect } from "react";
 import { api } from "../lib/api";
 import type { DayWord } from "../lib/data";
 import type { ShItem } from "../lib/mult";
+import { setReportMe } from "../lib/report";
 import { store } from "../lib/store";
 import { startGo, tg } from "../lib/tg";
 import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
 import { BottomNav } from "../ui/kit";
+import { useReactions } from "../ui/Reaction";
 import { toast } from "../ui/Toast";
 import { A0Grow, A0Home, A0Lesson, A0Map, HwSend } from "./A0";
 import { AdminScreen, AdminTeachersScreen, AdminUsersScreen } from "./Admin";
 import { AdminRequests } from "./AdminRequests";
+import { ArNameScreen } from "./ArName";
 import { BooksScreen } from "./Books";
 import { CityScreen } from "./City";
 import { CardsScreen, WordTestScreen } from "./Drill";
@@ -28,6 +31,7 @@ import { LessonScreen, type Plan } from "./Lesson";
 import { DrillScreen, MemScreen } from "./Madina";
 import { CertScreen, LevelTestScreen, type Cert } from "./Level";
 import { Marks } from "./Marks";
+import { ShareScreen } from "./Motiv";
 import { MultScreen, MultsScreen, MultVocScreen } from "./Mult";
 import { Practice } from "./Practice";
 import { AccountScreen, IdCardScreen, Profile } from "./Profile";
@@ -68,12 +72,18 @@ function useStartParam() {
 export function Main() {
   const { tab, route } = useNav();
   useStartParam();
+  useReactions(); // reaksiya stikerlari overlay'i (har qanday ekran ustida) va bir martalik «Xush kebsiz!»
+  const { me } = useSession();
+  useEffect(() => { setReportMe(me); }, [me]); // Google jadval hisobotidagi ism va login
   const p = route.params || {};
   if (route.view === "adminRequests") return <AdminRequests />;
   if (route.view === "admin") return <AdminScreen />;
   if (route.view === "ateachers") return <AdminTeachersScreen />;
   if (route.view === "ausers") return <AdminUsersScreen />;
   if (route.view === "books") return <BooksScreen />;
+  // 10-partiya: arabcha ism sahifasi, «Yutuqlarim» kartasi
+  if (route.view === "arname") return <ArNameScreen />;
+  if (route.view === "share") return <ShareScreen />;
   // A0 · Alifbo: n — dars, l — harf, id — vazifa
   if (route.view === "city") return <CityScreen />;
   if (route.view === "mem") return <MemScreen key={`${p.book}:${p.unit}`} bookId={String(p.book || "md1")} unitN={Number(p.unit) || 1} />;

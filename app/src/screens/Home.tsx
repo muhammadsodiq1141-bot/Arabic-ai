@@ -15,10 +15,14 @@ import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
 import { Ar, Avatar, SectionTitle } from "../ui/kit";
+import { applyFreeze } from "../lib/motiv";
+import { toast } from "../ui/Toast";
 import { A0Entry } from "./A0";
 import { bookOfLevel } from "./Unit";
 import { TodayCard } from "./Lesson";
-import { ensureWeek, WeekCard } from "./Week";
+import { TasksCard } from "./Motiv";
+import { HelpButton, IntroOverlay, setCoachBlocked, useCoach } from "./Onboard";
+import { ensureWeek, introDone, WeekCard } from "./Week";
 
 type Hw = { id: number; book: string; unit: number; title: string; due: string; mine: { done?: boolean } | null; teacher?: boolean };
 type HwCard = { book: string; title: string; unitAr: string; unitN: number; pct: number; due: string; next: string } | null | "none" | "nogroup";
@@ -31,6 +35,7 @@ export function Home() {
   const [rank, setRank] = useState<{ n: number; scope: "group" | "all" } | null | "none">(null);
   const [word, setWord] = useState<DayWord | null>(null);
   const [books, setBooks] = useState<BookIndex | null>(null);
+  const [intro, setIntro] = useState(false);
   const name = me?.full_name || me?.name || "O'quvchi";
 
   useEffect(() => {
@@ -38,7 +43,10 @@ export function Home() {
     let alive = true;
     (async () => {
       await bootSync(me);
-      ensureWeek(); // birinchi hafta yo'li (yangi o'quvchi uchun)
+      if (ensureWeek() && alive) { setCoachBlocked(true); setIntro(true); } // yangi o'quvchi: tanishuv, keyin birinchi hafta yo'li
+      // muzlatish (kuniga bir marta) va unvon/nishon tabrigi — server ma'lumoti tiklangandan keyin
+      if (applyFreeze()) window.setTimeout(() => toast("Muzlatish ishlatildi — ketma-ketlik saqlandi"), 800);
+      window.dispatchEvent(new Event("mezon:check"));
       void kbFlush(); // internetsiz yozilgan javoblar (f.kbq) — eski ilovadagi kabi ochilganda yuboriladi
       const raw = localRaw();
       if (!alive) return;
@@ -77,6 +85,7 @@ export function Home() {
     return () => { alive = false; };
   }, [me]);
 
+  useCoach("home", !!sum && !intro);
   const level = books?.find((b) => b.id === (sum?.book || "a1"));
   const gauge = level ? Math.min(1, (sum?.known || 0) / level.words) : 0;
   const saved = Object.keys(savedAll()).length;
@@ -87,6 +96,7 @@ export function Home() {
       <header className="top">
         <Avatar name={name} photo={tg.user?.photo_url} />
         <div className="who"><b>{name}</b><span>{me?.level || "—"}{me?.group ? ` · ${me.group.title}` : ""}</span></div>
+        <HelpButton k="home" />
         <button type="button" className="ibtn" aria-label="Reyting" onClick={() => go("league")}><Trophy size={22} aria-hidden /></button>
       </header>
 
@@ -119,6 +129,7 @@ export function Home() {
       {sum && <WeekCard bookId={store.get("a1.book", bookOfLevel(me?.level))} />}
       {me?.level === "A0" && <A0Entry />}
       {sum && <TodayCard bookId={store.get("a1.book", bookOfLevel(me?.level))} />}
+      {sum && <TasksCard />}
 
       {(me?.teacher || !!me?.myGroups?.length) && (
         <button type="button" className="rowbtn tpanel" onClick={() => go("teacher")}>
@@ -152,6 +163,8 @@ export function Home() {
         <span><b>Do'stni taklif qilish</b><small>Havolani Telegram'da yuboring</small></span>
         <ArrowUpRight size={20} aria-hidden />
       </button>
+
+      {intro && <IntroOverlay onDone={() => { introDone(); setCoachBlocked(false); setIntro(false); }} />}
 
       <SectionTitle ar="قَرِيبًا" uz="Tez orada" />
       <ul className="soonlist" aria-label="Tez orada qo'shiladigan bo'limlar">

@@ -1,8 +1,8 @@
 // Daraja testi: A1–C1 har darajadan 4 ta so'z va 2 ta qoida savoli (30 ta). Har darajada 60%+ topilsa — keyingisiga o'tiladi.
 // Natija — sertifikat. Eski ilova bilan bir xil: f.cert {level, score, date}, gain("test", 10).
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Send, Target } from "lucide-react";
-import { arName } from "../lib/arname";
+import { useMyArName } from "../lib/arname";
 import { BOT_LINK, BOT_USER } from "../lib/config";
 import { loadData } from "../lib/data";
 import { isAr } from "../lib/kb";
@@ -96,8 +96,7 @@ export function LevelTestScreen() {
 export function CertScreen({ cert, per }: { cert: Cert; per?: Per }) {
   const { me } = useSession();
   const nm = me?.full_name || me?.name || "O'quvchi";
-  const [an, setAn] = useState("");
-  useEffect(() => { void arName(nm).then(setAn); }, [nm]);
+  const an = useMyArName(nm); // o'quvchi «Ismingiz arabchada»da tuzatgan ism, bo'lmasa avtomatik
   const lvl = cert.level === "A0" ? "Boshlang'ich" : cert.level;
   const share = () => tg.openLink(`https://t.me/share/url?url=${encodeURIComponent(BOT_LINK)}&text=${encodeURIComponent(`Mezon daraja testi: arab tilim — ${lvl} (${cert.score} ball). Sen ham sinab ko'r!`)}`);
   return (

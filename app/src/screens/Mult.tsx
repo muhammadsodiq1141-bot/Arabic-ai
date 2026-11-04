@@ -10,6 +10,7 @@ import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
 import { Ar, Empty, ScreenHeader } from "../ui/kit";
+import { HelpButton, useCoach } from "./Onboard";
 import { toast } from "../ui/Toast";
 import type { QConf, QItem } from "./Quiz";
 
@@ -39,7 +40,7 @@ export function MultsScreen() {
   const list = (ms || []).filter((m) => m.level === lvl);
   return (
     <main className="screen">
-      <ScreenHeader title="Multfilmlar" ar="رُسُومٌ مُتَحَرِّكَةٌ" />
+      <ScreenHeader title="Multfilmlar" ar="رُسُومٌ مُتَحَرِّكَةٌ" actions={<HelpButton k="mults" />} />
       <div className="seg small" role="group" aria-label="Daraja">
         {MLV.map(([id, t]) => <button key={id} type="button" className={lvl === id ? "on" : ""} aria-pressed={lvl === id} onClick={() => pick(id)}>{t}</button>)}
       </div>
@@ -74,12 +75,13 @@ export function MultScreen({ id }: { id: string }) {
   const m = ms?.find((x) => x.id === id);
   const [tab, setTabS] = useState<Tab>(TABS[id] || "video");
   const setTab = (t: Tab) => { TABS[id] = t; setTabS(t); window.scrollTo(0, 0); tg.haptic(); };
+  useCoach("mult", !!m && tab === "video");
   if (!ms) return <main className="screen"><ScreenHeader title="Multfilm" /><p className="muted pad">Yuklanmoqda…</p></main>;
   if (!m) return <main className="screen"><ScreenHeader title="Multfilm" /><p className="muted pad">Multfilm topilmadi.</p></main>;
   const tabs: [Tab, string][] = [["video", "Video"], ["vocab", `Lug'at · ${(m.vocab || []).length}`], ["quiz", "Test"]];
   return (
     <main className="screen mult">
-      <ScreenHeader title={m.title} ar={m.titleAr} />
+      <ScreenHeader title={m.title} ar={m.titleAr} actions={<HelpButton k="mult" />} />
       <p className="m-info">{m.level.toUpperCase()} · {fmtT(m.dur || 0)}{m.sub ? ` · ${m.sub}` : ""}</p>
       <div className="seg small" role="tablist" aria-label="Bo'lim">
         {tabs.map(([t, l]) => <button key={t} type="button" role="tab" className={tab === t ? "on" : ""} aria-selected={tab === t} onClick={() => setTab(t)}>{l}</button>)}
