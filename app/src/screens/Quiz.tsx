@@ -11,9 +11,13 @@ import { Ar } from "../ui/kit";
 import { MixedText } from "../ui/Mixed";
 import { Scale } from "../ui/Scale";
 
-export type QItem = { q: string; qAr?: boolean; hint?: string; opts: string[]; optsAr?: boolean; ans: number; why?: string; it?: { ar: string; b: string } };
+export type QItem = { q: string; qAr?: boolean; hint?: string; opts: string[]; optsAr?: boolean; ans: number; why?: string; it?: { ar: string; b: string }; tag?: string };
 export type QEnd = { title: string; sub: string; xp: number; again?: () => void; againLabel?: string; backLabel?: string };
-export type QConf = { title: string; items: QItem[]; track?: boolean; auto?: boolean; onOk?: (it: QItem) => void; onEnd: (score: number, n: number, wrong: QItem[]) => QEnd };
+/** onEnd — yakun ekrani shu yerda; finish — yakunda boshqa sahifaga o'tiladi (bellashuv, daraja testi), sec — sarflangan soniya */
+export type QConf = {
+  title: string; items: QItem[]; track?: boolean; auto?: boolean; onOk?: (it: QItem) => void;
+  onEnd?: (score: number, n: number, wrong: QItem[]) => QEnd; finish?: (score: number, n: number, wrong: QItem[], sec: number) => void;
+};
 
 export function QuizScreen({ conf }: { conf: QConf }) {
   const { back } = useNav();
@@ -22,12 +26,19 @@ export function QuizScreen({ conf }: { conf: QConf }) {
   const [score, setScore] = useState(0);
   const wrong = useRef<QItem[]>([]);
   const [end, setEnd] = useState<QEnd | null>(null);
+  const [waiting, setWaiting] = useState(false);
+  const t0 = useRef(Date.now());
   const n = conf.items.length;
   const it = conf.items[i];
 
   const next = () => {
     setPick(null);
-    if (i + 1 >= n) { setEnd(conf.onEnd(score, n, wrong.current)); tg.haptic("success"); }
+    if (i + 1 >= n) {
+      tg.haptic("success");
+      const sec = Math.round((Date.now() - t0.current) / 1000);
+      if (conf.finish) { setWaiting(true); conf.finish(score, n, wrong.current, sec); }
+      else if (conf.onEnd) setEnd(conf.onEnd(score, n, wrong.current));
+    }
     else setI(i + 1);
   };
   // to'g'ri javobdan keyin avtomatik o'tish (auto)
@@ -39,6 +50,7 @@ export function QuizScreen({ conf }: { conf: QConf }) {
     return () => clearTimeout(h);
   }, [pick, it, conf.auto]);
 
+  if (waiting) return <main className="round"><div className="r-done"><p>Natija saqlanmoqda…</p></div></main>;
   if (end) {
     const p = n ? score / n : 0;
     return (

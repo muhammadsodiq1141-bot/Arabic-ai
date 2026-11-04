@@ -60,6 +60,7 @@ export async function demoApi(action: string, p: Record<string, unknown>): Promi
   if (action === "kitobAudio") return { ok: true, urls: {} }; // kitob audiosi yo'q — ovoz tts omboridan yoki telefondan
   if (action === "tts") throw new Error("demo: server ovozi yo'q"); // telefonning o'z ovoziga o'tadi
   if (action === "subSend") return { ok: true, id: 1 };
+  if (action.startsWith("duel")) return duelDemo(action, p);
   return { ok: true }; // sync va boshqalar
 }
 
@@ -97,4 +98,31 @@ function teacherDemo(action: string, p: Record<string, unknown>): Record<string,
   if (["subGrade", "hwDelete", "groupKick"].includes(action)) return { ok: true };
   if (action === "hwCreate") return { ok: true, id: 9 };
   return null;
+}
+
+// Bellashuv (soxta): DEMO01 — raqib sifatida o'ynash mumkin; QW4K7P — tugagan bellashuv
+let duelDone: { score: number; time: number } | null = null;
+const DQ = [
+  ["مُعَلِّمٌ", ["o'qituvchi", "talaba", "shifokor", "haydovchi"], 0], ["بَيْتٌ", ["maktab", "uy", "bozor", "masjid"], 1],
+  ["كِتَابٌ", ["daftar", "qalam", "kitob", "sumka"], 2], ["مَاءٌ", ["non", "choy", "sut", "suv"], 3], ["قَلَمٌ", ["qalam", "stol", "eshik", "deraza"], 0],
+  ["سَيَّارَةٌ", ["poyezd", "mashina", "samolyot", "velosiped"], 1],
+].map(([q, opts, ans]) => ({ q, qAr: true, opts, optsAr: false, ans }));
+function duelDemo(action: string, p: Record<string, unknown>): Record<string, unknown> {
+  const id = String(p.id || "").toUpperCase();
+  if (action === "duelCreate") return { ok: true, id: "NEW7Q2" };
+  if (action === "duelFinish") { duelDone = { score: Number(p.score) || 0, time: Number(p.time) || 0 }; return { ok: true }; }
+  if (action === "duelMine") return { ok: true, items: [
+    { id: "QW4K7P", mineCreator: true, c: "Aziz K.", o: "Madina Y.", cs: 8, os: 6 },
+    { id: "ZX81LM", mineCreator: true, c: "Aziz K.", o: null, cs: 7, os: null },
+  ] };
+  if (action === "duelGet") {
+    if (id === "DEMO01") return { ok: true, id, book: "a1", questions: DQ,
+      creator: { n: "Bekzod T.", score: duelDone ? 4 : null, time: duelDone ? 40 : null, me: false },
+      opponent: duelDone ? { n: "Aziz K.", score: duelDone.score, time: duelDone.time, me: true } : null, canPlay: !duelDone, finished: !!duelDone };
+    if (id === "QW4K7P") return { ok: true, id, book: "a1", questions: DQ, creator: { n: "Aziz K.", score: 8, time: 52, me: true },
+      opponent: { n: "Madina Y.", score: 6, time: 61, me: false }, canPlay: false, finished: true };
+    if (id === "ZX81LM") return { ok: true, id, book: "a1", questions: DQ, creator: { n: "Aziz K.", score: 7, time: 48, me: true }, opponent: null, canPlay: false, finished: false };
+    throw new Error("Bellashuv topilmadi");
+  }
+  return { ok: true };
 }

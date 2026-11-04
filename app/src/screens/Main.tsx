@@ -1,10 +1,12 @@
 // Tasdiqlangan foydalanuvchi uchun asosiy qism: pastki menyu bo'limlari va ichki ekranlar.
 // 2-partiya: bosh sahifa. 3-partiya: darslar va uy vazifasi (unit, round, nazariya, test, saqlangan so'zlar).
 // 4-partiya: reyting (league), baholar (o'quvchi natijalari). 5-partiya: ustoz paneli (teacher, tsubs, thw, thwnew).
-// 6-partiya: Mashq bo'limi (game, cards, wtest, errors, night, known, qs; mults, mult, mvoc, shadow).
+// 6-partiya: Mashq bo'limi (game, cards, wtest, errors, night, known, qs; mults, mult, mvoc, shadow; duel, leveltest, cert).
+import { useEffect } from "react";
 import { ChevronRight, GraduationCap, Moon, ShieldCheck, Sun, SunMoon } from "lucide-react";
 import type { DayWord } from "../lib/data";
 import type { ShItem } from "../lib/mult";
+import { store } from "../lib/store";
 import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
@@ -12,10 +14,12 @@ import { useTheme, type ThemePref } from "../state/theme";
 import { Avatar, BottomNav, SectionTitle } from "../ui/kit";
 import { AdminRequests } from "./AdminRequests";
 import { CardsScreen, WordTestScreen } from "./Drill";
+import { DuelScreen } from "./Duel";
 import { GameScreen } from "./Games";
 import { Home } from "./Home";
 import { KbScreen } from "./Kitob";
 import { LeagueScreen } from "./League";
+import { CertScreen, LevelTestScreen, type Cert } from "./Level";
 import { Marks } from "./Marks";
 import { MultScreen, MultsScreen, MultVocScreen } from "./Mult";
 import { Practice } from "./Practice";
@@ -70,8 +74,22 @@ function Profile() {
   );
 }
 
+/** Bot havolasidan kelganda (?go=d_KOD yoki start_param): bellashuvni ochish. f.handled — eski ilova bilan umumiy */
+function useStartParam() {
+  const { go } = useNav();
+  useEffect(() => {
+    let v = "";
+    try { v = new URLSearchParams(location.search).get("go") || ""; } catch { /* */ }
+    v = v || tg.startParam;
+    if (!/^d_[A-Za-z0-9]{4,10}$/.test(v) || store.get("f.handled", "") === v) return;
+    store.set("f.handled", v);
+    go("duel", { open: v.slice(2) });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+}
+
 export function Main() {
   const { tab, route } = useNav();
+  useStartParam();
   const p = route.params || {};
   if (route.view === "adminRequests") return <AdminRequests />;
   if (route.view === "dayword") return <DayWordScreen word={p.word as DayWord} />;
@@ -102,6 +120,9 @@ export function Main() {
   if (route.view === "mults") return <MultsScreen />;
   if (route.view === "mult") return <MultScreen key={String(p.id)} id={String(p.id)} />;
   if (route.view === "mvoc") return <MultVocScreen id={String(p.id)} i={Number(p.i) || 0} />;
+  if (route.view === "duel") return <DuelScreen key={String(p.view || "home") + String(p.open || "")} p={p} />;
+  if (route.view === "leveltest") return <LevelTestScreen />;
+  if (route.view === "cert") return <CertScreen cert={p.cert as Cert} per={p.per as Record<string, { ok: number; n: number }> | undefined} />;
   if (route.view === "shadow") return <ShadowScreen key={String(p.n || "")} items={(p.items as ShItem[]) || []} mode={p.mode === "flow" ? "flow" : "card"} daily={!!p.daily} />;
   if (route.view === "kb") return <KbScreen key={`${p.key}:${p.si}:${p.n || 0}`} lessonKey={String(p.key)} si={Number(p.si) || 0} unitN={unit} />;
   return (

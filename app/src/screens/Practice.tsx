@@ -1,6 +1,6 @@
 // Mashq bo'limi (pastki menyu): vahda tanlanadi → 8 ta so'z o'yini (rekordlar bilan), kartochka, so'z testi;
 // takrorlash: xatolar daftari, sokin takrorlash, saqlangan so'zlar, "Siz bilasiz"; tinglash: multfilmlar va kunlik shadowing.
-// Bellashuv va daraja testi — keyingi bosqichda.
+// sinov: bellashuv (do'st bilan) va daraja testi (sertifikat).
 import { useEffect, useState } from "react";
 import { ArrowLeftRight, Bookmark, ChevronRight, CircleDot, Clapperboard, ClipboardCheck, Coins, Image, Layers, ListOrdered, Mic, Moon, PenLine, Puzzle, RotateCcw, Sparkles, Swords, Target, Zap } from "lucide-react";
 import { loadData } from "../lib/data";
@@ -42,6 +42,8 @@ export function Practice() {
   const ms = useMults();
   const sh = ms?.length ? shDaily(ms, me?.level) : null;
   const errN = Object.keys(store.get<Err>("f.err", {})).length;
+  const duelW = store.get<number>("f.duelwins", 0);
+  const cert = store.get<{ level: string; score: number } | null>("f.cert", null);
   const savedN = Object.keys(savedAll()).length;
   const test = store.get<Record<string, number>>(bkKey(bookId, "tests"), {})[unit];
   const u = book?.units.find((x) => x.n === unit);
@@ -119,11 +121,13 @@ export function Practice() {
         <Sparkles size={24} aria-hidden /><span><b>Siz bilasiz</b><small>O'zbekchadagi arabcha so'zlar</small></span><ChevronRight size={20} aria-hidden />
       </button>
 
-      <h2 className="t-h">Tez orada</h2>
-      <ul className="soonlist" aria-label="Tez orada qo'shiladigan mashqlar">
-        <li><Swords size={20} aria-hidden /><span><b>Bellashuv</b><small>Do'stingiz bilan 10 ta savol</small></span></li>
-        <li><Target size={20} aria-hidden /><span><b>Daraja testi</b><small>Sertifikat bilan</small></span></li>
-      </ul>
+      <h2 className="t-h">Sinov va bellashuv</h2>
+      <button type="button" className="rowbtn" onClick={() => go("duel")}>
+        <Swords size={24} aria-hidden /><span><b>Bellashuv</b><small>Do'stingiz bilan 10 ta savol{duelW ? ` · ${duelW} ta g'alaba` : ""}</small></span><ChevronRight size={20} aria-hidden />
+      </button>
+      <button type="button" className="rowbtn" onClick={() => go("leveltest")}>
+        <Target size={24} aria-hidden /><span><b>Daraja testi</b><small>{cert ? `Oxirgi natija: ${cert.level === "A0" ? "Boshlang'ich" : cert.level} · ${cert.score} ball` : "30 ta savol · A1 dan C1 gacha · sertifikat"}</small></span><ChevronRight size={20} aria-hidden />
+      </button>
     </main>
   );
 }
