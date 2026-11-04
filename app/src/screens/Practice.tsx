@@ -2,7 +2,7 @@
 // takrorlash: xatolar daftari, sokin takrorlash, saqlangan so'zlar, "Siz bilasiz"; tinglash: multfilmlar va kunlik shadowing.
 // sinov: bellashuv (do'st bilan) va daraja testi (sertifikat).
 import { useEffect, useState } from "react";
-import { ArrowLeftRight, Bookmark, ChevronRight, CircleDot, Clapperboard, ClipboardCheck, Coins, Image, Layers, ListOrdered, Mic, Moon, PenLine, Puzzle, RotateCcw, Sparkles, Swords, Target, Zap } from "lucide-react";
+import { ALargeSmall, ArrowLeftRight, Bookmark, ChevronRight, CircleDot, Clapperboard, ClipboardCheck, Coins, Image, Layers, ListOrdered, Mic, Moon, PenLine, Puzzle, RotateCcw, Sparkles, Swords, Target, Zap } from "lucide-react";
 import { loadData } from "../lib/data";
 import { bestKey, lastUnit, setLastUnit, usePics, type Err, type PBook } from "../lib/practice";
 import { useMults } from "./Mult";
@@ -68,6 +68,10 @@ export function Practice() {
           {book?.units.map((x) => <option key={x.n} value={x.n}>{x.n}-vahda · {x.uz}</option>)}
         </select>
       </label>
+
+      <button type="button" className="rowbtn" onClick={() => go("a0")}>
+        <ALargeSmall size={24} aria-hidden /><span><b>A0 · Alifbo</b><small>Harflar, barmoq bilan yozish, o'qish tezligi</small></span><ChevronRight size={20} aria-hidden />
+      </button>
 
       <h2 className="t-h">So'z o'yinlari</h2>
       <div className="pr-games">

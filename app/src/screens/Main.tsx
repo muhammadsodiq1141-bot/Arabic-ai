@@ -13,6 +13,7 @@ import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
 import { BottomNav } from "../ui/kit";
 import { toast } from "../ui/Toast";
+import { A0Grow, A0Home, A0Lesson, A0Map, HwSend } from "./A0";
 import { AdminScreen, AdminTeachersScreen, AdminUsersScreen } from "./Admin";
 import { AdminRequests } from "./AdminRequests";
 import { BooksScreen } from "./Books";
@@ -68,6 +69,12 @@ export function Main() {
   if (route.view === "ateachers") return <AdminTeachersScreen />;
   if (route.view === "ausers") return <AdminUsersScreen />;
   if (route.view === "books") return <BooksScreen />;
+  // A0 · Alifbo: n — dars, l — harf, id — vazifa
+  if (route.view === "a0") return <A0Home />;
+  if (route.view === "a0d") return <A0Lesson key={String(p.n)} n={Number(p.n) || 1} />;
+  if (route.view === "a0map") return <A0Map l={p.l ? String(p.l) : undefined} />;
+  if (route.view === "a0grow") return <A0Grow />;
+  if (route.view === "hwsend") return <HwSend key={String(p.id)} id={Number(p.id)} />;
   if (route.view === "account") return <AccountScreen />;
   if (route.view === "idcard") return <IdCardScreen />;
   if (route.view === "dayword") return <DayWordScreen word={p.word as DayWord} />;
@@ -102,7 +109,7 @@ export function Main() {
   if (route.view === "leveltest") return <LevelTestScreen />;
   if (route.view === "cert") return <CertScreen cert={p.cert as Cert} per={p.per as Record<string, { ok: number; n: number }> | undefined} />;
   if (route.view === "shadow") return <ShadowScreen key={String(p.n || "")} items={(p.items as ShItem[]) || []} mode={p.mode === "flow" ? "flow" : "card"} daily={!!p.daily} />;
-  if (route.view === "kb") return <KbScreen key={`${p.key}:${p.si}:${p.n || 0}`} lessonKey={String(p.key)} si={Number(p.si) || 0} unitN={unit} />;
+  if (route.view === "kb") return <KbScreen key={`${p.key}:${p.si}:${p.l || ""}:${p.n || 0}`} lessonKey={String(p.key)} si={Number(p.si) || 0} unitN={unit} letter={p.l ? String(p.l) : undefined} />;
   return (
     <>
       {tab === "home" && <Home />}

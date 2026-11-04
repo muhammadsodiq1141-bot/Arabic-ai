@@ -13,6 +13,7 @@ export type KbItem = {
   ok?: string | boolean; alt?: string[]; opts?: string[]; pool?: string[]; letters?: string[]; extra?: string;
   words?: (string | number)[][] | string[]; pairs?: string[][]; cols?: string[]; lines?: string[][] | string[];
   norm?: number; // o'qish normativi, soniya (Madina matnlari)
+  l?: string; f?: number; ltr?: string; rows?: string[][]; // A0: harf, shakl (0 yakka … 3 oxirida), hisoblanadigan harf, zina
 };
 export type KbStep = { k: string; t: string; ar?: string; d?: string; rule?: { h: string; p: string[] }; items: KbItem[] };
 export type KbLesson = { title: string; uz: string; book?: string; steps: KbStep[] };
@@ -61,6 +62,11 @@ export const HOW: Record<string, string> = {
   match: "Avval o'ng ustundagi so'zni bosing, keyin chap ustundan uning juftini bosing. Topilgan juftlar yashil bo'ladi.",
   classify: "Avval so'zni bosing, keyin u tegishli ustunni bosing. Hammasi joylangach «Tekshirish»ni bosing.",
   free: "Savolga arabcha javob yozing yoki ovoz bilan ayting, keyin «Ustozga yuborish»ni bosing. Ustoz tekshirib baho qo'yadi.",
+  hear: "Katta karnayni bosib tinglang (bir necha marta mumkin). Keyin eshitgan bo'g'iningizni pastdagi variantlardan bosing.",
+  trace: "Och rangdagi harf ustidan barmog'ingiz bilan yuring — chiziqdan chiqmasdan, butun harfni qoplang. Keyin «Tekshirish»ni bosing. Xato bo'lsa «Tozalash» bilan qaytadan chizing.",
+  ladder: "Har bir katakni bosing, tovushini eshiting va ovoz chiqarib takrorlang. Keyin «Davom etish».",
+  letter: "Harf, uning to'rt shakli va uch harakat bilan o'qilishini ko'ring. Bo'g'inlarni bosib tinglang.",
+  alphabet: "Har bir harfni bosing va tovushini eshiting. Keyin «Davom etish».",
 };
 
 /** Mashq boshlanishida variantlar aralashtiriladi (eski kbPrep bilan bir xil) */
@@ -98,7 +104,9 @@ export function kbTexts(st: KbStep) {
     it.opts?.forEach(add);
     it.lines?.forEach((l) => add(Array.isArray(l) ? l[1] : l));
     if (it.type === "intro") (it.words as string[][] | undefined)?.forEach((w) => add(w[0]));
-    it.pairs?.forEach((p) => add(p[0]));
+    it.pairs?.forEach((p) => { add(p[0]); add(p[1]); });
+    it.rows?.forEach((r) => r.forEach(add)); // A0 zinasi
+    if (it.type === "classify" || it.type === "order") (it.words as unknown[] | undefined)?.forEach(add);
   }
   return [...s].slice(0, 400);
 }

@@ -2,6 +2,7 @@
 // guruh reytingi (leaderboard), kun so'zi (DAY_WORDS). Hali tayyor bo'lmagan bo'limlar bitta sokin "Tez orada" ro'yxatida (bosilmaydi).
 import { useEffect, useState } from "react";
 import { ArrowUpRight, Gift, GraduationCap, Headphones, MessageCircle, Search, Star, TrendingUp, Trophy } from "lucide-react";
+import { a0Data, a0HwState, type Hw as A0Hw } from "../lib/a0";
 import { api } from "../lib/api";
 import { BOT_LINK } from "../lib/config";
 import { img, loadData, type BookIndex, type DayWord } from "../lib/data";
@@ -14,6 +15,7 @@ import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
 import { Ar, Avatar, SectionTitle } from "../ui/kit";
+import { A0Entry } from "./A0";
 
 type Hw = { id: number; book: string; unit: number; title: string; due: string; mine: { done?: boolean } | null; teacher?: boolean };
 type HwCard = { book: string; title: string; unitAr: string; unitN: number; pct: number; due: string; next: string } | null | "none" | "nogroup";
@@ -53,6 +55,13 @@ export function Home() {
         const open = r.items.filter((h) => !h.teacher && !h.mine?.done).sort((a, b) => a.due.localeCompare(b.due));
         const h = open[0];
         if (!h) { if (alive) setHw("none"); return; }
+        if (h.book === "a0") {
+          // A0 vazifasi: kitob emas, alifbo darsi (eski ilovada ham alohida karta)
+          const [L, d] = await Promise.all([loadKb(`a0:${h.unit}`).catch(() => null), a0Data()]);
+          const s = a0HwState(h as unknown as A0Hw, L);
+          if (alive) setHw({ book: "a0", title: d.TOPICS[h.unit - 1] || "", unitAr: "", unitN: h.unit, pct: s.tot ? Math.round((s.done / s.tot) * 100) : 0, due: h.due, next: s.full ? "Ustozga topshirish" : `${s.done}/${s.tot} qadam` });
+          return;
+        }
         const book = await loadData<Book>(`books/${h.book}`);
         const u = book.units.find((x) => x.n === h.unit);
         const key = kbKeyOf(h.book, h.unit);
@@ -95,13 +104,15 @@ export function Home() {
           <div><Star size={40} className="st" aria-hidden /><b>{sum ? sum.xp.toLocaleString("ru-RU") : "…"}</b><span>Yulduzcha</span></div>
           <div><TrendingUp size={40} className="wk" aria-hidden /><b>{sum ? `+${sum.weekXp.toLocaleString("ru-RU")}` : "…"}</b><span>Bu hafta</span></div>
         </div>
-        <HomeworkCard hw={hw} onOpen={() => (hw && typeof hw === "object" ? go("unit", { book: hw.book, unit: hw.unitN }) : setTab("lessons"))} />
+        <HomeworkCard hw={hw} onOpen={() => (hw && typeof hw === "object" ? (hw.book === "a0" ? go("a0d", { n: hw.unitN }) : go("unit", { book: hw.book, unit: hw.unitN })) : setTab("lessons"))} />
         <button type="button" className="rank" onClick={() => go("league")}>
           <img src={img("trophy")} alt="" />
           <b>{rank === null ? "…" : rank === "none" ? "Reyting" : `${rank.n}-o'rin`}</b>
           <span>{rank === "none" ? "Yulduzcha to'plang" : rank !== null && rank.scope === "all" ? "Butun markazda" : "Guruhingizda"}</span>
         </button>
       </div>
+
+      {me?.level === "A0" && <A0Entry />}
 
       {(me?.teacher || !!me?.myGroups?.length) && (
         <button type="button" className="rowbtn tpanel" onClick={() => go("teacher")}>

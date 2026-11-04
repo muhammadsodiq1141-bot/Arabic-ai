@@ -7,6 +7,7 @@ import {
   blobB64, GRADED, HOW, insUz, isAr, kbFlush, kbSaveBest, loadKb, prep, recMime, rightOf, sayAfter, sayAuto, sendSub, tipOf, kbTexts,
   type KbItem, type KbLesson, type KbStep, type Prepared,
 } from "../lib/kb";
+import { a0Answer, a0HwFor, a0HwState, loadAllA0, revAnswer, revDue, revWrong, type Rev } from "../lib/a0";
 import { gain, store } from "../lib/store";
 import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
@@ -14,22 +15,43 @@ import { Emo, EmoLead } from "../ui/Emo";
 import { Ar } from "../ui/kit";
 import { CountUp } from "../ui/CountUp";
 import { Scale } from "../ui/Scale";
+import { Alphabet, Hear, Ladder, LetterItem, Trace } from "./KbA0";
 
-export function KbScreen({ lessonKey, si, unitN }: { lessonKey: string; si: number; unitN: number }) {
+export function KbScreen({ lessonKey, si, unitN, letter }: { lessonKey: string; si: number; unitN: number; letter?: string }) {
   const { back } = useNav();
-  const [L, setL] = useState<KbLesson | null | "err">(null);
-  useEffect(() => { let a = true; loadKb(lessonKey).then((x) => a && setL(x)).catch(() => a && setL("err")); return () => { a = false; }; }, [lessonKey]);
+  const [L, setL] = useState<KbLesson | null | "err" | "empty">(null);
+  const [refs, setRefs] = useState<Rev[] | undefined>(undefined);
+  useEffect(() => {
+    let a = true;
+    if (lessonKey === "a0:rev") {
+      // A0 xato savollari: muddati kelganlari (12 tagacha), har biri o'z darsidan olinadi
+      void loadAllA0().then((all) => {
+        if (!a) return;
+        const D = revDue(all).slice(0, 12);
+        if (!D.length) { setL("empty"); return; }
+        const items = D.map((r) => all[Number(r.k.split(":")[1]) - 1]!.steps[r.s].items[r.i]);
+        for (const n of new Set(D.map((r) => r.k))) { const x = all[Number(n.split(":")[1]) - 1]; if (x) void preloadKitob(n.replace(":", "/"), x.steps.flatMap(kbTexts).slice(0, 800)); }
+        setRefs(D);
+        setL({ title: "Takrorlash", uz: "Takrorlash", steps: [{ k: "rev", t: "Takrorlash", items }] });
+      });
+    } else if (lessonKey === "a0:map") {
+      const l = letter || "ب";
+      setL({ title: "Harf yozish", uz: "Harf yozish", steps: [{ k: "map", t: "Barmoq bilan yozish", items: [0, 1, 3].map((f) => ({ type: "trace", l, f })) }] });
+    } else loadKb(lessonKey).then((x) => a && setL(x)).catch(() => a && setL("err"));
+    return () => { a = false; };
+  }, [lessonKey, letter]);
   useEffect(() => { void kbFlush(); return () => stopSay(); }, []);
   if (L === "err") return <main className="round"><p className="muted pad">Mashq yuklanmadi. Internetni tekshirib, qayta oching.</p><button type="button" className="btn dark wide" onClick={back}>Orqaga</button></main>;
+  if (L === "empty") return <main className="round"><div className="r-done"><Scale size={120} balanced star /><h1>Hozircha takrorlanadigan savol yo'q</h1><p>Xato qilingan savollar ertasi kuni shu yerga qaytadi.</p><button type="button" className="btn primary wide" onClick={back}>Orqaga</button></div></main>;
   if (!L) return <main className="round"><p className="muted pad">Yuklanmoqda…</p></main>;
   const st = L.steps[si];
   if (!st) return <main className="round"><p className="muted pad">Topshiriq topilmadi.</p><button type="button" className="btn dark wide" onClick={back}>Orqaga</button></main>;
-  return <Run L={L} st={st} lessonKey={lessonKey} si={si} unitN={unitN} />;
+  return <Run L={L} st={st} lessonKey={lessonKey} si={si} unitN={unitN} refs={refs} letter={letter} />;
 }
 
 const PRAISE = ["To'g'ri!", "Barakalla!", "Ajoyib!", "Zo'r!"];
 
-function Run({ L, st, lessonKey, si, unitN }: { L: KbLesson; st: KbStep; lessonKey: string; si: number; unitN: number }) {
+function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: KbStep; lessonKey: string; si: number; unitN: number; refs?: Rev[]; letter?: string }) {
   const { back, replace } = useNav();
   const items = useMemo(() => st.items.map(prep), [st]);
   const n = items.length;
@@ -46,10 +68,13 @@ function Run({ L, st, lessonKey, si, unitN }: { L: KbLesson; st: KbStep; lessonK
   const parts = st.t.split(" · ");
   const label = /^\d+(-\d+)?-bet$/.test(parts[0]) && parts.length > 1 ? parts.slice(1).join(" · ") : parts[0];
   const a0 = lessonKey.startsWith("a0:");
+  const a0n = /^a0:\d+$/.test(lessonKey); // oddiy A0 darsi (takrorlash va harf yozish emas)
+  const virt = lessonKey === "a0:rev" || lessonKey === "a0:map";
   const book = lessonKey.split(":")[0];
+  const revAdded = useRef(0);
 
   // kitob audiosi butun dars uchun bir marta so'raladi (server 800 tagacha kalit qabul qiladi)
-  useEffect(() => { void preloadKitob(lessonKey.replace(":", "/"), [...new Set(L.steps.flatMap(kbTexts))].slice(0, 800)); }, [L, lessonKey]);
+  useEffect(() => { if (!virt) void preloadKitob(lessonKey.replace(":", "/"), [...new Set(L.steps.flatMap(kbTexts))].slice(0, 800)); }, [L, lessonKey, virt]);
   // "Tushunmadim" xabari: topshiriq tugaganda yoki undan chiqib ketilganda bir marta yuboriladi
   const report = () => {
     const s = skipped.current;
@@ -76,14 +101,20 @@ function Run({ L, st, lessonKey, si, unitN }: { L: KbLesson; st: KbStep; lessonK
     setAns(v);
     if (v) setOk((o) => o + 1);
     tg.haptic(v ? "success" : "error");
+    if (a0) {
+      a0Answer(it, v); // harf va ko'nikma hisobi
+      if (lessonKey === "a0:rev" && refs?.[i] && it.type !== "trace") revAnswer(refs[i], v);
+      else if (a0n && !v && it.type !== "trace") { revWrong(lessonKey, si, i); revAdded.current++; }
+    }
   };
   const next = () => {
     stopSay();
     setAns(null); setHelp(false); setFreeSent(null);
     if (i + 1 >= n) {
       const p = graded ? Math.min(100, Math.round((ok / graded) * 100)) : 100;
-      kbSaveBest(lessonKey, si, p);
-      gain("game", Math.max(5, ok * 2));
+      if (!virt) kbSaveBest(lessonKey, si, p);
+      // harf yozish (xarita) — yulduzcha bermaydi: eski ilovada cheksiz XP yig'ish mumkin edi
+      if (lessonKey !== "a0:map") gain("game", Math.max(5, ok * 2));
       report();
       setPct(p);
     }
@@ -96,7 +127,7 @@ function Run({ L, st, lessonKey, si, unitN }: { L: KbLesson; st: KbStep; lessonK
     <>
       <header className="r-top">
         <button type="button" className="r-close" aria-label="Chiqish" onClick={back}><X size={22} aria-hidden />Chiqish</button>
-        <b>{si + 1}-topshiriq · {label}</b>
+        <b>{virt ? L.title : `${si + 1}-topshiriq · ${label}`}</b>
         <span className="r-count">{Math.max(0, Math.min(i, n))} / {n}</span>
       </header>
       <div className="r-bar"><i style={{ width: `${(Math.max(0, Math.min(i, n)) / n) * 100}%` }} /></div>
@@ -120,7 +151,8 @@ function Run({ L, st, lessonKey, si, unitN }: { L: KbLesson; st: KbStep; lessonK
   // Yakun
   if (i >= n || !it) {
     const p = pct ?? 0;
-    const last = si >= L.steps.length - 1;
+    const last = virt || si >= L.steps.length - 1;
+    const xp = lessonKey === "a0:map" ? 0 : Math.max(5, ok * 2);
     return (
       <main className="round kb">
         <div className="r-done">
@@ -129,10 +161,13 @@ function Run({ L, st, lessonKey, si, unitN }: { L: KbLesson; st: KbStep; lessonK
           <h1>{p >= 90 ? "Mukammal!" : p >= 70 ? "Ajoyib!" : p >= 40 ? "Yaxshi, davom eting!" : "Yana bir bor urinib ko'ring"}</h1>
           <span className="kb-big">{p}%</span>
           <p>{label} · {ok} / {graded} to'g'ri</p>
-          <p className="r-earn"><Star size={22} aria-hidden /><CountUp to={Math.max(5, ok * 2)} />&nbsp;yulduzcha</p>
+          {a0n && revAdded.current > 0 && <p className="a0-revnote"><RotateCcw size={16} aria-hidden />{revAdded.current} ta xato savol «Takrorlash»ga qo'shildi — ertaga yana chiqadi.</p>}
+          {xp > 0 && <p className="r-earn"><Star size={22} aria-hidden /><CountUp to={xp} />&nbsp;yulduzcha</p>}
+          {a0n && (() => { const hw = a0HwFor(Number(lessonKey.split(":")[1])); const s = hw ? a0HwState(hw, L) : null;
+            return hw && s && s.full && !s.sent ? <button type="button" className="btn primary wide a0-go" onClick={() => replace("hwsend", { id: hw.id })}><Send size={18} aria-hidden />Dars tugadi — ustozga topshirish</button> : null; })()}
           {!last && <button type="button" className="btn primary wide" onClick={() => replace("kb", { key: lessonKey, si: si + 1, book, unit: unitN })}>Keyingi topshiriq: {L.steps[si + 1].t.split(" · ")[0]}</button>}
-          <button type="button" className="btn ghost wide" onClick={() => replace("kb", { key: lessonKey, si, book, unit: unitN, n: Date.now() })}><RotateCcw size={18} aria-hidden />Qayta ishlash</button>
-          <button type="button" className="btn ghost wide" onClick={back}>{a0 ? "Darsga qaytish" : "Vahdaga qaytish"}</button>
+          <button type="button" className="btn ghost wide" onClick={() => replace("kb", { key: lessonKey, si, book, unit: unitN, l: letter, n: Date.now() })}><RotateCcw size={18} aria-hidden />Qayta ishlash</button>
+          <button type="button" className="btn ghost wide" onClick={back}>{virt ? "Orqaga" : a0 ? "Darsga qaytish" : "Vahdaga qaytish"}</button>
         </div>
       </main>
     );
@@ -142,7 +177,7 @@ function Run({ L, st, lessonKey, si, unitN }: { L: KbLesson; st: KbStep; lessonK
   const isGraded = GRADED.includes(it.type);
   // Madina'da erkin javob ixtiyoriy: ustozga yubormasdan ham keyingisiga o'tish mumkin (natijaga ta'sir qilmaydi)
   const optFree = it.type === "free" && lessonKey.startsWith("md") && !freeSent;
-  const canNext = it.type === "intro" || it.type === "read" ? true : it.type === "free" ? !!freeSent || optFree : done;
+  const canNext = ["intro", "read", "ladder", "letter", "alphabet"].includes(it.type) ? true : it.type === "free" ? !!freeSent || optFree : done;
   const props = { it, done, ans, mark };
   return (
     <main className="round kb">
@@ -159,12 +194,17 @@ function Run({ L, st, lessonKey, si, unitN }: { L: KbLesson; st: KbStep; lessonK
         {it.type === "match" && <Match {...props} />}
         {it.type === "classify" && <Classify {...props} />}
         {it.type === "free" && <Free it={it} sent={freeSent} onSent={setFreeSent} sub={{ lesson: lessonKey, step: st.k, item: i, title }} />}
-        {!["intro", "read", "choose", "qa", "listen1", "pick", "tf", "letters", "order", "match", "classify", "free"].includes(it.type) && <p className="muted">Bu turdagi mashq hali yangi ilovada yo'q. Davom etishingiz mumkin.</p>}
+        {it.type === "hear" && <Hear {...props} />}
+        {it.type === "trace" && <Trace {...props} />}
+        {it.type === "ladder" && <Ladder {...props} />}
+        {it.type === "letter" && <LetterItem {...props} />}
+        {it.type === "alphabet" && <Alphabet />}
+        {!["intro", "read", "choose", "qa", "listen1", "pick", "tf", "letters", "order", "match", "classify", "free", "hear", "trace", "ladder", "letter", "alphabet"].includes(it.type) && <p className="muted">Bu turdagi mashq hali yangi ilovada yo'q. Davom etishingiz mumkin.</p>}
       </section>
 
-      {isGraded && done && <Feedback it={it} good={!!ans} n={i} />}
+      {isGraded && done && <Feedback it={it} good={!!ans} n={i} rev={a0n && !ans && it.type !== "trace"} />}
 
-      {!done && !help && !freeSent && it.type !== "intro" && it.type !== "read" && (
+      {!done && !help && !freeSent && !["intro", "read", "ladder", "letter", "alphabet"].includes(it.type) && (
         <button type="button" className="kb-dunno" onClick={() => { setHelp(true); tg.haptic("light"); }}><HelpCircle size={18} aria-hidden />Tushunmadim</button>
       )}
       {help && !done && (
@@ -239,13 +279,14 @@ function Mark({ s }: { s: string }) {
   return null;
 }
 
-function Feedback({ it, good, n }: { it: KbItem; good: boolean; n: number }) {
+function Feedback({ it, good, n, rev }: { it: KbItem; good: boolean; n: number; rev?: boolean }) {
   const r = rightOf(it);
   return (
     <div className={`kb-fb ${good ? "ok" : "bad"}`} role="status">
       <b>{good ? <Check size={18} strokeWidth={3} aria-hidden /> : <X size={18} strokeWidth={3} aria-hidden />}{good ? PRAISE[n % 4] : "Bu safar xato"}</b>
-      {!good && r && !["match", "classify"].includes(it.type) && <span>To'g'ri javob: {isAr(r) ? <Ar>{r}</Ar> : r}</span>}
+      {!good && r && !["match", "classify", "trace"].includes(it.type) && <span>To'g'ri javob: {isAr(r) ? <Ar>{r}</Ar> : r}</span>}
       {it.why && (!good || it.type !== "pick") && <Mixed text={it.why} className="kb-why" />}
+      {rev && <span className="kb-rev"><RotateCcw size={14} aria-hidden />Bu savol «Takrorlash»ga qo'shildi — ertaga yana chiqadi</span>}
     </div>
   );
 }
@@ -546,7 +587,7 @@ function Free({ it, sent, onSent, sub }: { it: KbItem; sent: "srv" | "local" | n
 }
 
 /** Ovozli javob: bosib yozish, qayta bosib to'xtatish (2 daqiqagacha), tinglab ko'rish, qayta yozish */
-function VoiceRec({ value, onChange, disabled }: { value: { blob: Blob; mime: string } | null; onChange: (v: { blob: Blob; mime: string } | null) => void; disabled?: boolean }) {
+export function VoiceRec({ value, onChange, disabled, label = "Ovoz bilan javob berish" }: { value: { blob: Blob; mime: string } | null; onChange: (v: { blob: Blob; mime: string } | null) => void; disabled?: boolean; label?: string }) {
   const can = typeof MediaRecorder !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
   const [rec, setRec] = useState(false);
   const [sec, setSec] = useState(0);
@@ -583,7 +624,7 @@ function VoiceRec({ value, onChange, disabled }: { value: { blob: Blob; mime: st
         </>
       ) : (
         <button type="button" className={`btn ghost kb-recb ${rec ? "on" : ""}`} disabled={disabled} onClick={() => (rec ? stop() : void start())}>
-          {rec ? <><Square size={16} aria-hidden />To'xtatish · {fmt}</> : <><Mic size={18} aria-hidden />Ovoz bilan javob berish</>}
+          {rec ? <><Square size={16} aria-hidden />To'xtatish · {fmt}</> : <><Mic size={18} aria-hidden />{label}</>}
         </button>
       )}
       {err && <small className="err">{err}</small>}

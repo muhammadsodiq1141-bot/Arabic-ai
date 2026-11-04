@@ -8,6 +8,7 @@ import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
 import { ScreenHeader } from "../ui/kit";
 import { toast } from "../ui/Toast";
+import { A0Entry } from "./A0";
 import { useBookIndex } from "./Profile";
 import { bookOfLevel } from "./Unit";
 
@@ -43,6 +44,7 @@ export function BooksScreen() {
         <div><b>{books ? total : "…"}</b><span>so'z yodlandi</span></div>
         <div><b>{books ? books.length : "…"}</b><span>kitob</span></div>
       </section>
+      <A0Entry />
       {!books && <p className="muted pad">Yuklanmoqda…</p>}
       {books && LV.map(([L, nm]) => {
         const bs = books.filter((b) => BOOK_LEVEL[b.id] === L);

@@ -11,6 +11,7 @@ import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
 import { useArm } from "../ui/arm";
+import { useLets } from "./KbA0";
 import { Avatar, Empty, ScreenHeader } from "../ui/kit";
 import { toast } from "../ui/Toast";
 
@@ -117,6 +118,7 @@ export function TeacherScreen({ fixed }: { fixed?: { code: string; title: string
         <button type="button" className="btn ghost" onClick={share}><Link2 size={18} aria-hidden />Taklif havolasi</button>
       </div>
 
+      {members !== null && members !== "err" && <A0Heat list={list} />}
       <h2 className="t-h">O'quvchilar</h2>
       {members === null && <div className="lg-skel" aria-label="Yuklanmoqda">{[0, 1, 2].map((k) => <span key={k} />)}</div>}
       {members === "err" && (
@@ -220,6 +222,25 @@ function NewGroup({ onDone, again }: { onDone: () => void; again?: boolean }) {
         {err && <p className="err">{err}</p>}
         <button type="submit" className="btn primary wide" disabled={busy}>{busy ? "Ochilmoqda…" : "Guruh ochish"}</button>
       </form>
+    </section>
+  );
+}
+
+/** A0 o'quvchilari bo'lsa: guruhning harflar xaritasi — har harfni o'zlashtirganlar foizi (_sum.a0.m, A0_LET tartibida) */
+function A0Heat({ list }: { list: Member[] }) {
+  const LETS = useLets();
+  const R = list.filter((m) => m.sum?.a0?.m);
+  if (!R.length || !LETS) return null;
+  return (
+    <section className="card a0-heat">
+      <b className="lbl">Guruhning harflar xaritasi</b>
+      <small className="muted">{R.length} ta o'quvchi · har harfni o'zlashtirganlar foizi</small>
+      <div className="a0-grid sm" dir="rtl">
+        {LETS.map((r, i) => {
+          const p = Math.round((R.filter((m) => m.sum!.a0!.m[i] === "2").length / R.length) * 100);
+          return <span key={r[0]} className="a0-c" style={{ background: `color-mix(in srgb, var(--good) ${p}%, var(--soft))`, color: p > 55 ? "var(--good-ink)" : "var(--ink)" }} aria-label={`${r[1]}: ${p}%`}><span className="ar">{r[0]}</span><small>{p}%</small></span>;
+        })}
+      </div>
     </section>
   );
 }
