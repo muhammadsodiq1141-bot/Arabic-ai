@@ -3,7 +3,8 @@ import { useState } from "react";
 import { Check, KeyRound, RefreshCw, Send } from "lucide-react";
 import { api, setLogin } from "../lib/api";
 import { BOT_LINK } from "../lib/config";
-import { tg } from "../lib/tg";
+import { store } from "../lib/store";
+import { startGo, tg } from "../lib/tg";
 import { useSession } from "../state/session";
 import { Avatar, Logo } from "../ui/kit";
 
@@ -86,7 +87,13 @@ export function Pending() {
   const { me, refresh } = useSession();
   const [busy, setBusy] = useState(false);
   const name = me?.full_name || me?.name || tg.user?.first_name || "O'quvchi";
-  const sub = [me?.level, me?.group ? `guruh: ${me.group.title}` : "guruhsiz"].filter(Boolean).join(" · ");
+  // guruh havolasi (g_KOD) bilan kelgan bo'lsa — kod saqlanadi, tasdiqdan keyin avtomatik qo'shiladi
+  const [gcode] = useState(() => {
+    const v = startGo();
+    if (/^g_[A-Za-z0-9]{4,10}$/.test(v)) { store.set("f.gjoin", v.slice(2).toUpperCase()); return v.slice(2).toUpperCase(); }
+    return store.get("f.gjoin", "");
+  });
+  const sub = [me?.level, me?.group ? `guruh: ${me.group.title}` : gcode ? `guruh kodi: ${gcode}` : "guruhsiz"].filter(Boolean).join(" · ");
   return (
     <main className="gate">
       <Logo />

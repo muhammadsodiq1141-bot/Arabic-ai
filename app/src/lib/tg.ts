@@ -52,6 +52,13 @@ export const tg = {
   onTheme(cb: () => void) { W()?.onEvent?.("themeChanged", cb); },
 };
 
+/** Bot havolasidan kelgan parametr: ?go=... (bot web_app tugmasi) yoki Telegram start_param. g_KOD — guruh, d_KOD — bellashuv */
+export function startGo() {
+  let v = "";
+  try { v = new URLSearchParams(location.search).get("go") || ""; } catch { /* */ }
+  return v || tg.startParam;
+}
+
 export function initTelegram() {
   const w = W();
   if (!w) return;

@@ -15,6 +15,7 @@ export type Me = {
   access: Access;
   teacher?: boolean; // ustozlik ruxsati (role=teacher, guruh egasi yoki admin)
   myGroups?: { code: string; title: string }[]; // ustoz ochgan guruhlar
+  teacherReq?: boolean; // ustozlik so'rovi yuborilgan, admin ko'rmoqda
 };
 export type Phase = "loading" | "noauth" | "register" | "pending" | "rejected" | "ready" | "error";
 

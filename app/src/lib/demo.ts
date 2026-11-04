@@ -22,12 +22,13 @@ export async function demoApi(action: string, p: Record<string, unknown>): Promi
       myGroups: [{ code: "K7QX2M", title: "A1-ertalab" }, { code: "P4WZ8N", title: "A2-kechki" }],
     };
   }
-  if (teacher) { const t = teacherDemo(action, p); if (t) return t; }
+  if (teacher || (admin && ["groupMembers", "subList", "hwList", "hwStatus", "groupKick", "groupDelete"].includes(action))) { const t = teacherDemo(action, p); if (t) return t; }
+  const pr = profileDemo(action, p, admin); if (pr) return pr;
   if (action === "me") {
     if (DEMO === "new") return { ok: true, id: "tg101", name: "Aziz", full_name: null, login: null, level: null, group: null, admin: false, access: "pending" };
     return {
       ok: true, id: "tg101", name: "Aziz", full_name: admin ? "Bosh admin" : "Aziz Karimov", login: admin ? "MJ-10001" : "MJ-48213", level: "A1",
-      group: admin ? null : { code: "K7QX2M", title: "A1-ertalab", teacher: false }, admin, tg: 101,
+      group: admin ? null : dGroup, admin, tg: 101, teacherReq: dReq,
       access: admin ? "approved" : DEMO === "rejected" ? "rejected" : DEMO === "approved" ? "approved" : "pending",
     };
   }
@@ -95,7 +96,7 @@ function teacherDemo(action: string, p: Record<string, unknown>): Record<string,
     { id: 8, group_code: "P4WZ8N", book: "a2", unit: 2, title: "", due: day(-1), mine: null, teacher: true, stats: { total: 2, done: 0 } },
   ] };
   if (action === "hwStatus") return { ok: true, rows: MEM.map((m, i) => ({ n: m.full_name, lg: m.login, done: i === 1 || i === 2, progress: i < 3 ? { words: [60, 100, 95][i], test: [70, 90, 82][i], rules: [50, 100, 80][i] } : null })) };
-  if (["subGrade", "hwDelete", "groupKick"].includes(action)) return { ok: true };
+  if (["subGrade", "hwDelete", "groupKick", "groupDelete"].includes(action)) return { ok: true };
   if (action === "hwCreate") return { ok: true, id: 9 };
   return null;
 }
@@ -125,4 +126,38 @@ function duelDemo(action: string, p: Record<string, unknown>): Record<string, un
     throw new Error("Bellashuv topilmadi");
   }
   return { ok: true };
+}
+
+// Profil va admin (soxta, sahifa yangilanguncha eslab qoladi): guruh, ustozlik so'rovi, yangi PIN, admin ro'yxatlari
+let dGroup: { code: string; title: string; teacher: boolean } | null = { code: "K7QX2M", title: "A1-ertalab", teacher: false };
+let dReq = false;
+function profileDemo(action: string, p: Record<string, unknown>, admin: boolean): Record<string, unknown> | null {
+  if (action === "groupJoin") {
+    const code = String(p.code || "").toUpperCase();
+    if (code !== "K7QX2M" && code !== "P4WZ8N") throw new Error("Bunday guruh topilmadi");
+    dGroup = { code, title: code === "K7QX2M" ? "A1-ertalab" : "A2-kechki", teacher: false };
+    return { ok: true, code, title: dGroup.title };
+  }
+  if (action === "groupLeave") { dGroup = null; return { ok: true }; }
+  if (action === "teacherRequest") { dReq = true; return { ok: true, pending: true }; }
+  if (action === "newPin") return { ok: true, login: "MJ-48213", pin: "482913" };
+  if (!admin) return null;
+  if (action === "adminOverview") return { ok: true,
+    totals: { students: 148, teachers: 6, groups: 9, today: 37, week: 96, newWeek: 12, noGroup: 14, xp: 52310 },
+    levels: { A0: 21, A1: 64, A2: 33, B1: 18, B2: 8, C1: 4 },
+    teachers: [{ name: "Malika Rahimova", groups: 2, n: 31, week: 24, last: new Date().toISOString() }],
+    groups: [
+      { code: "K7QX2M", title: "A1-ertalab", teacher: "Malika Rahimova", n: 18, today: 7, week: 15, xp: 4200, words: 96 },
+      { code: "P4WZ8N", title: "A2-kechki", teacher: "Malika Rahimova", n: 13, today: 4, week: 9, xp: 2900, words: 184 },
+      { code: "Z9TT3K", title: "A0-alifbo", teacher: "Domla", n: 21, today: 9, week: 17, xp: 3100, words: 12 },
+    ] };
+  if (action === "adminTeachers") return { ok: true,
+    requests: [{ id: "tg301", name: "Sardor Aliyev", login: "MJ-30112", level: "C1", at: new Date(Date.now() - 3 * 36e5).toISOString(), note: "Markazda A1 guruhini o'qitaman" }],
+    teachers: [{ id: "tg201", name: "Malika Rahimova", login: "MJ-20017", level: "C1", at: null, note: "", byGroup: false }, { id: "tg202", name: "Domla", login: "MJ-20005", level: "C1", at: null, note: "", byGroup: true }] };
+  if (action === "adminSetTeacher") return { ok: true };
+  if (action === "adminUsers") return { ok: true, users: people.map((x, i) => ({
+    tg: 101 + i, name: x.tgName, full: x.name, user: x.user, level: x.level, group: x.group?.title || "", teacher: false, seen: x.at, at: x.at, words: [96, 12, 184, 41][i] ?? null })) };
+  if (action === "kitobCount") return { ok: true, n: 1240 };
+  if (action === "kitobPut") return { ok: true, up: Array.isArray(p.files) ? p.files.length : 0, skip: 0, bad: 0 };
+  return null;
 }

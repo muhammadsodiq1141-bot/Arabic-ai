@@ -2,7 +2,7 @@
 // Pastda doim "Davom etish: <keyingi qadam>" tugmasi; keyingi qadam kartasi oltin halqa bilan belgilanadi; qulf sababini aytadi.
 // Shuningdek "Darslar" bo'limi: joriy kitobning barcha vahdalari (uy vazifasi berilgani belgilanadi).
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, BookOpen, Bookmark, Check, ChevronDown, ChevronUp, KeyRound, Lock, Star } from "lucide-react";
+import { ArrowRight, BookOpen, Bookmark, Check, ChevronDown, ChevronUp, KeyRound, Library, Lock, Star } from "lucide-react";
 import { preloadKitob } from "../lib/audio";
 import { img, loadData } from "../lib/data";
 import { GRADED, kbBest, kbKeyOf, kbOpen, loadKb, type KbLesson } from "../lib/kb";
@@ -41,7 +41,8 @@ export function Lessons() {
   const hw = store.get<HwItem[]>("f.hw", []).filter((h) => !h.teacher && !h.mine?.done && h.book === bookId);
   return (
     <main className="screen">
-      <SectionTitle ar="الدُّرُوسُ" uz={book ? `Darslar · ${book.title}` : "Darslar"} />
+      <SectionTitle ar="الدُّرُوسُ" uz={book ? `Darslar · ${book.title}` : "Darslar"}
+        right={<button type="button" className="sect-btn" onClick={() => go("books")}><Library size={18} aria-hidden />Kitoblar</button>} />
       {!book && <p className="muted pad">Yuklanmoqda…</p>}
       <div className="ulist">
         {book?.units.map((u) => {

@@ -20,7 +20,7 @@ function streakFz() {
   return c;
 }
 
-function localKeys(re: RegExp) {
+export function localKeys(re: RegExp) {
   const out: string[] = [];
   try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && re.test(k)) out.push(k); } } catch { /* */ }
   return out;

@@ -1,7 +1,8 @@
 // Ustoz paneli (5-partiya): guruh o'quvchilari va natijalari (server "groupMembers" + har o'quvchining _sum hisoboti),
 // tekshiriladigan javoblar soni, uy vazifalari, taklif havolasi, o'quvchini guruhdan chiqarish (ikki marta bosib tasdiqlanadi).
+// 7-partiya: admin istalgan guruhni ochadi (fixed), guruhni o'chirish (groupDelete), yana guruh ochish.
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronRight, ClipboardList, Flame, Link2, MessageSquareText, Plus, UserMinus, Users } from "lucide-react";
+import { ChevronDown, ChevronRight, ClipboardList, Flame, Link2, MessageSquareText, Plus, Trash2, UserMinus, Users } from "lucide-react";
 import { api } from "../lib/api";
 import { BOT_LINK } from "../lib/config";
 import { loadData, type BookIndex } from "../lib/data";
@@ -9,6 +10,7 @@ import { weekId } from "../lib/progress";
 import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
+import { useArm } from "../ui/arm";
 import { Avatar, Empty, ScreenHeader } from "../ui/kit";
 import { toast } from "../ui/Toast";
 
@@ -31,10 +33,27 @@ export function useTeacherGroup() {
 const daysAgo = (iso: string | null) => (iso ? Math.floor((Date.now() - new Date(iso).getTime()) / 864e5) : null);
 const lastText = (iso: string | null) => { const d = daysAgo(iso); return d === null ? "hali kirmagan" : d <= 0 ? "bugun faol" : d === 1 ? "kecha" : `${d} kun oldin`; };
 
-export function TeacherScreen() {
+export function TeacherScreen({ fixed }: { fixed?: { code: string; title: string } }) {
   const { me, refresh } = useSession();
-  const { go } = useNav();
-  const { groups, cur, pick } = useTeacherGroup();
+  const { go, back } = useNav();
+  const tgr = useTeacherGroup();
+  const groups = fixed ? [fixed] : tgr.groups;
+  const cur = fixed || tgr.cur;
+  const pick = tgr.pick;
+  const [adding, setAdding] = useState(false);
+  const [delBusy, setDelBusy] = useState(false);
+  const { armed, fire } = useArm();
+  const del = async () => {
+    if (!cur || !fire("del")) return;
+    setDelBusy(true);
+    try {
+      await api("groupDelete", { code: cur.code });
+      toast(`«${cur.title}» guruhi o'chirildi`);
+      await refresh();
+      if (fixed) back();
+    } catch (e) { toast(e instanceof Error ? e.message : "O'chirilmadi"); }
+    setDelBusy(false);
+  };
   const [members, setMembers] = useState<Member[] | null | "err">(null);
   const [pending, setPending] = useState<number | null>(null);
   const [hwN, setHwN] = useState<number | null>(null);
@@ -56,7 +75,7 @@ export function TeacherScreen() {
     return () => { alive = false; };
   }, [cur, nonce]);
 
-  if (!me?.teacher && !groups.length) {
+  if (!fixed && !me?.teacher && !groups.length) {
     return <main className="screen"><ScreenHeader title="Ustoz paneli" ar="لَوْحَةُ الْمُعَلِّمِ" /><Empty icon={<Users size={28} />} title="Ustozlik ruxsati yo'q" text="Guruh ochish uchun bosh admin ustozlik ruxsatini berishi kerak." /></main>;
   }
   if (!cur) return <main className="screen"><ScreenHeader title="Ustoz paneli" ar="لَوْحَةُ الْمُعَلِّمِ" /><NewGroup onDone={() => void refresh()} /></main>;
@@ -70,7 +89,7 @@ export function TeacherScreen() {
 
   return (
     <main className="screen teacher">
-      <ScreenHeader title="Ustoz paneli" ar="لَوْحَةُ الْمُعَلِّمِ" />
+      <ScreenHeader title={fixed ? fixed.title : "Ustoz paneli"} ar="لَوْحَةُ الْمُعَلِّمِ" />
       {groups.length > 1 && (
         <div className="chips" role="tablist" aria-label="Guruh">
           {groups.map((g) => <button key={g.code} type="button" role="tab" aria-selected={g.code === cur.code} className={g.code === cur.code ? "on" : ""} onClick={() => pick(g.code)}>{g.title}</button>)}
@@ -117,6 +136,15 @@ export function TeacherScreen() {
         ))}
       </ul>
       <p className="t-code">Guruh kodi: <b>{cur.code}</b></p>
+      {!fixed && (adding
+        ? <NewGroup again onDone={() => { setAdding(false); void refresh(); }} />
+        : <button type="button" className="btn ghost wide t-more" onClick={() => setAdding(true)}><Plus size={18} aria-hidden />Yana guruh ochish</button>)}
+      <section className="t-danger">
+        <p>Guruh o'chirilsa, o'quvchilar guruhsiz qoladi va vazifalar o'chadi. O'quvchilarning natijalari saqlanadi.</p>
+        <button type="button" className={`btn ghost bad wide ${armed === "del" ? "armed" : ""}`} disabled={delBusy} onClick={() => void del()}>
+          <Trash2 size={18} aria-hidden />{armed === "del" ? "Rostdan o'chirilsinmi? Yana bosing" : "Guruhni o'chirish"}
+        </button>
+      </section>
     </main>
   );
 }
@@ -173,7 +201,7 @@ function MemberRow({ m, open, onToggle, bookName, onKick }: { m: Member; open: b
 }
 
 /** Guruh ochish (ustozda hali guruh bo'lmasa) */
-function NewGroup({ onDone }: { onDone: () => void }) {
+function NewGroup({ onDone, again }: { onDone: () => void; again?: boolean }) {
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -185,7 +213,7 @@ function NewGroup({ onDone }: { onDone: () => void }) {
   };
   return (
     <section className="card">
-      <h2 className="t-h first">Birinchi guruhingizni oching</h2>
+      <h2 className="t-h first">{again ? "Yangi guruh ochish" : "Birinchi guruhingizni oching"}</h2>
       <p className="muted">Guruh ochilgach, taklif havolasini o'quvchilarga yuborasiz va ularga uy vazifasi berasiz.</p>
       <form className="form" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
         <label>Guruh nomi<input value={title} maxLength={40} onChange={(e) => setTitle(e.target.value)} placeholder="A1-ertalab" /></label>
