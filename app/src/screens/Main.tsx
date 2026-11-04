@@ -24,6 +24,7 @@ import { GameScreen } from "./Games";
 import { Home } from "./Home";
 import { KbScreen } from "./Kitob";
 import { LeagueScreen } from "./League";
+import { LessonScreen, type Plan } from "./Lesson";
 import { DrillScreen, MemScreen } from "./Madina";
 import { CertScreen, LevelTestScreen, type Cert } from "./Level";
 import { Marks } from "./Marks";
@@ -33,6 +34,7 @@ import { AccountScreen, IdCardScreen, Profile } from "./Profile";
 import { QuizScreen, type QConf } from "./Quiz";
 import { ErrorsScreen, KnownWordsScreen, NightScreen } from "./Review";
 import { SavedScreen } from "./Saved";
+import { RuleDetail, RulePractice, RulesHub } from "./Rules";
 import { ShadowScreen } from "./Shadow";
 import { TeacherScreen } from "./Teacher";
 import { TeacherHwNewScreen, TeacherHwScreen } from "./TeacherHw";
@@ -40,6 +42,7 @@ import { TeacherSubsScreen } from "./TeacherSubs";
 import { DayWordScreen, SoonScreen } from "./Small";
 import { TestScreen, TheoryScreen } from "./Theory";
 import { Lessons, RoundScreen, UnitScreen } from "./Unit";
+import { WordScreen, WordsScreen } from "./WordCard";
 
 /** Bot havolasidan kelganda (?go=... yoki start_param): d_KOD — bellashuv, g_KOD — guruhga qo'shilish.
  *  f.handled — eski ilova bilan umumiy; f.gjoin — tasdiq kutilayotganda saqlangan guruh kodi (endi qo'shiladi). */
@@ -98,6 +101,13 @@ export function Main() {
   if (route.view === "theory") return <TheoryScreen bookId={book} unitN={unit} />;
   if (route.view === "test") return <TestScreen key={`${book}:${unit}`} bookId={book} unitN={unit} />;
   if (route.view === "saved") return <SavedScreen />;
+  // 9b: so'zlar ro'yxati va so'z kartasi (ar — so'z), qoidalar markazi (u, i — qoida; list — mashqdagi qoidalar), bugungi dars (plan — bosh sahifa kartasidagi reja)
+  if (route.view === "words") return <WordsScreen key={`${book}:${unit}`} bookId={book} unitN={unit} />;
+  if (route.view === "word") return <WordScreen key={`${book}:${unit}:${p.ar}`} bookId={book} unitN={unit} ar={String(p.ar || "")} />;
+  if (route.view === "rules") return <RulesHub key={book} bookId={book} />;
+  if (route.view === "rule") return <RuleDetail key={`${book}:${p.u}:${p.i}`} bookId={book} u={Number(p.u) || 1} i={Number(p.i) || 0} />;
+  if (route.view === "rprac") return <RulePractice key={String(p.n || "")} bookId={book} list={(p.list as [number, number][]) || []} title={String(p.title || "Qoida mashqi")} />;
+  if (route.view === "lesson") return <LessonScreen key={String(p.n || "")} bookId={book} plan={p.plan as Plan} />;
   // mashq bo'limi
   if (route.view === "game") return <GameScreen key={`${book}:${unit}:${p.game}`} bookId={book} unit={unit} game={String(p.game)} />;
   if (route.view === "cards") return <CardsScreen key={`${book}:${unit}`} bookId={book} unit={unit} />;

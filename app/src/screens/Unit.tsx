@@ -2,7 +2,7 @@
 // Pastda doim "Davom etish: <keyingi qadam>" tugmasi; keyingi qadam kartasi oltin halqa bilan belgilanadi; qulf sababini aytadi.
 // Shuningdek "Darslar" bo'limi: joriy kitobning barcha vahdalari (uy vazifasi berilgani belgilanadi).
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, BookOpen, Bookmark, Check, ChevronDown, ChevronRight, ChevronUp, KeyRound, Library, Lock, Star } from "lucide-react";
+import { ArrowRight, BookOpen, Bookmark, Check, ChevronDown, ChevronRight, ChevronUp, KeyRound, Library, List, Lock, Ruler, Star } from "lucide-react";
 import { preloadKitob } from "../lib/audio";
 import { img, loadData } from "../lib/data";
 import { GRADED, isReadStep, kbBest, kbKeyOf, kbOpen, loadKb, type KbLesson, type KbStep } from "../lib/kb";
@@ -18,6 +18,7 @@ import { Ar, ScreenHeader, SectionTitle } from "../ui/kit";
 import { Scale } from "../ui/Scale";
 import { toast } from "../ui/Toast";
 import { DrillHub } from "./Madina";
+import { ruleStats, type RBook } from "./Rules";
 import { Round } from "./Round";
 
 // topshiriq turi (qadam kaliti) bo'yicha belgi
@@ -40,11 +41,19 @@ export function Lessons() {
   const book = useBook(bookId);
   // ustoz bergan vazifalar (bosh sahifa yuklagan kesh f.hw)
   const hw = store.get<HwItem[]>("f.hw", []).filter((h) => !h.teacher && !h.mine?.done && h.book === bookId);
+  const rs = book ? ruleStats(book as RBook) : null;
   return (
     <main className="screen">
       <SectionTitle ar="الدُّرُوسُ" uz={book ? `Darslar · ${book.title}` : "Darslar"}
         right={<button type="button" className="sect-btn" onClick={() => go("books")}><Library size={18} aria-hidden />Kitoblar</button>} />
       {!book && <p className="muted pad">Yuklanmoqda…</p>}
+      {book && rs && rs.all.length > 0 && (
+        <button type="button" className="rrow" onClick={() => go("rules", { book: book.id })}>
+          <span className="un"><Ruler size={20} aria-hidden /></span>
+          <span className="ut"><b>Qoidalar</b><span className="ut-hw rr-sub">{rs.done} / {rs.all.length} o'zlashtirildi</span></span>
+          <ArrowRight size={20} className="rr-go" aria-hidden />
+        </button>
+      )}
       <div className="ulist">
         {book?.units.map((u) => {
           const p = pctOf(u.words, knownOf(book.id, u.n));
@@ -161,6 +170,10 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
       </button>
       {open === "voc" && (
         <div className="tray">
+          <button type="button" className="rc wl-rc" onClick={() => go("words", { book: bookId, unit: unitN })}>
+            <b>So'zlar ro'yxati</b><span>{u.words.length + (u.phrases?.length || 0)} ta · misollar</span>
+            <span className="ic"><List size={22} aria-hidden /></span><span className="p">Kartalar</span>
+          </button>
           {rounds.map((r, i) => {
             const p = pctOf(r, known);
             return (
