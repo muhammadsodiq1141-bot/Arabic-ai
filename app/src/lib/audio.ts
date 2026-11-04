@@ -6,7 +6,7 @@ import { API_URL } from "./config";
 
 const TTS_BASE = API_URL.replace(/\/functions\/v1\/api$/, "") + "/storage/v1/object/public/tts/";
 const KB: Record<string, string> = {};
-const kbAt: Record<string, number> = {};
+const kbAt: Record<string, number> = {}; // "papka|kalit" → so'ralgan vaqt (havola 6 soat amal qiladi, 5 soat ishlatamiz)
 let el: HTMLAudioElement | null = null;
 let tok = 0;
 
@@ -18,14 +18,17 @@ export async function sha1(t: string) {
 }
 
 // Darsning kitob audiosi havolalarini oldindan olib qo'yish (dir: "a1/4")
+// Kalitma-kalit eslab qolinadi: bir papkadan avval so'zlar, keyin mashq matnlari so'ralsa ham hammasi keladi.
 export async function preloadKitob(dir: string, texts: string[]) {
-  if (kbAt[dir] && Date.now() - kbAt[dir] < 5 * 3600e3) return;
-  kbAt[dir] = Date.now();
+  const now = Date.now();
+  const all = [...new Set(await Promise.all(texts.map((t) => sha1(clean(t)))))];
+  const keys = all.filter((k) => now - (kbAt[`${dir}|${k}`] || 0) > 5 * 3600e3).slice(0, 800);
+  if (!keys.length) return;
+  keys.forEach((k) => { kbAt[`${dir}|${k}`] = now; delete KB[k]; });
   try {
-    const keys = await Promise.all(texts.map((t) => sha1(clean(t))));
     const r = await api<{ urls: Record<string, string> }>("kitobAudio", { dir, keys });
     Object.assign(KB, r.urls || {});
-  } catch { kbAt[dir] = 0; }
+  } catch { keys.forEach((k) => { kbAt[`${dir}|${k}`] = 0; }); }
 }
 
 function device(t: string, my: number) {

@@ -11,7 +11,8 @@ export type KbItem = {
   type: string; ins?: string; title?: string; q?: string; qz?: string; s?: string; uz?: string; ar?: string; say?: string;
   pic?: string; full?: string; fz?: string; why?: string; hint?: string; show?: string; see?: string;
   ok?: string | boolean; alt?: string[]; opts?: string[]; pool?: string[]; letters?: string[]; extra?: string;
-  words?: (string | number)[][] | string[]; pairs?: string[][]; cols?: string[]; lines?: string[][];
+  words?: (string | number)[][] | string[]; pairs?: string[][]; cols?: string[]; lines?: string[][] | string[];
+  norm?: number; // o'qish normativi, soniya (Madina matnlari)
 };
 export type KbStep = { k: string; t: string; ar?: string; d?: string; rule?: { h: string; p: string[] }; items: KbItem[] };
 export type KbLesson = { title: string; uz: string; book?: string; steps: KbStep[] };
@@ -21,8 +22,11 @@ export const isAr = (s: unknown) => /[؀-ۿ]/.test(String(s ?? ""));
 
 export const kbFile = (key: string) => `kb/${key.replace(":", "-")}`;
 export const loadKb = (key: string) => loadData<KbLesson>(kbFile(key));
-/** Kitobda shu vahda uchun mashqlar bormi (hozircha faqat A1 — a1:1…a1:12) */
-export const kbKeyOf = (bookId: string, unit: number) => (bookId === "a1" && unit >= 1 && unit <= 12 ? `a1:${unit}` : null);
+/** Kitobda shu vahda uchun mashqlar bormi: A1 (a1:1…12), Madina 1 (md1:1…16), Madina 2 (md2:1…26) */
+const KB_UNITS: Record<string, number> = { a1: 12, md1: 16, md2: 26 };
+export const kbKeyOf = (bookId: string, unit: number) => (unit >= 1 && unit <= (KB_UNITS[bookId] || 0) ? `${bookId}:${unit}` : null);
+/** Qadam faqat o'qishdan iborat (Madina matnlari) — vahdada "O'qish" bo'limida ko'rsatiladi */
+export const isReadStep = (st: KbStep) => st.items.length > 0 && st.items.every((x) => x.type === "read");
 
 const bestKey = (key: string) => `f.kb.${key}`;
 export const kbBest = (key: string) => store.get<Record<string, number>>(bestKey(key), {});
@@ -92,7 +96,7 @@ export function kbTexts(st: KbStep) {
   for (const it of st.items) {
     [it.ar, it.say, it.s, it.full, it.show, it.ok, it.q].forEach(add);
     it.opts?.forEach(add);
-    it.lines?.forEach((l) => add(l[1]));
+    it.lines?.forEach((l) => add(Array.isArray(l) ? l[1] : l));
     if (it.type === "intro") (it.words as string[][] | undefined)?.forEach((w) => add(w[0]));
     it.pairs?.forEach((p) => add(p[0]));
   }

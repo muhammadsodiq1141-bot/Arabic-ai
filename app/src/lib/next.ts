@@ -1,6 +1,6 @@
 // Uy vazifasida "keyingi qadam": lug'at roundlari → (so'z testi 80%) → nazariya → grammatik test → mashqlar.
 // Vahda ekranidagi "Davom etish" tugmasi va bosh sahifadagi uy vazifasi kartasi shu bir funksiyadan foydalanadi.
-import { kbBest, kbKeyOf, type KbLesson } from "./kb";
+import { isReadStep, kbBest, kbKeyOf, type KbLesson } from "./kb";
 import { bkKey, type Book } from "./progress";
 import { knownOf, store } from "./store";
 
@@ -46,7 +46,12 @@ export function nextStep(book: Book, unit: number, kb: KbLesson | null): Next {
   if (kb && key) {
     const B = kbBest(key);
     const si = kb.steps.findIndex((_, i) => B[i] === undefined);
-    if (si >= 0) return { kind: "kb", view: "kb", params: { ...base, key, si }, label: `${si + 1}-topshiriq`, sub: kb.steps[si].t.split(" · ")[0] };
+    if (si >= 0) {
+      const st = kb.steps[si], parts = st.t.split(" · ");
+      // Madina o'qish matni: "O'qish · Asosiy matn"
+      if (book.id.startsWith("md") && isReadStep(st)) return { kind: "kb", view: "kb", params: { ...base, key, si }, label: "O'qish", sub: parts.slice(1).join(" · ") || st.t };
+      return { kind: "kb", view: "kb", params: { ...base, key, si }, label: `${si + 1}-topshiriq`, sub: parts[0] };
+    }
   }
   return { kind: "done", view: "", params: base, label: "Bajarildi", sub: "" };
 }

@@ -7,7 +7,7 @@ import {
   blobB64, GRADED, HOW, insUz, isAr, kbFlush, kbSaveBest, loadKb, prep, recMime, rightOf, sayAfter, sayAuto, sendSub, tipOf, kbTexts,
   type KbItem, type KbLesson, type KbStep, type Prepared,
 } from "../lib/kb";
-import { gain } from "../lib/store";
+import { gain, store } from "../lib/store";
 import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
 import { Emo, EmoLead } from "../ui/Emo";
@@ -42,9 +42,14 @@ function Run({ L, st, lessonKey, si, unitN }: { L: KbLesson; st: KbStep; lessonK
   const [pct, setPct] = useState<number | null>(null);
   const skipped = useRef<number[]>([]);
   const title = `${L.title} · ${st.t}`;
-  const label = st.t.split(" · ")[0];
+  // "12-bet · Asosiy matn" kabi sarlavhada bet raqami emas, nomi ko'rsatiladi
+  const parts = st.t.split(" · ");
+  const label = /^\d+(-\d+)?-bet$/.test(parts[0]) && parts.length > 1 ? parts.slice(1).join(" · ") : parts[0];
+  const a0 = lessonKey.startsWith("a0:");
+  const book = lessonKey.split(":")[0];
 
-  useEffect(() => { void preloadKitob(`a1/${unitN}`, kbTexts(st)); }, [st, unitN]);
+  // kitob audiosi butun dars uchun bir marta so'raladi (server 800 tagacha kalit qabul qiladi)
+  useEffect(() => { void preloadKitob(lessonKey.replace(":", "/"), [...new Set(L.steps.flatMap(kbTexts))].slice(0, 800)); }, [L, lessonKey]);
   // "Tushunmadim" xabari: topshiriq tugaganda yoki undan chiqib ketilganda bir marta yuboriladi
   const report = () => {
     const s = skipped.current;
@@ -125,9 +130,9 @@ function Run({ L, st, lessonKey, si, unitN }: { L: KbLesson; st: KbStep; lessonK
           <span className="kb-big">{p}%</span>
           <p>{label} · {ok} / {graded} to'g'ri</p>
           <p className="r-earn"><Star size={22} aria-hidden /><CountUp to={Math.max(5, ok * 2)} />&nbsp;yulduzcha</p>
-          {!last && <button type="button" className="btn primary wide" onClick={() => replace("kb", { key: lessonKey, si: si + 1, book: "a1", unit: unitN })}>Keyingi topshiriq: {L.steps[si + 1].t.split(" · ")[0]}</button>}
-          <button type="button" className="btn ghost wide" onClick={() => replace("kb", { key: lessonKey, si, book: "a1", unit: unitN, n: Date.now() })}><RotateCcw size={18} aria-hidden />Qayta ishlash</button>
-          <button type="button" className="btn ghost wide" onClick={back}>Vahdaga qaytish</button>
+          {!last && <button type="button" className="btn primary wide" onClick={() => replace("kb", { key: lessonKey, si: si + 1, book, unit: unitN })}>Keyingi topshiriq: {L.steps[si + 1].t.split(" · ")[0]}</button>}
+          <button type="button" className="btn ghost wide" onClick={() => replace("kb", { key: lessonKey, si, book, unit: unitN, n: Date.now() })}><RotateCcw size={18} aria-hidden />Qayta ishlash</button>
+          <button type="button" className="btn ghost wide" onClick={back}>{a0 ? "Darsga qaytish" : "Vahdaga qaytish"}</button>
         </div>
       </main>
     );
@@ -135,7 +140,9 @@ function Run({ L, st, lessonKey, si, unitN }: { L: KbLesson; st: KbStep; lessonK
 
   const done = ans !== null;
   const isGraded = GRADED.includes(it.type);
-  const canNext = it.type === "intro" || it.type === "read" ? true : it.type === "free" ? !!freeSent : done;
+  // Madina'da erkin javob ixtiyoriy: ustozga yubormasdan ham keyingisiga o'tish mumkin (natijaga ta'sir qilmaydi)
+  const optFree = it.type === "free" && lessonKey.startsWith("md") && !freeSent;
+  const canNext = it.type === "intro" || it.type === "read" ? true : it.type === "free" ? !!freeSent || optFree : done;
   const props = { it, done, ans, mark };
   return (
     <main className="round kb">
@@ -143,7 +150,7 @@ function Run({ L, st, lessonKey, si, unitN }: { L: KbLesson; st: KbStep; lessonK
       <section className="kb-card" key={i}>
         <div className="kb-ins">{it.ins ? <><Ar className="kb-ins-ar">{it.ins}</Ar><span>{insUz(it.ins, it.type)}</span></> : <span>{tipOf(it.type)}</span>}</div>
         {it.type === "intro" && <Intro it={it} />}
-        {it.type === "read" && <Read it={it} />}
+        {it.type === "read" && <Read it={it} normKey={`${lessonKey}#${si}.${i}`} />}
         {(it.type === "choose" || it.type === "qa") && <Choose {...props} />}
         {it.type === "listen1" && <Listen1 {...props} />}
         {it.type === "pick" && <Pick {...props} />}
@@ -179,7 +186,7 @@ function Run({ L, st, lessonKey, si, unitN }: { L: KbLesson; st: KbStep; lessonK
         </section>
       )}
 
-      {canNext && <button type="button" className={`btn wide kb-next ${isGraded ? (ans ? "good" : "dark") : "primary"}`} onClick={next}>{i + 1 >= n ? "Natijani ko'rish" : "Davom etish"}</button>}
+      {canNext && <button type="button" className={`btn wide kb-next ${optFree ? "ghost" : isGraded ? (ans ? "good" : "dark") : "primary"}`} onClick={next}>{i + 1 >= n ? "Natijani ko'rish" : optFree ? "Yubormasdan keyingisiga" : "Davom etish"}</button>}
     </main>
   );
 }
@@ -257,12 +264,13 @@ function Intro({ it }: { it: KbItem }) {
   );
 }
 
-function Read({ it }: { it: KbItem }) {
+function Read({ it, normKey }: { it: KbItem; normKey: string }) {
   const [playing, setPlaying] = useState(-1);
   const [uz, setUz] = useState(false);
   const run = useRef(0);
   useEffect(() => () => { run.current++; }, []);
-  const lines = it.lines || [];
+  const lines = ((it.lines || []) as (string | string[])[]).map((l) => (Array.isArray(l) ? l : ["", l, ""]));
+  const hasUz = lines.some((l) => !!l[2]);
   const playAll = async () => {
     if (playing >= 0) { run.current++; stopSay(); setPlaying(-1); return; }
     const my = ++run.current;
@@ -277,6 +285,7 @@ function Read({ it }: { it: KbItem }) {
   return (
     <>
       {it.title && <Ar className="kb-ti ar-t">{it.title}</Ar>}
+      {it.norm ? <NormTimer norm={it.norm} k={normKey} /> : null}
       <button type="button" className="btn ghost kb-play" onClick={() => void playAll()}>{playing >= 0 ? <><Pause size={18} aria-hidden />To'xtatish</> : <><Play size={18} aria-hidden />Hammasini tinglash</>}</button>
       <div className="kb-dlg">
         {lines.map((l, k) => (
@@ -287,8 +296,44 @@ function Read({ it }: { it: KbItem }) {
           </div>
         ))}
       </div>
-      <button type="button" className="kb-link" onClick={() => setUz(!uz)}>{uz ? "Tarjimani yashirish" : "Tarjimani ko'rsatish"}</button>
+      {hasUz && <button type="button" className="kb-link" onClick={() => setUz(!uz)}>{uz ? "Tarjimani yashirish" : "Tarjimani ko'rsatish"}</button>}
     </>
+  );
+}
+
+const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s) % 60).padStart(2, "0")}`;
+/** O'qish normativi: matnni ovoz chiqarib belgilangan vaqtda o'qish. Eng yaxshi vaqt f.rdt da (kalit: dars#qadam.item) */
+function NormTimer({ norm, k }: { norm: number; k: string }) {
+  const [t0, setT0] = useState<number | null>(null);
+  const [now, setNow] = useState(0);
+  const [res, setRes] = useState<number | null>(null);
+  const best = store.get<Record<string, number>>("f.rdt", {})[k];
+  useEffect(() => {
+    if (t0 === null) return;
+    const h = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(h);
+  }, [t0]);
+  const start = () => { stopSay(); setRes(null); setT0(Date.now()); setNow(Date.now()); tg.haptic(); };
+  const stop = () => {
+    if (t0 === null) return;
+    const s = Math.max(1, Math.round((Date.now() - t0) / 1000));
+    setT0(null); setRes(s);
+    const B = store.get<Record<string, number>>("f.rdt", {});
+    if (!B[k] || s < B[k]) { B[k] = s; store.set("f.rdt", B); }
+    tg.haptic(s <= norm ? "success" : "light");
+  };
+  const run = t0 !== null ? Math.floor((now - t0) / 1000) : 0;
+  return (
+    <div className={`kb-norm ${res !== null ? (res <= norm ? "ok" : "slow") : ""}`} aria-live="polite">
+      <div className="kb-norm-h">
+        <span><b>Normativ: {mmss(norm)}</b><small>Matnni ovoz chiqarib shu vaqtda o'qing{best ? ` · eng yaxshi: ${mmss(best)}` : ""}</small></span>
+        {t0 === null
+          ? <button type="button" className="btn primary" onClick={start}><Play size={16} aria-hidden />{res === null ? "Boshlash" : "Qayta"}</button>
+          : <button type="button" className="btn dark" onClick={stop}><Square size={14} aria-hidden />To'xtatish</button>}
+      </div>
+      {t0 !== null && <span className={`kb-norm-t ${run > norm ? "over" : ""}`}>{mmss(run)}</span>}
+      {res !== null && <p>{res <= norm ? <><Check size={16} aria-hidden />{mmss(res)} — normativ bajarildi!</> : <>{mmss(res)} — normativdan {res - norm} soniya ko'p. Yana bir bor o'qib ko'ring.</>}</p>}
+    </div>
   );
 }
 
@@ -485,6 +530,11 @@ function Free({ it, sent, onSent, sub }: { it: KbItem; sent: "srv" | "local" | n
     <>
       {it.q && <Mixed text={it.q} />}
       {it.hint && <Ar className="kb-hint">{it.hint}</Ar>}
+      {!!it.lines?.length && (
+        <ol className="kb-flines">
+          {(it.lines as (string | string[])[]).map((l, k) => { const t = Array.isArray(l) ? l[1] : l; return <li key={k}><button type="button" className="kb-lt" onClick={() => void say(t)}><Ar>{t}</Ar></button></li>; })}
+        </ol>
+      )}
       <textarea className="kb-free" dir="rtl" lang="ar" rows={4} placeholder="Arabcha yozing" value={text} disabled={!!sent || busy} onChange={(e) => setText(e.target.value)} />
       {!sent && <><div className="kb-or"><span>yoki</span></div><VoiceRec value={voice} onChange={setVoice} disabled={busy} /></>}
       {err && <p className="err">{err}</p>}

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowRight, BookOpen, Bookmark, Check, ChevronDown, ChevronUp, KeyRound, Library, Lock, Star } from "lucide-react";
 import { preloadKitob } from "../lib/audio";
 import { img, loadData } from "../lib/data";
-import { GRADED, kbBest, kbKeyOf, kbOpen, loadKb, type KbLesson } from "../lib/kb";
+import { GRADED, isReadStep, kbBest, kbKeyOf, kbOpen, loadKb, type KbLesson, type KbStep } from "../lib/kb";
 import { dueText, gramPct, nextStep, pctOf, ROUND, rulesOf, theoryKey } from "../lib/next";
 import { hwProgress, localRaw, type Book } from "../lib/progress";
 import { knownOf, store, syncNow } from "../lib/store";
@@ -69,7 +69,7 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
   const book = useBook(bookId);
   const u = book?.units.find((x) => x.n === unitN);
   const [words, setWords] = useState<Word[] | null>(null);
-  const [open, setOpen] = useState<"voc" | "ex" | null>(null);
+  const [open, setOpen] = useState<"voc" | "ex" | "rd" | null>(null);
   const kbKey = kbKeyOf(bookId, unitN);
   const [kb, setKb] = useState<KbLesson | null>(null);
   useEffect(() => { if (!kbKey) return; let a = true; loadKb(kbKey).then((x) => a && setKb(x)).catch(() => {}); return () => { a = false; }; }, [kbKey]);
@@ -90,7 +90,9 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
   useEffect(() => {
     if (!ready || inited.current) return;
     inited.current = true;
-    setOpen(nextKind === "kb" || nextKind === "done" ? (kbKey ? "ex" : "voc") : "voc");
+    const nsi = Number(next?.params?.si);
+    const rd = nextKind === "kb" && bookId.startsWith("md") && !!kb?.steps[nsi] && isReadStep(kb.steps[nsi]);
+    setOpen(nextKind === "kb" || nextKind === "done" ? (kbKey ? (rd ? "rd" : "ex") : "voc") : "voc");
   }, [ready, nextKind, kbKey]);
   // vahda endigina to'liq bajarilgan bo'lsa (shart: so'zlar, so'z testi, qoidalar ≥80%) — bir martalik tabrik, natija darhol serverga
   useEffect(() => {
@@ -111,7 +113,28 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
   const gram = gramPct(book, unitN);
   const finished = hwProgress(localRaw(), book, unitN).done; // uy vazifasi sharti: so'zlar, so'z testi va qoidalar ≥80%
   const kbB = kbKey ? kbBest(kbKey) : {};
-  const exPct = kb?.steps.length ? Math.round(kb.steps.reduce((a, _, i) => a + (kbB[i] || 0), 0) / kb.steps.length) : 0;
+  // Madina: o'qish matnlari alohida "O'qish" bo'limida (qadam raqamlari o'zgarmaydi — natijalar shu tartibga bog'langan)
+  const split = bookId.startsWith("md");
+  const allIdx = kb ? kb.steps.map((_, i) => i) : [];
+  const rdIdx = split && kb ? allIdx.filter((i) => isReadStep(kb.steps[i])) : [];
+  const exIdx = allIdx.filter((i) => !rdIdx.includes(i));
+  const avg = (ix: number[]) => (ix.length ? Math.round(ix.reduce((a, i) => a + (kbB[i] || 0), 0) / ix.length) : 0);
+  const exPct = avg(exIdx), rdPct = avg(rdIdx);
+  const stepBtn = (s: KbStep, si: number, read: boolean) => {
+    const on = kbOpen(kbB, si), b = kbB[si];
+    const g = s.items.filter((x) => GRADED.includes(x.type)).length;
+    const name = read ? s.t.split(" · ").slice(1).join(" · ") || s.t : s.t.split(" · ")[0];
+    const d = read ? (s.d || `${s.items.length} matn`) : `${name} · ${g ? `${g} savol` : `${s.items.length} qism`}`;
+    return (
+      <button key={si} type="button" className={`rc kbc ${read ? "rdc" : ""} ${on ? "" : "lock"} ${isNext("kb", si) ? "next" : ""}`} aria-disabled={!on}
+        aria-label={on ? undefined : `${si + 1}-topshiriq — avval ${si}-topshiriqni bajaring`}
+        onClick={() => (on ? go("kb", { key: kbKey, si, book: bookId, unit: unitN }) : lockMsg(`Avval ${si}-topshiriqni bajaring`))}>
+        <b>{read ? name : `${si + 1}-topshiriq`}</b><span className="d">{d}</span>
+        {on ? <span className="ic"><Emo e={read ? "📖" : kbIcon(s.k)} size={34} /></span> : <span className="lk"><Lock size={14} aria-hidden /></span>}
+        <span className="b"><i style={{ width: `${b ?? 0}%` }} /></span><span className="p">{on ? `${b ?? 0}%` : "Qulf"}</span>
+      </button>
+    );
+  };
   const celeKey = `f.cele.${bookId}.${unitN}`;
   const assigned = store.get<HwItem[]>("f.hw", []).some((h) => !h.teacher && h.book === bookId && h.unit === unitN);
   const isNext = (kind: string, k?: number) => next.kind === kind && (k === undefined || next.params.n === k || next.params.si === k);
@@ -167,31 +190,32 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
         </div>
       )}
 
-      {kbKey && (
+      {kbKey && rdIdx.length > 0 && kb && (
+        <>
+          <button type="button" className="ub v-ex v-rd" aria-expanded={open === "rd"} onClick={() => setOpen(open === "rd" ? null : "rd")}>
+            <span className="ub-deco" aria-hidden><Emo e="📖" size={52} /><Emo e="⏱️" size={52} /></span>
+            <span className="ub-hd"><span className="ub-badge"><Star size={28} aria-hidden /></span>
+              <span className="ub-tt"><Ar className="ub-ar">الْقِرَاءَةُ</Ar><span className="ub-uz">O'qish · {rdIdx.length} matn</span></span>
+              <span className="ub-chev">{open === "rd" ? <ChevronUp size={18} /> : <ChevronDown size={18} />}</span></span>
+            <span className="ub-pr"><span className="b" role="progressbar" aria-valuenow={rdPct} aria-valuemin={0} aria-valuemax={100} aria-label="O'qish"><i style={{ width: `${rdPct}%` }} /></span><em>{rdPct}%</em></span>
+          </button>
+          {open === "rd" && <div className="tray">{rdIdx.map((si) => stepBtn(kb.steps[si], si, true))}</div>}
+        </>
+      )}
+
+      {kbKey && (!kb || exIdx.length > 0) && (
         <>
           <button type="button" className="ub v-ex" aria-expanded={open === "ex"} onClick={() => setOpen(open === "ex" ? null : "ex")}>
             <span className="ub-deco" aria-hidden><Emo e="📝" size={52} /><Emo e="💬" size={52} /><Emo e="📖" size={52} /></span>
             <span className="ub-hd"><span className="ub-badge"><Star size={28} aria-hidden /></span>
-              <span className="ub-tt"><Ar className="ub-ar">التَّدْرِيبَاتُ</Ar><span className="ub-uz">Mashqlar{kb ? ` · ${kb.steps.length} topshiriq` : ""}</span></span>
+              <span className="ub-tt"><Ar className="ub-ar">التَّدْرِيبَاتُ</Ar><span className="ub-uz">Mashqlar{kb ? ` · ${exIdx.length} topshiriq` : ""}</span></span>
               <span className="ub-chev">{open === "ex" ? <ChevronUp size={18} /> : <ChevronDown size={18} />}</span></span>
             {kb && <span className="ub-pr"><span className="b" role="progressbar" aria-valuenow={exPct} aria-valuemin={0} aria-valuemax={100} aria-label="Mashqlar"><i style={{ width: `${exPct}%` }} /></span><em>{exPct}%</em></span>}
           </button>
           {open === "ex" && (
             <div className="tray">
               {!kb && <p className="muted">Yuklanmoqda…</p>}
-              {kb?.steps.map((s, si) => {
-                const on = kbOpen(kbB, si), b = kbB[si];
-                const g = s.items.filter((x) => GRADED.includes(x.type)).length;
-                return (
-                  <button key={si} type="button" className={`rc kbc ${on ? "" : "lock"} ${isNext("kb", si) ? "next" : ""}`} aria-disabled={!on}
-                    aria-label={on ? undefined : `${si + 1}-topshiriq — avval ${si}-topshiriqni bajaring`}
-                    onClick={() => (on ? go("kb", { key: kbKey, si, book: bookId, unit: unitN }) : lockMsg(`Avval ${si}-topshiriqni bajaring`))}>
-                    <b>{si + 1}-topshiriq</b><span className="d">{s.t.split(" · ")[0]} · {g ? `${g} savol` : `${s.items.length} qism`}</span>
-                    {on ? <span className="ic"><Emo e={kbIcon(s.k)} size={34} /></span> : <span className="lk"><Lock size={14} aria-hidden /></span>}
-                    <span className="b"><i style={{ width: `${b ?? 0}%` }} /></span><span className="p">{on ? `${b ?? 0}%` : "Qulf"}</span>
-                  </button>
-                );
-              })}
+              {kb && exIdx.map((si) => stepBtn(kb.steps[si], si, false))}
             </div>
           )}
         </>
