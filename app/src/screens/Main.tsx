@@ -3,6 +3,7 @@
 // 4-partiya: reyting (league), baholar (o'quvchi natijalari). 5-partiya: ustoz paneli (teacher, tsubs, thw, thwnew).
 // 6-partiya: Mashq bo'limi (game, cards, wtest, errors, night, known, qs; mults, mult, mvoc, shadow; duel, leveltest, cert).
 // 7-partiya: profil (books, account, idcard), admin (admin, ateachers, ausers), guruh havolasi g_KOD.
+import { InviteScreen } from "./Invite";
 import { useEffect, useLayoutEffect } from "react";
 import { strandRoute } from "../lib/strand";
 import { api } from "../lib/api";
@@ -91,6 +92,7 @@ export function Main() {
   if (route.view === "books") return <BooksScreen />;
   // 10-partiya: arabcha ism sahifasi, «Yutuqlarim» kartasi
   if (route.view === "arname") return <ArNameScreen />;
+  if (route.view === "invite") return <InviteScreen />; // 14-partiya
   if (route.view === "share") return <ShareScreen />;
   // A0 · Alifbo: n — dars, l — harf, id — vazifa
   if (route.view === "city") return <CityScreen />;

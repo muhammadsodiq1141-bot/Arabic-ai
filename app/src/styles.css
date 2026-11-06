@@ -1847,3 +1847,31 @@ html.obscured .app { filter: blur(22px); }
 .uto { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; box-shadow: 0 0 0 2px var(--gold), var(--shadow); }
 .uto p { margin: 0; font-size: 14px; color: var(--muted); }
 .uto-act { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; }
+
+/* ===== 14-partiya: do'stni taklif qilish ===== */
+.inv-card { display: flex; flex-direction: column; gap: 14px; }
+.inv-gift { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 12px; align-items: center; }
+.inv-gi { width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; background: var(--gold); color: #2A2418; }
+.inv-gift b { display: block; font-size: 20px; line-height: 1.2; }
+.inv-gift small { color: var(--muted); font-weight: 600; font-size: 13px; }
+.inv-steps { margin: 0; padding: 0; list-style: none; counter-reset: s; display: flex; flex-direction: column; gap: 8px; }
+.inv-steps li { counter-increment: s; display: grid; grid-template-columns: 28px minmax(0, 1fr); column-gap: 10px; }
+.inv-steps li::before { content: counter(s); grid-row: span 2; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--soft); font-weight: 800; font-size: 13px; color: var(--accent); }
+.inv-steps b { font-size: 14.5px; line-height: 1.3; }
+.inv-steps small { color: var(--muted); font-weight: 600; font-size: 12.5px; line-height: 1.35; }
+.inv-link { display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: center; gap: 6px; padding: 4px 4px 4px 12px; border-radius: 14px; background: var(--soft); }
+.inv-url { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; font-size: 13.5px; user-select: all; }
+.inv-copy { width: 44px; height: 44px; border: 0; border-radius: 12px; background: var(--card); color: var(--ink); display: grid; place-items: center; }
+.inv-copy:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.inv-h { display: flex; align-items: center; gap: 8px; margin: 22px 2px 10px; font-size: 15px; font-weight: 800; }
+.inv-h svg { color: var(--accent); }
+.inv-empty { margin: 0 2px; font-size: 14px; line-height: 1.5; }
+.inv-list { list-style: none; margin: 0; padding: 0; border-radius: 20px; background: var(--card); box-shadow: var(--shadow); overflow: hidden; }
+.inv-list li { min-height: 52px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; }
+.inv-list li + li { box-shadow: inset 0 1px 0 var(--line); }
+.inv-list b { font-size: 14.5px; }
+.inv-st { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; }
+.inv-st.ok { background: var(--ok-bg); color: var(--ok-line); }
+.inv-st.wait { background: var(--soft); color: var(--muted); }
+.inv-st.no { background: var(--no-bg); color: var(--no-line); }
+.req-ref { color: var(--accent); }

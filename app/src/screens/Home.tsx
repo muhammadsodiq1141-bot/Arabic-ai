@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { ArrowUpRight, Gift, GraduationCap, Headphones, MessageCircle, Search, Star, TrendingUp, Trophy } from "lucide-react";
 import { a0Data, a0HwState, type Hw as A0Hw } from "../lib/a0";
 import { api } from "../lib/api";
-import { BOT_LINK } from "../lib/config";
 import { img, loadData, type BookIndex, type DayWord } from "../lib/data";
 import { hash, dayKey, hwProgress, localRaw, summarize, weekId, type Book, type Raw, type Summary } from "../lib/progress";
 import { kbFlush, kbKeyOf, loadKb } from "../lib/kb";
@@ -16,6 +15,7 @@ import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
 import { Ar, Avatar, SectionTitle } from "../ui/kit";
 import { applyFreeze } from "../lib/motiv";
+import { claimRef } from "../lib/ref";
 import { toast } from "../ui/Toast";
 import { A0Entry } from "./A0";
 import { bookOfLevel } from "./Unit";
@@ -46,6 +46,8 @@ export function Home() {
       if (ensureWeek() && alive) { setCoachBlocked(true); setIntro(true); } // yangi o'quvchi: tanishuv, keyin birinchi hafta yo'li
       // muzlatish (kuniga bir marta) va unvon/nishon tabrigi — server ma'lumoti tiklangandan keyin
       if (applyFreeze()) window.setTimeout(() => toast("Muzlatish ishlatildi — ketma-ketlik saqlandi"), 800);
+      // 14-partiya: do'stni taklif qilish — tasdiqlangan do'stlar uchun tanga
+      void claimRef(me).then((m) => { if (m && alive) window.setTimeout(() => toast(m), 1400); });
       window.dispatchEvent(new Event("mezon:check"));
       void kbFlush(); // internetsiz yozilgan javoblar (f.kbq) — eski ilovadagi kabi ochilganda yuboriladi
       const raw = localRaw();
@@ -89,7 +91,6 @@ export function Home() {
   const level = books?.find((b) => b.id === (sum?.book || "a1"));
   const gauge = level ? Math.min(1, (sum?.known || 0) / level.words) : 0;
   const saved = Object.keys(savedAll()).length;
-  const invite = () => tg.openLink(`https://t.me/share/url?url=${encodeURIComponent(BOT_LINK)}&text=${encodeURIComponent("Men Mezon'da arab tilini o'rganyapman. Sen ham qo'shil!")}`);
 
   return (
     <main className="screen home">
@@ -158,9 +159,9 @@ export function Home() {
         </button>
       </div>
 
-      <button type="button" className="rowbtn invite" onClick={invite}>
+      <button type="button" className="rowbtn invite" onClick={() => go("invite")}>
         <img src={img("handshake")} alt="" />
-        <span><b>Do'stni taklif qilish</b><small>Havolani Telegram'da yuboring</small></span>
+        <span><b>Do'stni taklif qilish</b><small>Har bir do'stingiz uchun 10 tanga</small></span>
         <ArrowUpRight size={20} aria-hidden />
       </button>
 

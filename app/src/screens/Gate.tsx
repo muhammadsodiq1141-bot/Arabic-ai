@@ -1,8 +1,9 @@
 // Ilovaga kirishdan oldingi ekranlar: Telegram'siz ochilganda kirish, ro'yxatdan o'tish, tasdiq kutish, rad etilgan.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, KeyRound, RefreshCw, Send } from "lucide-react";
 import { api, setLogin } from "../lib/api";
 import { BOT_LINK } from "../lib/config";
+import { keepRef } from "../lib/ref";
 import { report } from "../lib/report";
 import { store } from "../lib/store";
 import { startGo, tg } from "../lib/tg";
@@ -59,10 +60,12 @@ export function Register() {
       </main>
     );
   }
+  useEffect(() => { keepRef(); }, []); // havoladan kelgan taklif kodi — ro'yxatdan o'tguncha saqlanadi
   const submit = async () => {
     setBusy(true); setErr("");
     try {
-      const r = await api<{ login: string; pin?: string }>("register", { name: name.trim(), level });
+      const ref = keepRef(); // 14-partiya: do'stni taklif qilish — kim taklif qilgani
+      const r = await api<{ login: string; pin?: string }>("register", { name: name.trim(), level, ...(ref ? { ref } : {}) });
       setCred(r);
       report("roʻyxatdan oʻtdi", "", null, null, true);
     } catch (e) { setErr(e instanceof Error ? e.message : String(e)); }

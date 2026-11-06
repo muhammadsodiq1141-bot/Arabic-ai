@@ -1,11 +1,11 @@
 // Bosh admin: ilovaga kirish so'rovlari. Har kishi alohida tasdiqlanadi; guruh bo'yicha belgilab, bir nechtasini birdan tasdiqlash mumkin.
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, CheckSquare, Square, UsersRound, X } from "lucide-react";
+import { Check, CheckSquare, Square, UserPlus, UsersRound, X } from "lucide-react";
 import { api } from "../lib/api";
 import { tg } from "../lib/tg";
 import { Avatar, ScreenHeader } from "../ui/kit";
 
-type Req = { sid: string; name: string; tgName: string; user: string; level: string; group: { code: string; title: string; teacher: string } | null; at: string | null };
+type Req = { sid: string; name: string; tgName: string; user: string; level: string; group: { code: string; title: string; teacher: string } | null; at: string | null; ref?: string | null };
 type Status = "pending" | "rejected";
 
 const ago = (t: string | null) => {
@@ -95,6 +95,7 @@ export function AdminRequests() {
             <span className="req-tm">{ago(r.at)}</span>
           </div>
           <div className="req-grp"><UsersRound size={16} aria-hidden />{r.group ? `Guruh: ${r.group.title}${r.group.teacher ? ` · ustoz ${r.group.teacher}` : ""}` : "Guruhsiz — o'zi ro'yxatdan o'tgan"}</div>
+          {r.ref && <div className="req-grp req-ref"><UserPlus size={16} aria-hidden />Taklif qildi: {r.ref}</div>}
           <div className="req-act">
             <button type="button" className="btn good" disabled={busy} onClick={() => void decide([r.sid], "approved")}><Check size={18} aria-hidden />Tasdiqlash</button>
             {status === "pending"

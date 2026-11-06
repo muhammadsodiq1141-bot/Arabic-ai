@@ -16,6 +16,8 @@ export type Me = {
   teacher?: boolean; // ustozlik ruxsati (role=teacher, guruh egasi yoki admin)
   myGroups?: { code: string; title: string }[]; // ustoz ochgan guruhlar
   teacherReq?: boolean; // ustozlik so'rovi yuborilgan, admin ko'rmoqda
+  refNew?: number; // 14-partiya: tasdiqlangan, hali mukofoti olinmagan taklif qilingan do'stlar
+  refBy?: boolean; // o'zi do'st taklifi bilan kelgan
 };
 export type Phase = "loading" | "noauth" | "register" | "pending" | "rejected" | "ready" | "error";
 

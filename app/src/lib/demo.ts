@@ -4,9 +4,10 @@ const q = new URLSearchParams(location.search);
 const local = ["localhost", "127.0.0.1"].includes(location.hostname);
 export const DEMO: string | null = local ? q.get("demo") : null; // pending | rejected | approved | admin | new | teacher
 
+let demoRef = 2; // ?rd=1 — mukofoti olinmagan do'stlar (refClaim kamaytiradi)
 const people = [
   { sid: "tg101", name: "Aziz Karimov", tgName: "Aziz", user: "aziz_k", level: "A1", group: { code: "K7QX2M", title: "A1-ertalab", teacher: "Domla" }, at: new Date(Date.now() - 5 * 6e4).toISOString(), seen: null },
-  { sid: "tg102", name: "Zarina Saidova", tgName: "Zarina", user: "", level: "A0", group: null, at: new Date(Date.now() - 36e5).toISOString(), seen: null },
+  { sid: "tg102", name: "Zarina Saidova", tgName: "Zarina", user: "", level: "A0", group: null, at: new Date(Date.now() - 36e5).toISOString(), seen: null, ref: "Aziz Karimov · MJ-48213" },
   { sid: "tg103", name: "Bekzod Toshev", tgName: "Bek", user: "bek_t", level: "A2", group: { code: "P4WZ8N", title: "A2-kechki", teacher: "Malika" }, at: new Date(Date.now() - 864e5).toISOString(), seen: null },
   { sid: "tg104", name: "Madina Yusupova", tgName: "Madina", user: "madina_y", level: "A1", group: { code: "K7QX2M", title: "A1-ertalab", teacher: "Domla" }, at: new Date(Date.now() - 2 * 864e5).toISOString(), seen: null },
 ];
@@ -30,6 +31,7 @@ export async function demoApi(action: string, p: Record<string, unknown>): Promi
       ok: true, id: "tg101", name: "Aziz", full_name: admin ? "Bosh admin" : "Aziz Karimov", login: admin ? "MJ-10001" : "MJ-48213", level: "A1",
       group: admin ? null : dGroup, admin, tg: 101, teacherReq: dReq,
       access: admin ? "approved" : DEMO === "rejected" ? "rejected" : DEMO === "approved" ? "approved" : "pending",
+      ...(q.get("rd") === "1" ? { refNew: 2, refBy: true } : {}),
     };
   }
   if (action === "register") return { ok: true, login: "MJ-48213", pin: "305917" };
@@ -56,6 +58,9 @@ export async function demoApi(action: string, p: Record<string, unknown>): Promi
     const k = rows.findIndex((r) => r.me);
     return { ok: true, week: p.week, period: all ? "all" : "week", level: p.level || null, top: rows, me: k >= 0 ? { rank: k + 1, x: rows[k].x } : null, group: p.scope === "group" ? "K7QX2M" : null };
   }
+  // 14-partiya: do'stni taklif qilish (?demo=approved&rd=1 — 2 ta do'st tasdiqlangan, mukofot kutilmoqda)
+  if (action === "refList") return { ok: true, items: [{ n: "Bekzod T.", st: "approved", at: null }, { n: "Zarina S.", st: "pending", at: null }, { n: "Madina Y.", st: "approved", at: null }] };
+  if (action === "refClaim") { const n = Math.min(Number(p.n) || 0, demoRef); demoRef -= n; return { ok: true, n }; }
   if (action === "adminRequests") return { ok: true, status: p.status || "pending", items: p.status === "rejected" ? people.slice(3) : people.slice(0, 3) };
   if (action === "adminApprove") return { ok: true, n: Array.isArray(p.sids) ? p.sids.length : 1 };
   if (action === "kitobAudio") return { ok: true, urls: {} }; // kitob audiosi yo'q — ovoz tts omboridan yoki telefondan
