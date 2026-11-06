@@ -1,7 +1,7 @@
 // Bosh sahifa (shablon tuzilishi, Mezon ranglari). Haqiqiy ma'lumot: progress (eski ilova formati), uy vazifasi (hwList),
 // guruh reytingi (leaderboard), kun so'zi (DAY_WORDS). Hali tayyor bo'lmagan bo'limlar bitta sokin "Tez orada" ro'yxatida (bosilmaydi).
 import { useEffect, useState } from "react";
-import { ArrowUpRight, Gift, GraduationCap, Headphones, MessageCircle, Search, Star, TrendingUp, Trophy } from "lucide-react";
+import { ArrowUpRight, Gift, GraduationCap, Headphones, MessageCircle, Search, Star, Target, TrendingUp, Trophy } from "lucide-react";
 import { a0Data, a0HwState, type Hw as A0Hw } from "../lib/a0";
 import { api } from "../lib/api";
 import { img, loadData, type BookIndex, type DayWord } from "../lib/data";
@@ -16,6 +16,7 @@ import { useSession } from "../state/session";
 import { Ar, Avatar, SectionTitle } from "../ui/kit";
 import { applyFreeze } from "../lib/motiv";
 import { claimRef } from "../lib/ref";
+import { goalOf } from "../lib/goal";
 import { toast } from "../ui/Toast";
 import { A0Entry } from "./A0";
 import { bookOfLevel } from "./Unit";
@@ -127,6 +128,16 @@ export function Home() {
         </button>
       </div>
 
+      {sum && !me?.group && !goalOf() && !store.get("f.goalHide", 0) && (
+        <section className="card gl-card" aria-label="Shaxsiy reja">
+          <span className="gl-oi big" aria-hidden><Target size={24} /></span>
+          <span className="gl-ot"><b>Shaxsiy rejangizni tuzaylik</b><small>4 ta savol · 1 daqiqa — maqsadingizga qarab kunlik reja</small></span>
+          <div className="gl-act">
+            <button type="button" className="btn ghost" onClick={() => { store.set("f.goalHide", 1); setSum({ ...sum }); }}>Keyinroq</button>
+            <button type="button" className="btn primary" onClick={() => go("goal")}>Boshlash</button>
+          </div>
+        </section>
+      )}
       {sum && <WeekCard bookId={store.get("a1.book", bookOfLevel(me?.level))} />}
       {me?.level === "A0" && <A0Entry />}
       {sum && <TodayCard bookId={store.get("a1.book", bookOfLevel(me?.level))} />}

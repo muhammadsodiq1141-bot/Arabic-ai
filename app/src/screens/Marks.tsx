@@ -1,11 +1,13 @@
 // Baholar: o'quvchining o'z natijalari vahdalar bo'yicha — lug'at, so'z testi, grammatika, mashqlar (telefondagi progressdan).
 // Ustoz bahosi (erkin javoblar) keyingi navbatda qo'shiladi.
 import { useEffect, useState } from "react";
-import { Check, ChevronRight, ClipboardCheck } from "lucide-react";
+import { Check, ChevronRight, ClipboardCheck, TrendingUp } from "lucide-react";
 import { loadData } from "../lib/data";
 import { kbBest, kbKeyOf, loadKb } from "../lib/kb";
 import { gramPct, pctOf, rulesOf } from "../lib/next";
-import { bkKey, hwProgress, localRaw, type Book } from "../lib/progress";
+import { bkKey, hwProgress, localRaw, summarize, type Book } from "../lib/progress";
+import { strandTotal } from "../lib/strand";
+import { confAll, confAvg } from "../lib/goal";
 import { knownOf, store } from "../lib/store";
 import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
@@ -48,6 +50,7 @@ export function Marks() {
   return (
     <main className="screen marks">
       <SectionTitle ar="الدَّرَجَاتُ" uz="Baholar" />
+      <Growth />
       {rows === null && <p className="muted pad">Yuklanmoqda…</p>}
       {rows?.length === 0 && (
         <div className="empty">
@@ -86,5 +89,27 @@ function Meter({ label, v }: { label: string; v: number }) {
       <span className="mk-l">{label}<em>{v}%</em></span>
       <span className="mk-b" role="progressbar" aria-label={label} aria-valuenow={v} aria-valuemin={0} aria-valuemax={100}><i style={{ width: `${v}%` }} /></span>
     </span>
+  );
+}
+
+/** 15-partiya (M11): «Mening o'sishim» — jami vaqt, yodlangan so'zlar, seriya va o'ziga ishonch (boshida → hozir) */
+function Growth() {
+  const { go } = useNav();
+  const t = strandTotal();
+  const sum = summarize(localRaw());
+  const C = confAll();
+  const h = Math.floor(t.sec / 3600), m = Math.round((t.sec % 3600) / 60);
+  const since = t.since ? new Date(t.since).toLocaleDateString("uz-UZ", { day: "numeric", month: "long" }) : "";
+  return (
+    <section className="card gr-card" aria-label="Mening o'sishim">
+      <b className="gr-h"><TrendingUp size={18} aria-hidden />Mening o'sishim</b>
+      <div className="gr-kv">
+        <div><b>{h ? `${h} soat ${m} daq` : `${m} daq`}</b><span>o'qish vaqti{since ? ` · ${since}dan` : ""}</span></div>
+        <div><b>{sum.known}</b><span>yodlangan so'z</span></div>
+        <div><b>{sum.streak}</b><span>kun ketma-ket</span></div>
+        <div>{C.length ? <b>{C.length > 1 ? `${confAvg(C[0])} → ${confAvg(C[C.length - 1])}` : `${confAvg(C[0])}`}</b> : <b>—</b>}<span>o'ziga ishonch / 5</span></div>
+      </div>
+      <button type="button" className="btn ghost gr-cf" onClick={() => go("goal", { conf: 1 })}>{C.length ? "O'zingizni qayta baholang" : "O'zingizni baholang · 1 daqiqa"}</button>
+    </section>
   );
 }

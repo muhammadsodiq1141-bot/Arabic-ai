@@ -11,6 +11,7 @@ import { say } from "../lib/audio";
 import { nextStep, pctOf } from "../lib/next";
 import { isReadStep, kbKeyOf, loadKb, type KbLesson } from "../lib/kb";
 import { STRANDS, strandToday, strandWeek, type Strand } from "../lib/strand";
+import { goalOf, MIX } from "../lib/goal";
 import type { Book } from "../lib/progress";
 import { allItems, checkTyped, confusable, dayNum, errAdd, isDue, itemsOf, LATER_MS, picOf, SRS_INT, srsOf, usePics, type Item } from "../lib/practice";
 import { loadData } from "../lib/data";
@@ -144,7 +145,11 @@ export function TodayCard({ bookId }: { bookId: string }) {
   const mins = plan.mins + 9;
   // haftalik muvozanat: eng kam yo'l — maslahat (kamida 10 daqiqa yig'ilgach)
   const tot = week.i + week.o + week.f + week.r;
-  const low = STRANDS.reduce((m, x) => (week[x.k] < week[m.k] ? x : m), STRANDS[0]);
+  // 15-partiya: shaxsiy reja bo'lsa — uning ulushlari, bo'lmasa teng (25%); eng katta kamomad
+  const goal = goalOf();
+  const tgt = goal ? MIX[goal.why] : { i: 25, o: 25, f: 25, r: 25 };
+  const gap = (k: Strand) => tgt[k] / 100 - (tot ? week[k] / tot : 0);
+  const low = STRANDS.reduce((m, x) => (gap(x.k) > gap(m.k) ? x : m), STRANDS[0]);
   const sk = streakNow();
   const act = store.get<Record<string, number>>("a1.days", {}), fz = store.get<string[]>("x.fz", []);
   return (
@@ -182,7 +187,7 @@ export function TodayCard({ bookId }: { bookId: string }) {
             </div>
           );
         })}
-        {tot >= 600 && week[low.k] / tot < 0.15 && <p className="bg-tip">{low.t} bu hafta kam. Shu qismga ko'proq vaqt ajrating — to'rt yo'l teng bo'lsa, til tezroq o'rganiladi.</p>}
+        {tot >= 600 && week[low.k] / tot < (tgt[low.k] / 100) * 0.6 && <p className="bg-tip">{low.t} bu hafta kam ({Math.round((week[low.k] / tot) * 100)}%, {goal ? "rejangizda" : "tavsiya"} {tgt[low.k]}%). Shu qismga ko'proq vaqt ajrating.</p>}
       </div>
       <div className="td-week" aria-label={`${sk} kun ketma-ket`}>
         <b>{sk} kun ketma-ket</b>

@@ -35,6 +35,9 @@ function flush() {
   const keys = Object.keys(M).sort();
   while (keys.length > 21) delete M[keys.shift()!];
   store.set("x.sm", M);
+  // 15-partiya (M11): jami vaqt (x.smt soniya) va qachondan beri sanalayotgani (x.smt0)
+  store.set("x.smt", store.get("x.smt", 0) + sec);
+  if (!store.get("x.smt0", 0)) store.set("x.smt0", Date.now());
 }
 /** yo'l (Main): har ekran almashganda; 60 soniya o'yini — ravonlik */
 export function strandRoute(view: string, game?: unknown) {
@@ -67,3 +70,6 @@ export function strandWeek() {
   for (let i = back; i >= 0; i--) { const d = new Date(t); d.setDate(t.getDate() - i); days.push(dayKey(d)); }
   return sumDays(days);
 }
+
+/** jami o'qish vaqti (soniya) va qachondan beri — «Baholar»dagi «Mening o'sishim» uchun */
+export function strandTotal() { flush(); return { sec: store.get("x.smt", 0), since: store.get("x.smt0", 0) }; }

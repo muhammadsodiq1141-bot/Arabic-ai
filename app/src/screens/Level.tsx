@@ -127,6 +127,7 @@ export function CertScreen({ cert, per }: { cert: Cert; per?: Per }) {
           })}
         </section>
       )}
+      <p className="cert-what">Bu sertifikat lug'at va grammatikani o'lchaydi. Gapirish va yozish hali baholanmagan.</p>
       <button type="button" className="btn primary wide" onClick={share}><Send size={18} aria-hidden />Ulashish</button>
     </main>
   );

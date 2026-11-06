@@ -5,7 +5,7 @@ export type Slide = { t: string; d: string; rows: [string, string][]; note?: str
 export const OB_INTRO: Slide[] = [
   { t: "Mezon'ga xush kelibsiz", d: "Bu yerda arab tilini kitob, lug'at, multfilm va gapirish mashqi orqali tizimli o'rganasiz.",
     rows: [["Darslar", "Manhaj A1–C1, Madina 1–2: so'zlar, qoidalar va kitob mashqlari"], ["Mashq", "O'yinlar, kartochka, multfilm, takrorlash va bellashuv"], ["Guruh", "Ustozingiz bilan birga o'qish va uy vazifalari"]] },
-  { t: "Har kuni 10 daqiqa", d: "Mezon har kuni nima qilishni o'zi ko'rsatadi. Shunchaki ketma-ket bajaring.",
+  { t: "Har kuni 15 daqiqa", d: "Mezon har kuni nima qilishni o'zi ko'rsatadi. Shunchaki ketma-ket bajaring.",
     rows: [["Bugun — 4 qism", "Takrorlash, tinglash, gapirish va ravonlik · ~15 daq"], ["Kunlik vazifalar", "Bajarsangiz tanga olasiz; tanga seriyangizni saqlab qoladi"], ["Gapirish", "3 ta gapni ovoz chiqarib takrorlang · 3 daq"]],
     note: "Ustozingiz vazifa bersa, u bosh sahifada «Uy vazifasi» kartasida chiqadi — avval shuni bajaring." },
   { t: "Adashsangiz — «?» ni bosing", d: "Har bir bo'limning tepasida «?» tugmasi bor. U shu bo'lim nima va qanday ishlashini 3 qadamda tushuntiradi.",

@@ -1,7 +1,8 @@
 // Profil: hisob (ism va daraja, guvohnoma — login va yangi PIN), kitob tanlash, guruh (qo'shilish va chiqish),
 // ustozlik so'rovi, ustoz va admin panellariga kirish, ko'rinish. Server amallari eski ilova bilan umumiy.
+import { goalOf } from "../lib/goal";
 import { useEffect, useState } from "react";
-import { BookOpen, ChevronRight, Copy, GraduationCap, IdCard, KeyRound, LogOut, Moon, MoonStar, Send, ShieldCheck, Sun, SunMoon, UserPen, Users } from "lucide-react";
+import { BookOpen, ChevronRight, Copy, GraduationCap, IdCard, KeyRound, LogOut, Moon, MoonStar, Send, ShieldCheck, Sun, SunMoon, Target, UserPen, Users } from "lucide-react";
 import { api } from "../lib/api";
 import { BOT_LINK } from "../lib/config";
 import { loadData, type BookIndex } from "../lib/data";
@@ -48,6 +49,10 @@ export function Profile() {
       </section>
       <section className="card pm-card"><ProfMotiv name={name} /></section>
       <ProfActions />
+
+      <button type="button" className="rowbtn" onClick={() => go("goal")}>
+        <Target size={24} aria-hidden /><span><b>Maqsadim va rejam</b><small>{goalOf() ? "Shaxsiy reja · o'ziga ishonch" : "4 ta savol — shaxsiy reja tuzish"}</small></span><ChevronRight size={20} aria-hidden />
+      </button>
 
       <h2 className="t-h">Hisob</h2>
       <button type="button" className="rowbtn" onClick={() => go("books")}>
