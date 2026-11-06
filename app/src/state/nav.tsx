@@ -1,6 +1,7 @@
 // Ekranlar orasida yurish: pastki menyu bo'limlari (tab) va ichma-ich ekranlar (stack).
 // Telefon "orqaga" tugmasi ham ishlashi uchun brauzer tarixi bilan bog'langan.
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { tg } from "../lib/tg";
 import { clearToast } from "../ui/Toast";
 
 export type Tab = "home" | "lessons" | "practice" | "marks" | "profile";
@@ -29,6 +30,7 @@ export function NavProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => { clearToast(); }, [stack, tab]); // ekran almashsa eski qisqa xabar yopiladi
+  useEffect(() => { tg.backButton(stack.length > 1); }, [stack.length]); // ichki ekranda Telegram'ning «Orqaga» tugmasi ham
 
   const go = useCallback((view: string, params?: Record<string, unknown>) => {
     history.pushState({ d: ++depth.current }, "");

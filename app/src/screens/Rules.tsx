@@ -2,6 +2,7 @@
 // Savollar: qoidaning tayyor savollari + 27 generator (lib/rx.ts, eski ruleQs aynan). Natija {BK}rule.<vahda>.<i> — eng yaxshisi.
 // Tasdiqlangan farqlar: aralash mashq qoida natijalariga yozilmaydi, faqat yulduzcha (eskisida umumiy % hamma qoidaga yozilardi);
 // "Qoidalarga qaytish" doim ishlaydi (eskisida aralash mashqdan keyin xato berardi); emoji o'rniga Lucide.
+// 12-partiya (A2): birinchi xatoda javob ochilmaydi — maslahat zinapoyasi (qoida nomi → qoida kartasi → javob); savol oxirida yana beriladi.
 import { useEffect, useState } from "react";
 import { ArrowRight, CircleCheck, Target, X } from "lucide-react";
 import { loadData } from "../lib/data";
@@ -17,6 +18,8 @@ import { CountUp } from "../ui/CountUp";
 import { Ar, ScreenHeader } from "../ui/kit";
 import { MixedText } from "../ui/Mixed";
 import { Scale } from "../ui/Scale";
+import { GainNote } from "../ui/GainNote";
+import { HintLadder, noteHint } from "../ui/HintLadder";
 
 export type Rule = { t: string; ar: string; html: string; quiz: [string, string[], number, string?][] };
 export type RBook = PBook & { gen?: Record<string, (string | null)[]> };
@@ -117,7 +120,9 @@ export function RulePractice({ bookId, list, title }: { bookId: string; list: [n
   const [qs, setQs] = useState<PQ[] | null>(null);
   const [total, setTotal] = useState(0);
   const [k, setK] = useState(0);
-  const [ans, setAns] = useState<number | null>(null);
+  const [ans, setAns] = useState<number | null>(null); // -1 — javob ko'rsatildi (xato hisoblanadi)
+  const [tries, setTries] = useState(0);
+  const [bad, setBad] = useState<number[]>([]);
   const [first, setFirst] = useState<Record<string, number>>({}); // "u.i" → birinchi urinishda to'g'ri
   const [res, setRes] = useState<{ p: number; ok: number; xp: number } | null>(null);
   useEffect(() => {
@@ -141,6 +146,7 @@ export function RulePractice({ bookId, list, title }: { bookId: string; list: [n
           <p>Birinchi urinishda {res.ok} / {total} to'g'ri. Xato savollar qayta berildi va to'g'rilandi.</p>
           {list.length > 1 && <p className="muted">Umumiy mashq qoidalar natijasini o'zgartirmaydi — har bir qoidani alohida mashq qiling.</p>}
           <p className="r-earn"><CountUp to={res.xp} />&nbsp;yulduzcha</p>
+          <GainNote />
           <button type="button" className="btn primary wide" onClick={again}>Yana mashq</button>
           <button type="button" className="btn ghost wide" onClick={back}>Qoidalarga qaytish</button>
         </div>
@@ -150,17 +156,26 @@ export function RulePractice({ bookId, list, title }: { bookId: string; list: [n
   if (!qs.length) return <main className="round"><p className="muted pad">Bu qoida uchun savol yo'q.</p><button type="button" className="btn dark wide" onClick={back}>Orqaga</button></main>;
 
   const q = qs[k];
-  const good = ans !== null && q.opts[ans] === q.ans;
+  const good = ans !== null && ans >= 0 && q.opts[ans] === q.ans;
+  const R = rulesIn(book, q.u)[q.i];
+  const hintKey = `rule:${bookId}:${q.u}.${q.i}`;
   const answer = (j: number) => {
-    if (ans !== null) return;
-    setAns(j);
+    if (ans !== null || bad.includes(j)) return;
     const ok = q.opts[j] === q.ans;
+    if (!ok && !tries) {
+      // birinchi xato: javob ochilmaydi, maslahat chiqadi; savol mashq oxirida yana beriladi
+      setTries(1); setBad([j]); tg.haptic("error");
+      if ((q.rc || 0) < 2) setQs([...qs, { ...q, retry: true, rc: (q.rc || 0) + 1, opts: shuffle(q.opts) }]);
+      return;
+    }
+    setAns(j);
     tg.haptic(ok ? "success" : "error");
-    if (!q.retry && ok) setFirst((f) => ({ ...f, [`${q.u}.${q.i}`]: (f[`${q.u}.${q.i}`] || 0) + 1 }));
-    if (!ok && (q.rc || 0) < 2) setQs([...qs, { ...q, retry: true, rc: (q.rc || 0) + 1, opts: shuffle(q.opts) }]);
+    if (tries) noteHint(hintKey);
+    if (!q.retry && ok && !tries) setFirst((f) => ({ ...f, [`${q.u}.${q.i}`]: (f[`${q.u}.${q.i}`] || 0) + 1 }));
   };
+  const reveal = () => { setAns(-1); tg.haptic("error"); noteHint(hintKey); };
   const next = () => {
-    if (k + 1 < qs.length) { setK(k + 1); setAns(null); return; }
+    if (k + 1 < qs.length) { setK(k + 1); setAns(null); setTries(0); setBad([]); return; }
     // yakun: bitta qoida mashqi natijasi shu qoidaga yoziladi (eng yaxshisi). Aralash mashq faqat yulduzcha beradi —
     // unda har qoidaga 1–2 savol tushadi, natijasi qoidani "o'zlashtirildi" qilmasligi kerak (foydalanuvchi qarori). XP eski yamoq bo'yicha
     const okAll = Object.values(first).reduce((a, b) => a + b, 0);
@@ -188,17 +203,22 @@ export function RulePractice({ bookId, list, title }: { bookId: string; list: [n
       </section>
       <div className="r-opts">
         {q.opts.map((o, j) => {
-          const s = ans === null ? "" : o === q.ans ? "ok" : j === ans ? "no" : "dim";
+          const s = ans === null ? (bad.includes(j) ? "no" : "") : o === q.ans ? "ok" : j === ans || bad.includes(j) ? "no" : "dim";
           return (
-            <button key={j} type="button" className={`opt ${s} ${isArOnly(o) ? "opt-r" : ""}`} disabled={ans !== null} onClick={() => answer(j)}>
+            <button key={j} type="button" className={`opt ${s} ${isArOnly(o) ? "opt-r" : ""}`} disabled={ans !== null || bad.includes(j)} onClick={() => answer(j)}>
               {isArOnly(o) ? <Ar className="opt-ar">{o}</Ar> : <span dir="ltr"><MixedText text={o} /></span>}
             </button>
           );
         })}
       </div>
+      {ans === null && tries > 0 && (
+        <HintLadder onReveal={reveal}
+          hint={R ? <>«{R.t}» qoidasini eslang{R.ar ? <> — <Ar className="hl-ar">{R.ar}</Ar></> : null}. Qolgan variantlardan birini tanlang.</> : "Qolgan variantlardan birini tanlang."}
+          rule={R?.html ? <div className="rule-body" dangerouslySetInnerHTML={{ __html: R.html }} /> : undefined} />
+      )}
       {ans !== null && (
         <div className={`r-fix ${good ? "good" : ""}`} role="status">
-          <p><b>{good ? "To'g'ri!" : "Noto'g'ri."}</b>{q.why ? <> <span dir="ltr"><MixedText text={q.why} /></span></> : null}</p>
+          <p><b>{good ? (tries ? "To'g'ri — maslahat bilan." : "To'g'ri!") : ans < 0 ? "To'g'ri javob belgilandi." : "Noto'g'ri."}</b>{q.why ? <> <span dir="ltr"><MixedText text={q.why} /></span></> : null}</p>
           <button type="button" className="btn dark wide" onClick={next}>{k + 1 >= qs.length ? "Natija" : "Keyingisi"}</button>
         </div>
       )}

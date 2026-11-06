@@ -3,7 +3,8 @@
 // 4-partiya: reyting (league), baholar (o'quvchi natijalari). 5-partiya: ustoz paneli (teacher, tsubs, thw, thwnew).
 // 6-partiya: Mashq bo'limi (game, cards, wtest, errors, night, known, qs; mults, mult, mvoc, shadow; duel, leveltest, cert).
 // 7-partiya: profil (books, account, idcard), admin (admin, ateachers, ausers), guruh havolasi g_KOD.
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
+import { strandRoute } from "../lib/strand";
 import { api } from "../lib/api";
 import type { DayWord } from "../lib/data";
 import type { ShItem } from "../lib/mult";
@@ -69,12 +70,19 @@ function useStartParam() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
+const GUARDED = new Set(["round", "kb", "lesson", "qs", "rprac", "game", "cards", "wtest", "test", "darslik"]);
+
 export function Main() {
   const { tab, route } = useNav();
   useStartParam();
   useReactions(); // reaksiya stikerlari overlay'i (har qanday ekran ustida) va bir martalik «Xush kebsiz!»
   const { me } = useSession();
   useEffect(() => { setReportMe(me); }, [me]); // Google jadval hisobotidagi ism va login
+  // mashq o'rtasida ilova yopilsa javoblar yo'qoladi — Telegram yopishdan oldin so'raydi
+  const guard = GUARDED.has(route.view);
+  useEffect(() => { tg.closeGuard(guard); }, [guard]);
+  // 13-partiya (A1): vaqt 4 yo'l bo'yicha — layout effekt, chunki ekranning o'z aniqlashtirishi (useEffect) undan keyin ishlashi kerak
+  useLayoutEffect(() => { strandRoute(route.view, (route.params || {}).game); }, [route]);
   const p = route.params || {};
   if (route.view === "adminRequests") return <AdminRequests />;
   if (route.view === "admin") return <AdminScreen />;
@@ -121,7 +129,7 @@ export function Main() {
   // mashq bo'limi
   if (route.view === "game") return <GameScreen key={`${book}:${unit}:${p.game}`} bookId={book} unit={unit} game={String(p.game)} />;
   if (route.view === "cards") return <CardsScreen key={`${book}:${unit}`} bookId={book} unit={unit} />;
-  if (route.view === "wtest") return <WordTestScreen key={`${book}:${unit}`} bookId={book} unit={unit} />;
+  if (route.view === "wtest") return <WordTestScreen key={`${book}:${unit}:${String(p.to || "")}`} bookId={book} unit={unit} to={p.to === "voc" || p.to === "unit" ? p.to : undefined} />;
   if (route.view === "errors") return <ErrorsScreen />;
   if (route.view === "night") return <NightScreen bookId={book} />;
   if (route.view === "known") return <KnownWordsScreen />;

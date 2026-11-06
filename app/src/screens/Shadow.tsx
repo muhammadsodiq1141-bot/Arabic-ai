@@ -1,7 +1,7 @@
 // Shadowing: multfilm iboralarini tinglab, ortidan takrorlash.
 // Oqim — ibora 2 marta yangraydi, so'ng navbat sizda (sanoq bilan avtomatik keyingisiga o'tadi);
 // Solishtirish — 1 · Tinglang, 2 · Takrorlang (ovoz yoziladi), 3 · Solishtiring (asl va sizning ovozingiz).
-// Kunlik mashq (Mashq bo'limidan): 10 ibora, eski ilova bilan bir xil f.shd, har ibora gain("fc", 3).
+// Kunlik mashq (Mashq bo'limidan): 10 ibora, eski ilova bilan bir xil f.shd, har ibora gain("fc", 4).
 import { Fragment, useEffect, useReducer, useRef } from "react";
 import { Mic, Play, RotateCcw, SkipForward, X } from "lucide-react";
 import { fmtT, kLag, kPaint, multLevel, shEnd, shKey, shMore, shPicks, SHSP, shRate, shToday, videoUrl, type Mult, type ShItem } from "../lib/mult";
@@ -15,6 +15,7 @@ import { CountUp } from "../ui/CountUp";
 import { Scale } from "../ui/Scale";
 import { toast } from "../ui/Toast";
 import { LagRow, useMults } from "./Mult";
+import { GainNote } from "../ui/GainNote";
 
 type Phase = "idle" | "play" | "play2" | "turn" | "rec" | "compare";
 type Mode = "flow" | "card";
@@ -106,7 +107,7 @@ export function ShadowScreen({ items, mode, daily }: { items: ShItem[]; mode: Mo
       if (!D.done.includes(key)) D.done.push(key);
       D.rep[key] = st.rep[key] || 0;
       store.set("f.shd", D);
-      gain("fc", 3);
+      gain("fc", 4); // 12-partiya (A5): gapirish ko'proq yulduzcha beradi (3 → 4)
     }
     st.k++;
     if (st.rec) URL.revokeObjectURL(st.rec.url);
@@ -202,7 +203,7 @@ export function ShadowScreen({ items, mode, daily }: { items: ShItem[]; mode: Mo
   // ===== yakun =====
   if (st.k >= n) {
     const reps = Object.entries(st.rep).filter((r) => r[1] > 1).sort((a, b) => b[1] - a[1]).slice(0, 3);
-    const xp = daily ? n * 3 : 0;
+    const xp = daily ? n * 4 : 0;
     const more = () => {
       const lv = multLevel(ms, me?.level, store.get<string>("a1.book", ""));
       replace("shadow", { items: shMore(ms, lv), mode: "card", daily: true, n: Date.now() });
@@ -215,6 +216,7 @@ export function ShadowScreen({ items, mode, daily }: { items: ShItem[]; mode: Mo
           <h1>{daily ? "Bugungi shadowing bajarildi" : "Takrorlash yakunlandi"}</h1>
           <p>{n} ta iborani ovoz chiqarib takrorladingiz · {fmtT(st.sec)}</p>
           {xp > 0 && <p className="r-earn"><CountUp to={xp} />&nbsp;yulduzcha</p>}
+          <GainNote />
           {reps.length > 0 && (
             <section className="card sh-reps">
               <b>Ko'p qayta eshitilgan iboralar</b>
@@ -325,7 +327,7 @@ export function ShadowScreen({ items, mode, daily }: { items: ShItem[]; mode: Mo
             {p === "play2" ? <b>Navbat sizda — ovoz bilan birga ayting!</b>
               : p === "rec" ? "Yozilmoqda… o'zi to'xtaydi va ovozingizni eshittiradi"
               : st.rec ? "Ovozingiz eshittirildi. «Asl» bilan solishtiring yoki qayta yozing"
-              : "Avval «Asl» ni tinglang, so'ng mikrofonni bosib takrorlang"}
+              : "Avval «Asl» ni tinglang, so'ng takrorlang. Yozish shart emas — yozuv faqat telefoningizda qoladi"}
           </p>
           {speedRow}
         </>

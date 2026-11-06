@@ -1,8 +1,9 @@
-// Mashq bo'limi (pastki menyu): vahda tanlanadi → 8 ta so'z o'yini (rekordlar bilan), kartochka, so'z testi;
+// Mashq bo'limi (pastki menyu): vahda tanlanadi → bugungi bitta tavsiya, keyin 4 guruh (11-partiya): o'yinlar (3 ta + «Yana»), takrorlash, tinglash va gapirish, sinov;
+// avval: 8 ta so'z o'yini (rekordlar bilan), kartochka, so'z testi;
 // takrorlash: xatolar daftari, sokin takrorlash, saqlangan so'zlar, "Siz bilasiz"; tinglash: multfilmlar va kunlik shadowing.
 // sinov: bellashuv (do'st bilan) va daraja testi (sertifikat).
 import { useEffect, useState } from "react";
-import { ALargeSmall, ArrowLeftRight, Building2, Bookmark, ChevronRight, CircleDot, Clapperboard, ClipboardCheck, Coins, Image, Layers, ListOrdered, Mic, Moon, PenLine, Puzzle, RotateCcw, Sparkles, Swords, Target, Zap } from "lucide-react";
+import { ALargeSmall, ArrowLeftRight, Building2, Bookmark, ChevronRight, CircleDot, Clapperboard, ClipboardCheck, Coins, Gamepad2, Image, Layers, ListOrdered, Mic, Moon, PenLine, Puzzle, RotateCcw, Sparkles, Swords, Target, Zap } from "lucide-react";
 import { loadData } from "../lib/data";
 import { bestKey, lastUnit, setLastUnit, usePics, type Err, type PBook } from "../lib/practice";
 import { useMults } from "./Mult";
@@ -13,7 +14,7 @@ import { store } from "../lib/store";
 import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
-import { SectionTitle } from "../ui/kit";
+import { Ar, SectionTitle } from "../ui/kit";
 import { HelpButton } from "./Onboard";
 import { toast } from "../ui/Toast";
 import { gameAvailable, GAME_NAMES } from "./Games";
@@ -49,6 +50,7 @@ export function Practice() {
   const test = store.get<Record<string, number>>(bkKey(bookId, "tests"), {})[unit];
   const u = book?.units.find((x) => x.n === unit);
   const pickUnit = (n: number) => { setUnit(n); setLastUnit(bookId, n); };
+  const [allGames, setAllGames] = useState(false);
   const openGame = async (id: string) => {
     tg.haptic();
     if (id !== "synant") { go("game", { book: bookId, unit, game: id }); return; }
@@ -60,6 +62,20 @@ export function Practice() {
     await start(false);
   };
 
+  // bugungi tavsiya: xatolar bo'lsa — xatolar daftari; bo'lmasa — kunlik shadowing; bo'lmasa — bitta o'yin (Nation: avval takrorlash)
+  const shLeft = sh ? sh.picks.length - sh.done : 0;
+  const rec = errN > 0
+    ? { t: "Xatolar daftari", d: `${errN} ta so'z · ~3 daqiqa — xatolar eng tez o'rganiladi`, Icon: RotateCcw, run: () => go("errors") }
+    : sh && shLeft > 0
+      ? { t: "Shadowing", d: `${sh.picks.length} ta ibora · ~5 daqiqa — ovoz chiqarib ayting`, Icon: Mic, run: () => go("shadow", { items: sh.items, mode: "card", daily: true, n: Date.now() }) }
+      : { t: GAME_NAMES.match, d: `${unit}-vahda so'zlari · rekordingizni yangilang`, Icon: Puzzle, run: () => void openGame("match") };
+  const shown = allGames ? GAMES : GAMES.slice(0, 3);
+  const row = (key: string, Icon: typeof Puzzle, t: string, d: string, on: () => void, dis = false) => (
+    <button key={key} type="button" className="pr-row" disabled={dis} onClick={on}>
+      <span className="pr-ri" aria-hidden><Icon size={20} /></span><span className="pr-rt"><b>{t}</b><small>{d}</small></span><ChevronRight size={18} className="pr-go" aria-hidden />
+    </button>
+  );
+
   return (
     <main className="screen practice">
       <SectionTitle ar="التَّمَارِينُ" uz="Mashq" right={<HelpButton k="practice" />} />
@@ -70,73 +86,60 @@ export function Practice() {
         </select>
       </label>
 
-      <button type="button" className="rowbtn" onClick={() => go("a0")}>
-        <ALargeSmall size={24} aria-hidden /><span><b>A0 · Alifbo</b><small>Harflar, barmoq bilan yozish, o'qish tezligi</small></span><ChevronRight size={20} aria-hidden />
+      <button type="button" className="pr-rec" onClick={() => { tg.haptic(); rec.run(); }}>
+        <span className="pr-rec-i" aria-hidden><rec.Icon size={24} /></span>
+        <span className="pr-rt"><b>Bugun tavsiya: {rec.t}</b><small>{rec.d}</small></span>
+        <span className="pr-rec-go">Boshlash</span>
       </button>
 
-      <h2 className="t-h">So'z o'yinlari</h2>
-      <div className="pr-games">
-        {GAMES.map(({ id, Icon, d }) => {
+      {me?.level === "A0" && (
+        <button type="button" className="rowbtn" onClick={() => go("a0")}>
+          <ALargeSmall size={24} aria-hidden /><span><b>A0 · Alifbo</b><small>Harflar, barmoq bilan yozish, o'qish tezligi</small></span><ChevronRight size={20} aria-hidden />
+        </button>
+      )}
+
+      <h2 className="pr-h"><Ar className="pr-h-ar">الْأَلْعَابُ</Ar><span>O'yinlar · {GAMES.length} ta</span></h2>
+      <div className="pr-games pr-games-c">
+        {shown.map(({ id, Icon, d }) => {
           const ok = !book || !pics || id === "synant" || gameAvailable(book, unit, id);
           const best = store.get<number | null>(bestKey(bookId, id, unit), null);
           return (
-            <button key={id} type="button" className={`pg ${ok ? "" : "off"}`} disabled={!book}
+            <button key={id} type="button" className={`pg ${ok ? "" : "off"}`} disabled={!book} aria-label={`${GAME_NAMES[id]} — ${d}`}
               onClick={() => (ok ? void openGame(id) : toast(id === "order" ? "Bu kitobda gap tuzish mashqi yo'q" : "Bu vahdada so'z yetarli emas"))}>
               <span className="pg-i" aria-hidden><Icon size={22} /></span>
               <b>{GAME_NAMES[id]}</b>
-              <small>{d}</small>
               {best !== null && <em>Rekord: {best}{id === "match" ? " urinish" : ""}</em>}
             </button>
           );
         })}
-      </div>
-
-      <h2 className="t-h">Vahda so'zlari</h2>
-      <div className="pr-two">
-        <button type="button" className="rowbtn" disabled={!u} onClick={() => go("cards", { book: bookId, unit })}>
-          <Layers size={24} aria-hidden /><span><b>Kartochka</b><small>Yozib tekshirish · {u ? `${u.words.length + (u.phrases?.length || 0)} so'z` : "…"}</small></span><ChevronRight size={20} aria-hidden />
-        </button>
-        <button type="button" className="rowbtn" disabled={!u} onClick={() => go("wtest", { book: bookId, unit })}>
-          <ClipboardCheck size={24} aria-hidden /><span><b>So'z testi</b><small>10 savol{test ? ` · eng yaxshi ${test}%` : ""}</small></span><ChevronRight size={20} aria-hidden />
+        <button type="button" className="pg pg-more" aria-expanded={allGames} onClick={() => setAllGames(!allGames)}>
+          <span className="pg-i" aria-hidden><Gamepad2 size={22} /></span><b>{allGames ? "Kamroq" : `Yana ${GAMES.length - 3} ta`}</b>
         </button>
       </div>
 
-      <h2 className="t-h">Tinglash va gapirish</h2>
-      <button type="button" className="rowbtn" onClick={() => (ms && !ms.length ? toast("Multfilmlar tez orada qo'shiladi") : go("mults"))}>
-        <Clapperboard size={24} aria-hidden /><span><b>Multfilmlar</b><small>{ms ? `${ms.length} ta · arabcha subtitr va tarjima bilan` : "…"}</small></span><ChevronRight size={20} aria-hidden />
-      </button>
-      <button type="button" className="rowbtn" disabled={!sh?.picks.length}
-        onClick={() => sh && go("shadow", { items: sh.items, mode: "card", daily: true, n: Date.now() })}>
-        <Mic size={24} aria-hidden />
-        <span><b>Shadowing</b><small>{!sh ? "…" : sh.done >= sh.picks.length ? "Bugungi mashq bajarildi · yana takrorlash mumkin" : `Bugungi ${sh.picks.length} ta ibora · ${sh.done} / ${sh.picks.length} · ~5 daqiqa`}</small></span>
-        <ChevronRight size={20} aria-hidden />
-      </button>
+      <h2 className="pr-h"><Ar className="pr-h-ar">الْمُرَاجَعَةُ</Ar><span>Takrorlash</span></h2>
+      <div className="pr-list">
+        {row("cards", Layers, "Kartochka", `Yozib tekshirish · ${u ? `${u.words.length + (u.phrases?.length || 0)} so'z` : "…"}`, () => go("cards", { book: bookId, unit }), !u)}
+        {row("err", RotateCcw, "Xatolar daftari", errN ? `${errN} ta so'z takrorlashni kutyapti` : "Hozircha xato yo'q", () => go("errors"))}
+        {row("night", Moon, "Sokin takrorlash", "5 ta so'z · uyqudan oldin", () => go("night", { book: bookId }))}
+        {row("saved", Bookmark, "Saqlangan so'zlar", savedN ? `${savedN} ta so'z` : "Roundda belgilagan so'zlaringiz", () => go("saved"))}
+        {row("known", Sparkles, "Siz bilasiz", "O'zbekchadagi arabcha so'zlar", () => go("known"))}
+        {row("city", Building2, "Shahrim", "Har bir vahda — yangi bino", () => go("city"))}
+      </div>
 
-      <button type="button" className="rowbtn" onClick={() => go("city")}>
-        <Building2 size={24} aria-hidden /><span><b>Shahrim</b><small>Har bir vahda — yangi bino</small></span><ChevronRight size={20} aria-hidden />
-      </button>
+      <h2 className="pr-h"><Ar className="pr-h-ar">الِاسْتِمَاعُ وَالْكَلَامُ</Ar><span>Tinglash va gapirish</span></h2>
+      <div className="pr-list">
+        {row("mults", Clapperboard, "Multfilmlar", ms ? `${ms.length} ta · arabcha subtitr va tarjima bilan` : "…", () => (ms && !ms.length ? toast("Multfilmlar tez orada qo'shiladi") : go("mults")))}
+        {row("shadow", Mic, "Shadowing", !sh ? "…" : sh.done >= sh.picks.length ? "Bugungi mashq bajarildi · yana takrorlash mumkin" : `Bugungi ${sh.picks.length} ta ibora · ${sh.done} / ${sh.picks.length} · ~5 daqiqa`,
+          () => sh && go("shadow", { items: sh.items, mode: "card", daily: true, n: Date.now() }), !sh?.picks.length)}
+      </div>
 
-      <h2 className="t-h">Takrorlash</h2>
-      <button type="button" className="rowbtn" onClick={() => go("errors")}>
-        <RotateCcw size={24} aria-hidden /><span><b>Xatolar daftari</b><small>{errN ? `${errN} ta so'z takrorlashni kutyapti` : "Hozircha xato yo'q"}</small></span><ChevronRight size={20} aria-hidden />
-      </button>
-      <button type="button" className="rowbtn" onClick={() => go("night", { book: bookId })}>
-        <Moon size={24} aria-hidden /><span><b>Sokin takrorlash</b><small>5 ta so'z · uyqudan oldin</small></span><ChevronRight size={20} aria-hidden />
-      </button>
-      <button type="button" className="rowbtn" onClick={() => go("saved")}>
-        <Bookmark size={24} aria-hidden /><span><b>Saqlangan so'zlar</b><small>{savedN ? `${savedN} ta so'z` : "Roundda belgilagan so'zlaringiz"}</small></span><ChevronRight size={20} aria-hidden />
-      </button>
-      <button type="button" className="rowbtn" onClick={() => go("known")}>
-        <Sparkles size={24} aria-hidden /><span><b>Siz bilasiz</b><small>O'zbekchadagi arabcha so'zlar</small></span><ChevronRight size={20} aria-hidden />
-      </button>
-
-      <h2 className="t-h">Sinov va bellashuv</h2>
-      <button type="button" className="rowbtn" onClick={() => go("duel")}>
-        <Swords size={24} aria-hidden /><span><b>Bellashuv</b><small>Do'stingiz bilan 10 ta savol{duelW ? ` · ${duelW} ta g'alaba` : ""}</small></span><ChevronRight size={20} aria-hidden />
-      </button>
-      <button type="button" className="rowbtn" onClick={() => go("leveltest")}>
-        <Target size={24} aria-hidden /><span><b>Daraja testi</b><small>{cert ? `Oxirgi natija: ${cert.level === "A0" ? "Boshlang'ich" : cert.level} · ${cert.score} ball` : "30 ta savol · A1 dan C1 gacha · sertifikat"}</small></span><ChevronRight size={20} aria-hidden />
-      </button>
+      <h2 className="pr-h"><Ar className="pr-h-ar">الِاخْتِبَارَاتُ</Ar><span>Sinov va bellashuv</span></h2>
+      <div className="pr-list">
+        {row("wtest", ClipboardCheck, "So'z testi", `10 savol${test ? ` · eng yaxshi ${test}%` : ""}`, () => go("wtest", { book: bookId, unit }), !u)}
+        {row("duel", Swords, "Bellashuv", `Do'stingiz bilan 10 ta savol${duelW ? ` · ${duelW} ta g'alaba` : ""}`, () => go("duel"))}
+        {row("level", Target, "Daraja testi", cert ? `Oxirgi natija: ${cert.level === "A0" ? "Boshlang'ich" : cert.level} · ${cert.score} ball` : "30 ta savol · A1 dan C1 gacha · sertifikat", () => go("leveltest"))}
+      </div>
     </main>
   );
 }

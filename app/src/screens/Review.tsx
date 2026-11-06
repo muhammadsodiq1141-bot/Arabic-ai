@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Check, Moon, RotateCcw, Sparkles, Volume2, X } from "lucide-react";
 import { say } from "../lib/audio";
 import { loadData } from "../lib/data";
-import { allItems, dayNum, normAr, srsOf, srsSet, type Err, type Item, type PBook } from "../lib/practice";
+import { allItems, dayNum, isDue, normAr, srsOf, srsSet, type Err, type Item, type PBook } from "../lib/practice";
 import { dayKey, hash } from "../lib/progress";
-import { gain, store } from "../lib/store";
+import { gain, gameXp, store } from "../lib/store";
 import { tg } from "../lib/tg";
 import { shuffle, strip, type WordCard } from "../lib/words";
 import { useNav } from "../state/nav";
@@ -90,7 +90,7 @@ export function NightScreen({ bookId }: { bookId: string }) {
       const all = allItems(b), S = srsOf(b.id), now = dayNum();
       const seen = all.filter((x) => S[x.ar]);
       const pool = seen.length >= 5 ? seen : all;
-      const due = all.filter((x) => S[x.ar] && S[x.ar].d <= now);
+      const due = all.filter((x) => isDue(S[x.ar], now));
       const uniq: Item[] = [];
       for (const x of shuffle([...due, ...shuffle(pool)])) if (!uniq.some((y) => y.ar === x.ar)) { uniq.push(x); if (uniq.length >= 5) break; }
       setItems(uniq);
@@ -238,6 +238,6 @@ export async function synAntConf(bookId: string, unit: number, again: () => void
   });
   return {
     title: "Sinonim va antonim", items, track: false, auto: false,
-    onEnd: (score) => { gain("game", score * 2); return { title: "Sinonim va antonim", sub: "Ma'nodosh va zid so'zlar lug'atingizni boyitadi.", xp: score * 2, again, againLabel: "Yana o'ynash" }; },
+    onEnd: (score) => { const xp = gameXp(score * 2); gain("game", xp); return { title: "Sinonim va antonim", sub: "Ma'nodosh va zid so'zlar lug'atingizni boyitadi.", xp, again, againLabel: "Yana o'ynash" }; },
   };
 }

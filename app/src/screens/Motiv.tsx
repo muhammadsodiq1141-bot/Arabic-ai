@@ -8,6 +8,7 @@ import { BOT_LINK, BOT_USER } from "../lib/config";
 import { loadData, type BookIndex } from "../lib/data";
 import { badges, buyFreeze, freezes, GOALS, goalXP, knownTotal, levelOf, pendingCele, reportText, shareText, streakNow, tanga, todayTasks,
   weekDays, xpToday, xpTotal, type Cele } from "../lib/motiv";
+import { gainPending, gainPush } from "../lib/gainNote";
 import { sharePng } from "../lib/sharePng";
 import { store, syncNow } from "../lib/store";
 import { mySummary } from "../lib/summary";
@@ -250,7 +251,10 @@ export function MotivHost() {
     const check = () => { const c = pendingCele(grp); if (c) { setCele(c); tg.haptic("success"); } };
     const onGain = (e: Event) => {
       const m = (e as CustomEvent<string[]>).detail || [];
-      if (m.length) toast(m.join(" · "));
+      if (m.length) {
+        gainPush(m); // natija ekrani ochilsa — kartaning ichida (GainNote); aks holda qisqa xabar
+        window.setTimeout(() => { const p = gainPending(); if (p.length) toast(p.join(" · ")); }, 450);
+      }
       window.setTimeout(check, 300);
     };
     window.addEventListener("mezon:gain", onGain);

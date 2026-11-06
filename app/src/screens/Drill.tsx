@@ -3,16 +3,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Lightbulb, RotateCcw, Volume2, X } from "lucide-react";
 import { say } from "../lib/audio";
 import { loadData } from "../lib/data";
-import { checkTyped, errAdd, itemsOf, picOf, srsSet, usePics, type Item, type PBook } from "../lib/practice";
+import { checkTyped, errAdd, itemsOf, learnLater, picOf, srsSet, usePics, type Item, type PBook } from "../lib/practice";
 import { bkKey } from "../lib/progress";
 import { report } from "../lib/report";
-import { gain, knownOf, store } from "../lib/store";
+import { gain, knownOf, markKnown, store } from "../lib/store";
+import { testOutKey } from "../lib/order";
 import { tg } from "../lib/tg";
 import { shuffle, strip } from "../lib/words";
 import { useNav } from "../state/nav";
 import { CountUp } from "../ui/CountUp";
 import { Ar } from "../ui/kit";
 import { Scale } from "../ui/Scale";
+import { GainNote } from "../ui/GainNote";
 
 function useBookP(id: string) {
   const [b, setB] = useState<PBook | null>(null);
@@ -137,16 +139,19 @@ function Cards({ book, unit }: { book: PBook; unit: number }) {
 }
 
 // ===== So'z testi (10 savol) =====
-export function WordTestScreen({ bookId, unit }: { bookId: string; unit: number }) {
+/** to — «Bilaman — sinab ko'raman» (13-partiya, A8): "voc" — 90%+ bo'lsa vahda lug'ati o'tkaziladi; "unit" — butun vahda o'tkaziladi
+ *  (keyingi vahda ochiladi). Sinovda qamrov faqat shu vahda. */
+export function WordTestScreen({ bookId, unit, to }: { bookId: string; unit: number; to?: "voc" | "unit" }) {
   const book = useBookP(bookId);
-  const [scope, setScope] = useState<"unit" | "upto">(() => (store.get<string>("f.qscope", "unit") === "upto" ? "upto" : "unit"));
+  const [scope, setScope] = useState<"unit" | "upto">(() => (!to && store.get<string>("f.qscope", "unit") === "upto" ? "upto" : "unit"));
   const [run, setRun] = useState(0);
   if (!book) return <main className="round"><p className="muted pad">Yuklanmoqda…</p></main>;
-  return <WordTest key={`${scope}:${run}`} book={book} unit={unit} scope={scope} setScope={(s) => { store.set("f.qscope", s); setScope(s); }} again={() => setRun((x) => x + 1)} />;
+  return <WordTest key={`${scope}:${run}`} book={book} unit={unit} scope={scope} to={to} setScope={(s) => { store.set("f.qscope", s); setScope(s); }} again={() => setRun((x) => x + 1)} />;
 }
 
-function WordTest({ book, unit, scope, setScope, again }: { book: PBook; unit: number; scope: "unit" | "upto"; setScope: (s: "unit" | "upto") => void; again: () => void }) {
+function WordTest({ book, unit, scope, setScope, again, to }: { book: PBook; unit: number; scope: "unit" | "upto"; setScope: (s: "unit" | "upto") => void; again: () => void; to?: "voc" | "unit" }) {
   const { back } = useNav();
+  const [passed, setPassed] = useState(false);
   const qs = useMemo(() => {
     const pool = scope === "unit" ? itemsOf(book.units.find((x) => x.n === unit)!) : book.units.filter((u) => u.n <= unit).flatMap(itemsOf);
     return shuffle(pool).slice(0, Math.min(10, pool.length)).map((it) => {
@@ -170,6 +175,13 @@ function WordTest({ book, unit, scope, setScope, again }: { book: PBook; unit: n
     gain(p >= 0.8 ? "test80" : "test", 5 + sc);
     report("test", book.units.find((x) => x.n === unit)?.uz || "", sc, n, true, unit);
     for (const w of wrong.current) errAdd(w.ar, book.id);
+    // «Bilaman» sinovi: 90%+ — vahda so'zlari yodlangan deb belgilanadi va takrorlash jadvaliga tushadi
+    if (to && p >= 0.9) {
+      const u = book.units.find((x) => x.n === unit);
+      if (u) { for (const [ar] of u.words) markKnown(book.id, unit, ar); learnLater(book.id, u.words.map((w) => w[0])); }
+      if (to === "unit") store.set(testOutKey(book.id, unit), 1);
+      setPassed(true);
+    }
     setDone(true); tg.haptic("success");
   };
   if (done) {
@@ -178,13 +190,17 @@ function WordTest({ book, unit, scope, setScope, again }: { book: PBook; unit: n
       <main className="round">
         <div className="r-done">
           <Scale size={140} balanced={p >= 0.7} star={p >= 0.7} />
-          <h1>So'z testi: {Math.round(p * 100)}%</h1>
+          <h1>{to ? (passed ? "Sinovdan o'tdingiz" : "Hali erta") : `So'z testi: ${Math.round(p * 100)}%`}</h1>
           <span className="kb-big">{score} / {n}</span>
-          <p>{p >= 0.9 ? "A'lo! Bu vahda so'zlarini yaxshi bilasiz." : p >= 0.7 ? "Yaxshi natija. Xatolaringizni kartochkalarda takrorlang." : "So'zlarni kartochkalarda yana takrorlab, testni qayta ishlang."}</p>
+          <p>{to ? (passed ? (to === "unit" ? `${unit}-vahda o'tkazildi — ${unit + 1}-vahda ochildi.` : "Lug'at o'tkazildi — keyingi qadam ochildi. So'zlar takrorlashga qo'shildi.")
+              : "Sinovdan o'tish uchun 90% kerak edi. Roundlarni ishlang — ular so'zlarni tezroq mustahkamlaydi.")
+            : p >= 0.9 ? "A'lo! Bu vahda so'zlarini yaxshi bilasiz." : p >= 0.7 ? "Yaxshi natija. Xatolaringizni kartochkalarda takrorlang." : "So'zlarni kartochkalarda yana takrorlab, testni qayta ishlang."}</p>
           <p className="r-earn"><CountUp to={5 + score} />&nbsp;yulduzcha</p>
+          <GainNote />
           {wrong.current.length > 0 && <div className="g-mist"><b>Takrorlash uchun:</b><ul>{wrong.current.map((w) => <li key={w.ar}><Ar>{w.ar}</Ar><span>{w.uz}</span></li>)}</ul></div>}
-          <button type="button" className="btn primary wide" onClick={again}>Yana test ishlash</button>
-          <button type="button" className="btn ghost wide" onClick={back}>Mashqqa qaytish</button>
+          {to && passed ? <button type="button" className="btn primary wide" onClick={back}>Davom etish</button>
+            : <button type="button" className="btn primary wide" onClick={again}>{to ? "Yana urinish" : "Yana test ishlash"}</button>}
+          <button type="button" className="btn ghost wide" onClick={back}>{to ? "Orqaga" : "Mashqqa qaytish"}</button>
         </div>
       </main>
     );
@@ -201,10 +217,10 @@ function WordTest({ book, unit, scope, setScope, again }: { book: PBook; unit: n
     <main className="round game">
       <header className="r-top">
         <button type="button" className="r-close" aria-label="Chiqish" onClick={back}><X size={22} aria-hidden />Chiqish</button>
-        <b>So'z testi</b>
+        <b>{to ? "Bilaman — sinov" : "So'z testi"}</b>
         <span className="r-count">{i + 1} / {n}</span>
       </header>
-      {i === 0 && !pick && (
+      {i === 0 && !pick && !to && (
         <div className="seg small" role="tablist" aria-label="Qamrov">
           <button type="button" role="tab" aria-selected={scope === "unit"} className={scope === "unit" ? "on" : ""} onClick={() => setScope("unit")}>Faqat shu vahda</button>
           <button type="button" role="tab" aria-selected={scope === "upto"} className={scope === "upto" ? "on" : ""} onClick={() => setScope("upto")}>1–{unit}-vahdalar</button>

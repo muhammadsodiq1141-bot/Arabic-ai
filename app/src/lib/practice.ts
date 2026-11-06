@@ -43,7 +43,30 @@ export function checkTyped(it: { ar: string; uz: string }, typed: string, dir: "
 // ===== takrorlash jadvali (SRS) va xatolar daftari =====
 export const SRS_INT = [1, 1, 3, 7, 14, 30, 60];
 export const dayNum = (d = new Date()) => Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 864e5);
-type Srs = Record<string, { b: number; d: number }>;
+/** b — pog'ona (0 — shu kuni yangi o'rganilgan), d — qaysi kuni takrorlanadi, h — kun ichidagi takror vaqti (ms; 12-partiya, A3) */
+type Srs = Record<string, { b: number; d: number; h?: number }>;
+/** yangi so'z shu kuni yana qaytadi — o'rganilgandan 3 soat keyin (Nation, 29–30-betlar: kun ichidagi oraliq) */
+export const LATER_MS = 3 * 3600e3;
+export const isDue = (e: { d: number; h?: number } | undefined, t = dayNum()) => !!e && e.d <= t && !(e.h && e.h > Date.now());
+/** roundda yoki darsda yangi o'rganilgan so'zlar takrorlash jadvaliga qo'shiladi (jadvalda bo'lganlari o'zgarmaydi) */
+export function learnLater(bid: string, ars: string[]) {
+  const key = bkKey(bid, "srs");
+  const Sx = store.get<Srs>(key, {});
+  const h = Date.now() + LATER_MS, d = dayNum();
+  let ch = false;
+  for (const ar of ars) if (!Sx[ar]) { Sx[ar] = { b: 0, d, h }; ch = true; }
+  if (ch) { store.set(key, Sx); scheduleSync(); }
+}
+/** chalkashadigan juftlik: sinonim/antonim (rel: "a|b") yoki bitta harfi farq qiladigan so'zlar (قَلْبٌ / كَلْبٌ) — bir kunda takrorlanmaydi */
+const skel = (s: string) => s.replace(/[\u064B-\u0652\u0670\u0640]/g, "").replace(/[أإآ]/g, "ا").replace(/^ال/, "").trim();
+export function confusable(a: string, b: string, rel?: Set<string>) {
+  if (rel && (rel.has(`${a}|${b}`) || rel.has(`${b}|${a}`))) return true;
+  const x = skel(a), y = skel(b);
+  if (x === y || x.length < 3 || x.length !== y.length || /\s/.test(x)) return false;
+  let diff = 0;
+  for (let i = 0; i < x.length; i++) if (x[i] !== y[i] && ++diff > 1) return false;
+  return diff === 1;
+}
 export type Err = Record<string, { n: number; ar: string; b: string; t: number }>;
 
 export function errAdd(ar: string, bid: string) {

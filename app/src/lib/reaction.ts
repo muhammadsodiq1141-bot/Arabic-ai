@@ -3,6 +3,7 @@
 // Rasmlar — Microsoft Fluent UI Emoji 3D (MIT litsenziyasi): RK_IMG.json, turlar va yozuvlar — RK_SET.json.
 import { loadData } from "./data";
 import { store } from "./store";
+import { isNightHour } from "../state/theme";
 
 export type RkKind = "ok" | "bad" | "streak" | "champ" | "done" | "hi";
 /** [rasm raqami (RK_IMG) yoki -1 — faqat yozuvli qora karta, yozuv] */
@@ -72,7 +73,7 @@ export const rkResetCount = () => { streakN = 0; };
 // ovoz: WebAudio, AudioContext bitta (birinchi ovozda yaratiladi)
 let ac: AudioContext | null = null;
 export function rkSound(kind: RkKind) {
-  if (!rkSnd()) return;
+  if (!rkSnd() || isNightHour()) return; // kechasi stiker ovozi chalinmaydi
   try {
     const AC = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AC) return;

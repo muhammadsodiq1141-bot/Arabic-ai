@@ -2,7 +2,7 @@
 // Apps Script'dagi «O'quvchilar» varag'iga tayanadi ("Oxirgi kun", "Takrorlash kutmoqda", "Ketma-ket kunlar") — TENGLIK-REJA, ochiq savol javobi.
 // Faqat ilova ?r=<Apps Script id> bilan ochilganda ishlaydi (id sessiya davomida eslab qolinadi); force bo'lmasa 60 s ichida takrorlanmaydi.
 import { loadData } from "./data";
-import { allItems, dayNum, itemsOf, srsOf, type PBook } from "./practice";
+import { allItems, dayNum, isDue, itemsOf, srsOf, type PBook } from "./practice";
 import { bkKey, weekId } from "./progress";
 import { store } from "./store";
 import { tg } from "./tg";
@@ -54,7 +54,7 @@ async function send(kind: string, detail: string, score: number | null, total: n
       detail: book.title + (detail ? ` · ${detail}` : ""), unit: unit ?? store.get(bkKey(bid, "last"), 1), score: score ?? "", total: total ?? "",
       known: book.units.reduce((a, u) => a + kn(u), 0), all: allItems(book).length,
       units: book.units.map((u) => `${u.n}:${kn(u)}/${itemsOf(u).length}`).join(" "),
-      streak: streakNow(), due: allItems(book).filter((x) => S[x.ar] && S[x.ar].d <= t).length, book: book.title,
+      streak: streakNow(), due: allItems(book).filter((x) => isDue(S[x.ar], t)).length, book: book.title,
       tests: JSON.stringify(store.get(bkKey(bid, "tests"), {})), xpWeek, week: weekId(), xpTotal: xpTotal(), stars: tanga(), time: new Date().toISOString(),
     };
     await fetch(`https://script.google.com/macros/s/${RID}/exec`, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) });

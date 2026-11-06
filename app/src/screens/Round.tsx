@@ -1,16 +1,21 @@
 // Lug'at roundi (10 so'z): 1) tanishish → 2) tarjimani topish → 3) talaffuz → 4) rasmni topish.
 // Xato javobda to'g'risi ko'rsatiladi va so'z round oxirida qayta so'raladi. Rasmi yo'q so'zda 4-bosqich "eshitib topish".
 // Round tugaganda so'zlar eski ilova formatida "yodlangan" deb belgilanadi, so'z testi natijasi (aniqlik %) va XP yoziladi.
+// 12-partiya (A3): round so'zlari takrorlash jadvaliga tushadi (shu kuni 3 soatdan keyin, keyin 1–3–7 kun); tarjima bosqichida
+// variantlar darhol ko'rinmaydi — avval eslab ko'rish; talaffuz bosqichini «Hozir gapira olmayman» bilan o'tkazish mumkin (A4).
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bookmark, BookmarkCheck, Check, HelpCircle, Mic, Play, RotateCcw, Square, Star, Volume2, X } from "lucide-react";
+import { Bookmark, BookmarkCheck, Check, HelpCircle, Mic, MicOff, Play, RotateCcw, Square, Star, Volume2, X } from "lucide-react";
 import { say } from "../lib/audio";
 import { savedHas, toggleSaved } from "../lib/saved";
+import { learnLater } from "../lib/practice";
 import { gain, markKnown, setTest } from "../lib/store";
 import { tg } from "../lib/tg";
 import { posLabel, shuffle, type Word } from "../lib/words";
+import { isNightHour } from "../state/theme";
 import { Ar } from "../ui/kit";
 import { CountUp } from "../ui/CountUp";
 import { Scale } from "../ui/Scale";
+import { GainNote } from "../ui/GainNote";
 
 type Stage = "learn" | "tr" | "pr" | "pic" | "done";
 const STAGES: { id: Stage; title: string; hint: string }[] = [
@@ -52,6 +57,7 @@ export function Round({ bookId, unit, n, words, pool, onExit, onNextRound }: { b
   const finish = () => {
     let fresh = 0;
     for (const w of words) if (markKnown(bookId, unit, w.ar)) fresh++;
+    learnLater(bookId, words.map((w) => w.ar));
     // so'z testi natijasi (eski ilova {BK}tests formatida, eng yaxshisi saqlanadi): har so'z 2 marta tekshiriladi — tarjima va rasm/eshitish
     const asked = 2 * words.length;
     setTest(bookId, unit, Math.max(0, Math.round(((asked - mistakes) / asked) * 100)));
@@ -61,7 +67,8 @@ export function Round({ bookId, unit, n, words, pool, onExit, onNextRound }: { b
     setStage("done");
   };
 
-  useEffect(() => { if (cur && (stage === "learn" || stage === "pr" || (stage === "pic" && picMode(cur, pool) === "ear"))) void say(cur.ar); }, [cur, stage, pool]);
+  // kechasi (21:00–06:00) o'z-o'zidan ovoz chalinmaydi — uyda uxlayotganlar bo'lishi mumkin; karnay tugmasi ishlaydi
+  useEffect(() => { if (cur && !isNightHour() && (stage === "learn" || stage === "pr" || (stage === "pic" && picMode(cur, pool) === "ear"))) void say(cur.ar); }, [cur, stage, pool]);
 
   if (stage === "done") {
     return (
@@ -71,6 +78,7 @@ export function Round({ bookId, unit, n, words, pool, onExit, onNextRound }: { b
           <Scale size={156} />
           <h1>{n}-round tugadi</h1>
           <p className="r-earn"><Star size={22} aria-hidden /><CountUp to={earned} />&nbsp;yulduzcha</p>
+          <GainNote />
           <p>{mistakes === 0 ? "Xatosiz o'tdingiz — zo'r natija!" : mistakes <= 3 ? `${mistakes} ta xatoni tuzatdingiz — yaxshi natija.` : `${mistakes} ta xato ustida ishladingiz — so'zlar endi mustahkamroq.`}</p>
           <ul className="r-learned" aria-label="O'rganilgan so'zlar">{words.map((w) => <li key={w.ar}><Ar>{w.ar}</Ar></li>)}</ul>
           {onNextRound
@@ -99,7 +107,8 @@ export function Round({ bookId, unit, n, words, pool, onExit, onNextRound }: { b
       {stage === "learn" && <Learn w={cur} onNext={next} onSave={() => { toggleSaved(cur.ar, cur.uz); tg.haptic("light"); force((x) => x + 1); }} />}
       {stage === "tr" && <Choice key={`tr${pos}${cur.ar}`} w={cur} pool={pool} mode="tr" picked={picked}
         onPick={(ok, v) => { setPicked(v); if (ok) { tg.haptic("light"); setTimeout(next, 650); } else { tg.haptic("error"); setMistakes((m) => m + 1); requeue(); } }} onNext={next} />}
-      {stage === "pr" && <Pronounce key={`pr${pos}${cur.ar}`} w={cur} onOk={next} onRetry={() => { setQueue((q) => [...q, q[pos]]); setPicked(null); setPos(pos + 1); }} />}
+      {stage === "pr" && <Pronounce key={`pr${pos}${cur.ar}`} w={cur} onOk={next} onRetry={() => { setQueue((q) => [...q, q[pos]]); setPicked(null); setPos(pos + 1); }}
+        onSkipAll={() => { tg.haptic("light"); startStage("pic"); }} />}
       {stage === "pic" && <Choice key={`pic${pos}${cur.ar}`} w={cur} pool={pool} mode={picMode(cur, pool)} picked={picked}
         onPick={(ok, v) => { setPicked(v); if (ok) { tg.haptic("light"); setTimeout(next, 650); } else { tg.haptic("error"); setMistakes((m) => m + 1); requeue(); } }} onNext={next} />}
     </main>
@@ -153,12 +162,20 @@ function Choice({ w, pool, mode, picked, onPick, onNext }: { w: Word; pool: Word
     return shuffle([w, ...pick]).map((x) => ({ v: val(x), ok: x.ar === w.ar, w: x }));
   }, [w, pool, mode]);
   const wrong = picked !== null && !opts.find((o) => o.v === picked)?.ok;
+  // tarjima bosqichi: avval ma'nosini eslab ko'rish, keyin variantlar (bosilganda yoki 4 soniyadan keyin ochiladi)
+  const [open, setOpen] = useState(mode !== "tr");
+  useEffect(() => { if (open) return; const h = window.setTimeout(() => setOpen(true), 4000); return () => clearTimeout(h); }, [open]);
   return (
     <>
       {mode === "ear"
         ? <div className="r-ear"><button type="button" className="ear" onClick={() => void say(w.ar)} aria-label="Qayta eshitish"><Volume2 size={44} aria-hidden /></button><span>Bosib, qayta eshiting</span></div>
         : <WordHead w={w} hideImg /> /* tarjima va rasm bosqichida so'z rasmi yashiriladi — javob oldindan ko'rinmasin */}
-      <div className={`r-opts ${mode === "pic" ? "grid" : ""}`}>
+      {!open && (
+        <button type="button" className="r-recall" onClick={() => { setOpen(true); tg.haptic("light"); }}>
+          <b>Avval ma'nosini eslab ko'ring</b><span>Esladim — variantlarni ochish</span>
+        </button>
+      )}
+      {open && <div className={`r-opts ${mode === "pic" ? "grid" : ""}`}>
         {opts.map((o) => {
           const st = picked === null ? "" : o.ok ? "ok" : o.v === picked ? "no" : "dim";
           return (
@@ -170,7 +187,7 @@ function Choice({ w, pool, mode, picked, onPick, onNext }: { w: Word; pool: Word
             </button>
           );
         })}
-      </div>
+      </div>}
       {wrong && (
         <div className="r-fix" role="status">
           <p>To'g'ri javob: <b>{mode === "pic" ? w.uz : mode === "ear" ? w.ar : w.uz}</b>. Bu so'z round oxirida yana so'raladi.</p>
@@ -181,7 +198,7 @@ function Choice({ w, pool, mode, picked, onPick, onNext }: { w: Word; pool: Word
   );
 }
 
-function Pronounce({ w, onOk, onRetry }: { w: Word; onOk: () => void; onRetry: () => void }) {
+function Pronounce({ w, onOk, onRetry, onSkipAll }: { w: Word; onOk: () => void; onRetry: () => void; onSkipAll: () => void }) {
   const can = typeof MediaRecorder !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
   const [rec, setRec] = useState(false);
   const [url, setUrl] = useState<string | null>(null);
@@ -235,6 +252,8 @@ function Pronounce({ w, onOk, onRetry }: { w: Word; onOk: () => void; onRetry: (
         <button type="button" className="btn ghost" onClick={onRetry}><RotateCcw size={18} aria-hidden />Keyinroq qaytaman</button>
         <button type="button" className="btn good" disabled={rec} onClick={onOk}><Check size={18} aria-hidden />To'g'ri aytdim</button>
       </div>
+      <p className="r-priv">Ovozingiz telefoningizda qoladi, hech kimga yuborilmaydi.</p>
+      <button type="button" className="btn ghost wide r-quiet" onClick={onSkipAll}><MicOff size={18} aria-hidden />Hozir gapira olmayman — keyingi bosqich</button>
     </>
   );
 }

@@ -6,7 +6,7 @@ import { api } from "../lib/api";
 import { BOT_LINK } from "../lib/config";
 import { loadData } from "../lib/data";
 import { allItems, mcq, type PBook } from "../lib/practice";
-import { gain, store } from "../lib/store";
+import { gain, gameXp, store } from "../lib/store";
 import { tg } from "../lib/tg";
 import { shuffle } from "../lib/words";
 import { useNav } from "../state/nav";
@@ -54,7 +54,7 @@ export function DuelScreen({ p }: { p: Record<string, unknown> }) {
         const conf: QConf = {
           title: `Bellashuv · ${d.creator.n} bilan`, items: d.questions, track: false,
           finish: (score, _n, _w, sec) => {
-            gain("game", 10);
+            gain("game", gameXp(10));
             api("duelFinish", { id: d.id, score, time: sec })
               .then(() => api<DuelData>("duelGet", { id: d.id }))
               .then((r) => replace("duel", { view: "result", data: r }))
@@ -80,7 +80,7 @@ export function DuelScreen({ p }: { p: Record<string, unknown> }) {
     const conf: QConf = {
       title: "Bellashuv", items, track: false,
       finish: (score, _n, _w, sec) => {
-        gain("game", 10);
+        gain("game", gameXp(10));
         api<{ id: string }>("duelCreate", { book: bookId, questions: pack(items), score, time: sec })
           .then((j) => replace("duel", { view: "made", id: j.id, score }))
           .catch((e: Error) => { toast(`Saqlanmadi: ${e.message}`); replace("duel", {}); });

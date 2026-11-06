@@ -10,6 +10,7 @@ import { CountUp } from "../ui/CountUp";
 import { Ar } from "../ui/kit";
 import { MixedText } from "../ui/Mixed";
 import { Scale } from "../ui/Scale";
+import { GainNote } from "../ui/GainNote";
 
 export type QItem = { q: string; qAr?: boolean; hint?: string; opts: string[]; optsAr?: boolean; ans: number; why?: string; it?: { ar: string; b: string }; tag?: string };
 export type QEnd = { title: string; sub: string; xp: number; again?: () => void; againLabel?: string; backLabel?: string };
@@ -70,6 +71,7 @@ export function QuizScreen({ conf }: { conf: QConf }) {
           <span className="kb-big">{score} / {n}</span>
           <p>{end.sub}</p>
           {end.xp > 0 && <p className="r-earn"><CountUp to={end.xp} />&nbsp;yulduzcha</p>}
+          <GainNote />
           {end.again && <button type="button" className="btn primary wide" onClick={end.again}>{end.againLabel || "Yana o'ynash"}</button>}
           <button type="button" className={`btn ${end.again ? "ghost" : "primary"} wide`} onClick={back}>{end.backLabel || "Mashqqa qaytish"}</button>
         </div>

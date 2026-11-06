@@ -15,6 +15,9 @@ type WebApp = {
   openTelegramLink?(url: string): void;
   onEvent?(e: string, cb: () => void): void;
   HapticFeedback?: { impactOccurred(s: string): void; notificationOccurred(s: string): void };
+  BackButton?: { show(): void; hide(): void; onClick(cb: () => void): void };
+  enableClosingConfirmation?(): void;
+  disableClosingConfirmation?(): void;
 };
 
 declare global {
@@ -50,7 +53,25 @@ export const tg = {
     } catch { /* eski Telegram */ }
   },
   onTheme(cb: () => void) { W()?.onEvent?.("themeChanged", cb); },
+  /** Telegram'ning o'z «Orqaga» tugmasi (6.1+): ichki ekranda ko'rinadi, bosilsa — brauzer tarixi orqaga */
+  backButton(show: boolean) {
+    const w = W();
+    try {
+      if (!w?.BackButton || !w.isVersionAtLeast?.("6.1")) return;
+      if (!backBound) { backBound = true; w.BackButton.onClick(() => history.back()); }
+      if (show) w.BackButton.show(); else w.BackButton.hide();
+    } catch { /* eski Telegram */ }
+  },
+  /** mashq o'rtasida ilovani yopishdan oldin Telegram so'raydi (6.2+) */
+  closeGuard(on: boolean) {
+    const w = W();
+    try {
+      if (!w?.isVersionAtLeast?.("6.2")) return;
+      if (on) w.enableClosingConfirmation?.(); else w.disableClosingConfirmation?.();
+    } catch { /* eski Telegram */ }
+  },
 };
+let backBound = false;
 
 /** Bot havolasidan kelgan parametr: ?go=... (bot web_app tugmasi) yoki Telegram start_param. g_KOD — guruh, d_KOD — bellashuv */
 export function startGo() {

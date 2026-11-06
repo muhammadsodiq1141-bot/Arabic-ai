@@ -17,6 +17,7 @@ import { MixedText } from "../ui/Mixed";
 import { reactMark } from "../ui/Reaction";
 import { Scale } from "../ui/Scale";
 import type { QConf, QItem } from "./Quiz";
+import { GainNote } from "../ui/GainNote";
 
 type Mem = { groups?: { t: string; w: string[]; st?: { ar: string; uz: string } }[]; roots?: { r: string; m: string; w: [string, string][] }[]; mn?: Record<string, string> };
 type MUnit = PBook["units"][number] & { lbl?: string; mem?: Mem };
@@ -305,6 +306,7 @@ export function DrillScreen({ dkey, si }: { dkey: string; si: number }) {
           <span className="kb-big">{p}%</span>
           <p>{ses.t} yakunlandi · {ok} / {graded} to'g'ri</p>
           <p className="r-earn"><CountUp to={Math.max(5, ok * 2)} />&nbsp;yulduzcha</p>
+          <GainNote />
           {!last && <button type="button" className="btn primary wide" onClick={() => replace("darslik", { key: dkey, si: si + 1 })}>Keyingi mashg'ulot: {L.sessions[si + 1].t}</button>}
           <button type="button" className="btn ghost wide" onClick={() => replace("darslik", { key: dkey, si, n: Date.now() })}><RotateCcw size={18} aria-hidden />Qayta ishlash</button>
           <button type="button" className="btn ghost wide" onClick={back}>Darsga qaytish</button>

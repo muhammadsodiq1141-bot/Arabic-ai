@@ -86,7 +86,12 @@ export function useReactions() {
       createRoot(el).render(<Layer />);
       rkLoad().catch(() => { /* keyingi chaqiruvda yana urinadi */ });
     }
-    if (rkFirstHi()) window.setTimeout(reactHi, 700);
+    if (rkFirstHi()) {
+      // tanishuv yoki ko'rsatma ochiq bo'lsa, ular yopilguncha kutiladi (bir vaqtda ikki qatlam chiqmasin)
+      let n = 0;
+      const tryHi = () => { if (document.querySelector(".obx, .obc") && n++ < 60) window.setTimeout(tryHi, 1000); else reactHi(); };
+      window.setTimeout(tryHi, 1200);
+    }
   }, []);
 }
 

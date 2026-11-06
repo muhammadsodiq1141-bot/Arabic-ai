@@ -5,13 +5,14 @@ import { Check, Delete, Eraser, Heart, X } from "lucide-react";
 import { loadData } from "../lib/data";
 import { AB, bestKey, emoOf, itemsOf, picOf, poolFor, usePics, type Item, type PBook } from "../lib/practice";
 import { report } from "../lib/report";
-import { gain, saveRecord, store } from "../lib/store";
+import { gain, gameCapped, gameXp, saveRecord, store } from "../lib/store";
 import { tg } from "../lib/tg";
 import { shuffle, strip } from "../lib/words";
 import { useNav } from "../state/nav";
 import { CountUp } from "../ui/CountUp";
 import { Ar } from "../ui/kit";
 import { Scale } from "../ui/Scale";
+import { GainNote } from "../ui/GainNote";
 
 export const GAME_NAMES: Record<string, string> = {
   match: "Juftini top", pic: "Rasmni top", bubble: "Pufakchalar", million: "Million so'm", letters: "Harflardan yig'", speed: "60 soniya", order: "Gapni tartibla", synant: "Sinonim va antonim",
@@ -38,13 +39,16 @@ export function GameScreen({ bookId, unit, game }: { bookId: string; unit: numbe
 
 type GP = { book: PBook; unit: number; onAgain: () => void };
 
+/** oxirgi o'yinda berilgan yulduzcha (kunlik chegaradan keyin kamroq) — yakun ekrani uchun */
+let lastXp = 10;
 /** O'yin tugadi: XP va rekord — faqat bir marta */
 function useFinish(book: PBook, unit: number, game: string) {
   const done = useRef(false);
   return (score: number) => {
     if (done.current) return false;
     done.current = true;
-    gain("game", 10);
+    lastXp = gameXp(10);
+    gain("game", lastXp);
     report(`oʻyin: ${GAME_NAMES[game] || game}`, book.units.find((x) => x.n === unit)?.uz || "", score, null, true, unit);
     tg.haptic("success");
     return saveRecord(bestKey(book.id, game, unit), score, LOWER.has(game));
@@ -73,7 +77,9 @@ function End({ title, big, sub, good, record, wrong, onAgain }: { title: string;
         <span className="kb-big">{big}</span>
         <p>{sub}</p>
         {record && <span className="g-rec">Yangi rekord!</span>}
-        <p className="r-earn"><CountUp to={10} />&nbsp;yulduzcha</p>
+        <p className="r-earn"><CountUp to={lastXp} />&nbsp;yulduzcha</p>
+        {gameCapped() && <p className="g-cap">Bugungi o'yin yulduzchalari to'ldi. Endi takrorlash, o'qish va gapirish ko'proq yulduzcha beradi.</p>}
+        <GainNote />
         {uniq.length > 0 && (
           <div className="g-mist"><b>Takrorlash uchun:</b>
             <ul>{uniq.slice(0, 8).map((w) => <li key={w.ar}><Ar>{w.ar}</Ar><span>{w.uz}</span></li>)}</ul>

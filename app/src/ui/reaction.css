@@ -2,7 +2,8 @@
    shuning uchun ikkala mavzuda bir xil; yorliq, uchqunlar va sozlamalar — ilova tokenlarida. */
 .rk {
   --rk-c: #2F9E44;
-  position: fixed; left: 0; right: 0; top: 20%; z-index: 9999; display: flex; justify-content: center; pointer-events: none;
+  position: fixed; right: max(10px, env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 54px); z-index: 9999;
+  display: flex; justify-content: flex-end; pointer-events: none; /* 11-partiya: burchakda, variantlarni yopmaydi */
 }
 .rk-bad { --rk-c: #E8590C; }
 .rk-streak { --rk-c: #D9480F; }
@@ -17,24 +18,24 @@
 .rk.big .rk-in { animation-duration: 2.6s; }
 .rk-bad .rk-in { animation-name: rkbad; }
 
-.rk img { width: 140px; height: 140px; object-fit: contain; }
-.rk.big img { width: 176px; height: 176px; }
+.rk img { width: 84px; height: 84px; object-fit: contain; }
+.rk.big img { width: 104px; height: 104px; }
 .rk b {
-  font: 900 31px/1.05 Manrope, system-ui, sans-serif; letter-spacing: -.01em; color: var(--rk-c);
-  paint-order: stroke fill; -webkit-text-stroke: 7px #fff; padding: 0 12px; text-align: center; max-width: 330px;
+  font: 900 20px/1.05 Manrope, system-ui, sans-serif; letter-spacing: -.01em; color: var(--rk-c);
+  paint-order: stroke fill; -webkit-text-stroke: 5px #fff; padding: 0 8px; text-align: center; max-width: 170px;
   transform: rotate(-4deg); margin-top: -6px;
 }
-.rk b.ar { font-family: "Noto Naskh Arabic", serif; font-size: 40px; font-weight: 700; line-height: 1.3; }
+.rk b.ar { font-family: "Noto Naskh Arabic", serif; font-size: 26px; font-weight: 700; line-height: 1.3; }
 .rk-bad b { transform: rotate(3deg); }
 
 /* rasmsiz yozuv — qora karta */
 .rk-card {
-  min-width: 180px; max-width: 300px; padding: 20px 30px; border-radius: 26px;
+  min-width: 110px; max-width: 190px; padding: 12px 18px; border-radius: 20px;
   background: radial-gradient(120% 140% at 50% 50%, #111 55%, #3a3a3a 100%); color: #fff;
-  font: 900 46px/1.05 Manrope, system-ui, sans-serif; letter-spacing: -.02em; text-align: center;
+  font: 900 28px/1.05 Manrope, system-ui, sans-serif; letter-spacing: -.02em; text-align: center;
   box-shadow: 0 0 0 3px rgba(255, 255, 255, .85), 0 18px 40px rgba(0, 0, 0, .35); transform: rotate(-3deg);
 }
-.rk-card.ar { font-family: "Noto Naskh Arabic", serif; font-weight: 700; font-size: 58px; line-height: 1.35; padding: 10px 30px 16px; }
+.rk-card.ar { font-family: "Noto Naskh Arabic", serif; font-weight: 700; font-size: 36px; line-height: 1.35; padding: 6px 18px 10px; }
 .rk-bad .rk-card { transform: rotate(3deg); }
 
 /* «3 ta ketma-ket!», «100%» */
@@ -91,8 +92,10 @@
 .rk-ic { width: 48px; height: 48px; flex: none; display: grid; place-items: center; color: var(--ink); }
 .rk-tg {
   width: 54px; height: 32px; flex: none; padding: 0; border-radius: 16px; border: 0; background: var(--line);
-  position: relative; transition: background .2s;
+  position: relative; transition: background .2s; box-shadow: inset 0 0 0 1.5px var(--muted);
 }
+.rk-tg::after { content: ""; position: absolute; inset: -6px -4px; } /* bosish maydoni 44px */
+.rk-tg.on { box-shadow: none; }
 .rk-tg i {
   position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 12px; background: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, .25); transition: left .2s;

@@ -1,23 +1,35 @@
 // «Bugungi dars» (eski lesson, SOZ-QOIDA-DARS-SPEC §3): takrorlash vaqti kelgan so'zlar (8 tagacha) + joriy vahdaning 5 ta yangi so'zi
-// (tanishuv, keyin tarjimasini yozish) + joriy qoidadan 5 savol. Yakunda {BK}lessons[kun] = 1, qoida natijasi, gain("lesson", 20).
+// (tanishuv, keyin tarjimasini yozish) + joriy qoidadan 3 savol (13-partiyagacha 5). Yakunda {BK}lessons[kun] = 1, qoida natijasi, gain("lesson", 20).
 // Tasdiqlangan farqlar: joriy vahda va yangi so'zlar "yodlangan so'zlar" (known) bo'yicha — so'zlari to'liq yodlanmagan birinchi vahda;
 // darsdagi xato so'zni yodlanganlardan o'chirmaydi (faqat xatolar daftari va takrorlash jadvali). Kartadagi reja darsning o'zi
 // (eskisida qoida va takrorlash qayta tanlanardi); bo'sh dars boshlanmaydi; takrorlashda bir so'z ikki marta chiqmaydi.
+// 12-partiya (A3): yangi so'z shu kuni 3 soatdan keyin yana qaytadi; 2+ pog'onadagi so'zlarning yarmi teskari yo'nalishda
+// (o'zbekchadan arabchani eslash, o'zi baholaydi); chalkashadigan juftlar (sinonim/antonim, bir harf farqi) bitta darsga tushmaydi.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, RotateCcw, Ruler, Sparkles, Volume2, X } from "lucide-react";
+import { Check, Volume2, X } from "lucide-react";
 import { say } from "../lib/audio";
-import { pctOf } from "../lib/next";
-import { allItems, checkTyped, dayNum, errAdd, itemsOf, picOf, SRS_INT, srsOf, usePics, type Item } from "../lib/practice";
-import { bkKey } from "../lib/progress";
+import { nextStep, pctOf } from "../lib/next";
+import { isReadStep, kbKeyOf, loadKb, type KbLesson } from "../lib/kb";
+import { STRANDS, strandToday, strandWeek, type Strand } from "../lib/strand";
+import type { Book } from "../lib/progress";
+import { allItems, checkTyped, confusable, dayNum, errAdd, isDue, itemsOf, LATER_MS, picOf, SRS_INT, srsOf, usePics, type Item } from "../lib/practice";
+import { loadData } from "../lib/data";
+import { bkKey, dayKey } from "../lib/progress";
 import { report } from "../lib/report";
 import type { RQ } from "../lib/rx";
 import { gain, knownOf, markKnown, scheduleSync, store } from "../lib/store";
 import { tg } from "../lib/tg";
 import { shuffle } from "../lib/words";
 import { useNav } from "../state/nav";
+import { useSession } from "../state/session";
+import { toast } from "../ui/Toast";
+import { useMults } from "./Mult";
+import { shDaily } from "./Shadow";
 import { Ar } from "../ui/kit";
 import { MixedText } from "../ui/Mixed";
-import { qsFor, ruleBest, rulesIn, unitLbl, useRBook, type RBook } from "./Rules";
+import { streakNow } from "../lib/motiv";
+import { qsFor, ruleBest, rulesIn, useRBook, type RBook } from "./Rules";
+import { GainNote } from "../ui/GainNote";
 
 type Unit = RBook["units"][number] & { lbl?: string };
 export type Plan = { u: Unit; due: Item[]; news: Item[]; rule: [number, number] | null; mins: number };
@@ -32,12 +44,29 @@ export function lessonStreak(bid: string) {
   return c;
 }
 
-export function planLesson(book: RBook): Plan {
+/** kitobdagi sinonim/antonim juftlari (wf kartalari) — chalkashadigan so'zlarni bir darsga qo'ymaslik uchun */
+export function useRel(bid: string) {
+  const [rel, setRel] = useState<Set<string> | undefined>(undefined);
+  useEffect(() => {
+    let a = true;
+    loadData<Record<string, { syn?: string[][]; ant?: string[][] }>>(`wf/${bid}`).then((wf) => {
+      const s = new Set<string>();
+      for (const [k, c] of Object.entries(wf || {})) { const ar = k.split("#")[0]; for (const p of [...(c.syn || []), ...(c.ant || [])]) if (p?.[0]) s.add(`${ar}|${p[0]}`); }
+      if (a) setRel(s);
+    }).catch(() => a && setRel(new Set()));
+    return () => { a = false; };
+  }, [bid]);
+  return rel;
+}
+
+export function planLesson(book: RBook, rel?: Set<string>): Plan {
   const S = srsOf(book.id), t = dayNum();
   const seen = new Set<string>();
   const dueAll: Item[] = [];
-  for (const x of allItems(book)) if (S[x.ar] && S[x.ar].d <= t && !seen.has(x.ar)) { seen.add(x.ar); dueAll.push(x); }
-  const due = shuffle(dueAll).slice(0, 8);
+  for (const x of allItems(book)) if (isDue(S[x.ar], t) && !seen.has(x.ar)) { seen.add(x.ar); dueAll.push(x); }
+  // chalkashadigan juftlikdan bittasi keyingi darsga qoladi (Nation, 32-bet: birga o'rganilsa 50–100% qiyinroq)
+  const due: Item[] = [];
+  for (const x of shuffle(dueAll)) { if (due.length >= 8) break; if (!due.some((y) => confusable(x.ar, y.ar, rel))) due.push(x); }
   const u: Unit = book.units.find((x) => pctOf(x.words, knownOf(book.id, x.n)) < 100) || book.units[book.units.length - 1];
   const K = knownOf(book.id, u.n);
   const news = itemsOf(u).filter((x) => !K[x.ar] && !S[x.ar]).slice(0, 5);
@@ -49,72 +78,128 @@ export function planLesson(book: RBook): Plan {
 }
 
 /** darsdagi javob: to'g'ri — keyingi pog'ona va "yodlangan"; xato — xatolar daftari va ertaga takrorlash (yodlangan belgisi qoladi) */
-function lessonSrs(book: RBook, it: Item, ok: boolean) {
+function lessonSrs(book: RBook, it: Item, ok: boolean, fresh = false) {
   if (!ok) errAdd(it.ar, book.id);
   const key = bkKey(book.id, "srs");
-  const S = store.get<Record<string, { b: number; d: number }>>(key, {});
+  const S = store.get<Record<string, { b: number; d: number; h?: number }>>(key, {});
   const b = ok ? Math.min((S[it.ar]?.b || 0) + 1, 6) : 1;
-  S[it.ar] = { b, d: dayNum() + SRS_INT[b] };
+  // yangi so'z to'g'ri yozilsa — shu kuni 3 soatdan keyin yana takrorlanadi (0-pog'ona)
+  S[it.ar] = ok && fresh ? { b: 0, d: dayNum(), h: Date.now() + LATER_MS } : { b, d: dayNum() + SRS_INT[b] };
   store.set(key, S);
   if (ok) markKnown(book.id, it.u, it.ar);
   scheduleSync();
 }
 
-// ===== bosh sahifadagi karta =====
+// ===== bosh sahifadagi karta: «Bugun» — 4 qism (13-partiya, A1; Nation: to'rt yo'l muvozanati) =====
+// Tartib qat'iy (A8): oson boshlanadi (takror), o'rtada tinglash va gapirish, oson tugaydi (ravonlik — tanish so'zlar tezlikda).
+// Qism bajarilgani: 1 — bugungi dars; 2–4 — shu kungi vaqt (lib/strand.ts) yoki kunlik shadowing.
 const WD = ["Ya", "Du", "Se", "Ch", "Pa", "Ju", "Sh"];
+type Part = { k: Strand; t: string; d: string; tag: string; done: boolean; run: () => void };
 export function TodayCard({ bookId }: { bookId: string }) {
   const { go } = useNav();
+  const { me } = useSession();
   const book = useRBook(bookId);
-  const plan = useMemo(() => (book ? planLesson(book) : null), [book]);
-  if (!book || !plan) return null;
+  const rel = useRel(bookId);
+  const plan = useMemo(() => (book && rel ? planLesson(book, rel) : null), [book, rel]);
+  const ms = useMults();
+  const [kb, setKb] = useState<KbLesson | null | undefined>(undefined);
+  const uN = plan?.u.n;
+  useEffect(() => {
+    if (!uN) return;
+    const k = kbKeyOf(bookId, uN);
+    if (!k) { setKb(null); return; }
+    let a = true;
+    loadKb(k).then((x) => a && setKb(x)).catch(() => a && setKb(null));
+    return () => { a = false; };
+  }, [bookId, uN]);
+  if (!book || !plan || kb === undefined) return null;
   const D = lessonsOf(bookId), t = dayNum();
-  const done = !!D[t];
-  const empty = !plan.due.length && !plan.news.length && !plan.rule;
+  const today = strandToday(), week = strandWeek();
   const rule = plan.rule ? rulesIn(book, plan.rule[0])[plan.rule[1]] : null;
-  const sk = lessonStreak(bookId);
+  const empty = !plan.due.length && !plan.news.length && !plan.rule;
+  // 2-qism: vahdaning navbatdagi qadami o'qish matni bo'lsa — o'sha (tartib buzilmaydi), aks holda multfilm
+  const nx = nextStep(book as unknown as Book, plan.u.n, kb);
+  const nst = nx.kind === "kb" && kb ? kb.steps[Number(nx.params.si)] : null;
+  const readNext = !!nst && (isReadStep(nst) || /^\s*O[ʻ'’`]?qish/i.test(nst.t));
+  const sh = ms?.length ? shDaily(ms, me?.level) : null;
+  // ravonlik: so'zlari to'liq yodlangan eng oxirgi vahda (tanish so'zlar tezlikda), bo'lmasa — joriy vahda
+  const fluU = [...book.units].reverse().find((u) => u.n <= plan.u.n && pctOf(u.words, knownOf(bookId, u.n)) >= 100)?.n || plan.u.n;
+  const parts: Part[] = [
+    { k: "f", tag: "Shakl", t: "Takrorlash va yangi so'zlar", done: !!D[t],
+      d: empty ? "Bugun takrorlanadigan so'z yo'q" : [plan.due.length && `${plan.due.length} ta takror`, plan.news.length && `${plan.news.length} ta yangi so'z`, rule && "3 ta qoida savoli"].filter(Boolean).join(" · "),
+      run: () => (empty ? toast("Bugun takrorlanadigan so'z yo'q — keyingi qismga o'ting") : go("lesson", { book: bookId, plan, n: Date.now() })) },
+    { k: "i", tag: "Tinglash", done: today.i >= 120,
+      t: readNext ? "Kitob matnini tinglab o'qish" : "Multfilm tomosha qiling",
+      d: readNext ? `${plan.u.n}-vahda · ${nx.sub}` : "Arabcha subtitr va tarjima bilan · ~5 daqiqa",
+      run: () => (readNext ? go(nx.view, nx.params) : ms && !ms.length ? toast("Multfilmlar tez orada qo'shiladi") : go("mults")) },
+    { k: "o", tag: "Gapirish", done: today.o >= 120 || (!!sh && sh.done >= Math.min(5, sh.picks.length)),
+      t: "Ovoz chiqarib gapirish",
+      d: sh ? `Shadowing · ${sh.done} / ${sh.picks.length} ibora · ovozni faqat siz eshitasiz` : "Yuklanmoqda…",
+      run: () => (sh?.picks.length ? go("shadow", { items: sh.items, mode: "card", daily: true, n: Date.now() }) : toast("Iboralar tez orada qo'shiladi")) },
+    { k: "r", tag: "Ravonlik", done: today.r >= 60, t: "60 soniya: tanish so'zlar",
+      d: `${fluU}-vahda so'zlari · tez javob bering`, run: () => go("game", { book: bookId, unit: fluU, game: "speed" }) },
+  ];
+  const doneN = parts.filter((x) => x.done).length;
+  const curI = parts.findIndex((x) => !x.done);
+  const mins = plan.mins + 9;
+  // haftalik muvozanat: eng kam yo'l — maslahat (kamida 10 daqiqa yig'ilgach)
+  const tot = week.i + week.o + week.f + week.r;
+  const low = STRANDS.reduce((m, x) => (week[x.k] < week[m.k] ? x : m), STRANDS[0]);
+  const sk = streakNow();
+  const act = store.get<Record<string, number>>("a1.days", {}), fz = store.get<string[]>("x.fz", []);
   return (
-    <section className={`card today ${done ? "done" : ""}`} aria-label="Bugungi dars">
+    <section className={`card today ${doneN === 4 ? "done" : ""}`} aria-label="Bugun">
       <div className="td-h">
-        <span className="td-k">{done ? "Bugungi dars" : `Bugungi dars · ${unitLbl(plan.u)}`}</span>
-        {done ? <span className="td-ok"><Check size={15} strokeWidth={3} aria-hidden />Bajarildi</span> : !empty && <span className="muted">≈ {plan.mins} daqiqa</span>}
+        <span className="td-k">{doneN === 4 ? "Bugun · bajarildi" : `Bugun · ≈ ${mins} daqiqa`}</span>
+        <span className="td-cnt">{doneN} / 4 qism</span>
       </div>
-      {done ? (
-        <>
-          <b className="td-title">Barakalla! Ertaga yangi dars tayyor bo'ladi</b>
-          <p className="muted td-p">Xohlasangiz, yana mashq qiling: {plan.due.length ? `${plan.due.length} ta so'z takrorlashni kutyapti.` : "o'yin yoki qoida mashqini tanlang."}</p>
-        </>
-      ) : (
-        <>
-          <b className="td-title">{plan.u.uz}</b>
-          {empty ? <p className="muted td-p">Bugun takrorlanadigan so'z yo'q. Ertaga yangi dars tayyor bo'ladi.</p> : (
-            <ul className="td-list">
-              {plan.due.length > 0 && <li><RotateCcw size={17} aria-hidden />{plan.due.length} ta so'zni takrorlash</li>}
-              {plan.news.length > 0 && <li><Sparkles size={17} aria-hidden />{plan.news.length} ta yangi so'z</li>}
-              {rule && <li><Ruler size={17} aria-hidden />Qoida: {rule.t}</li>}
-            </ul>
-          )}
-        </>
-      )}
-      <div className="td-week" aria-label={`${sk} kun ketma-ket dars`}>
+      <ol className="bg-list" aria-label="Bugungi 4 qism">
+        {parts.map((x, k) => (
+          <li key={x.k}>
+            <button type="button" className={`bg-row ${x.done ? "dn" : ""} ${k === curI ? "on" : ""}`} onClick={() => { tg.haptic(); x.run(); }}>
+              <span className="bg-n" aria-hidden>{x.done ? <Check size={15} strokeWidth={3} /> : k + 1}</span>
+              <span className="bg-t"><b>{x.t}</b><small>{x.d}</small></span>
+              <em className={`bg-tag s-${x.k}`}>{x.tag}</em>
+            </button>
+          </li>
+        ))}
+      </ol>
+      {curI >= 0
+        ? <button type="button" className="btn primary wide" onClick={() => { tg.haptic(); parts[curI].run(); }}>{doneN ? "Davom etish" : "Boshlash"}: {parts[curI].t.toLowerCase()}</button>
+        : <>
+            <p className="td-p muted">Barakalla! Bugungi 4 qism bajarildi. Ertaga yangi so'zlar va takrorlash vaqti kelgan so'zlar tayyor bo'ladi.</p>
+            {!empty && <button type="button" className="btn ghost wide" onClick={() => go("lesson", { book: bookId, plan, n: Date.now() })}>Yana bir dars</button>}
+          </>}
+      <div className="bg-week" aria-label="Bu hafta — 4 yo'l">
+        <div className="bg-wh"><b>Bu hafta — 4 yo'l</b><small>{Math.round(tot / 60)} daqiqa</small></div>
+        {STRANDS.map((x) => {
+          const pc = tot ? Math.round((week[x.k] / tot) * 100) : 0;
+          return (
+            <div key={x.k} className={`bg-m s-${x.k}`}>
+              <span>{x.t}</span>
+              <span className="bg-bar" role="progressbar" aria-valuenow={pc} aria-valuemin={0} aria-valuemax={100} aria-label={x.t}><i style={{ width: `${pc}%` }} /></span>
+              <em>{pc}%</em>
+            </div>
+          );
+        })}
+        {tot >= 600 && week[low.k] / tot < 0.15 && <p className="bg-tip">{low.t} bu hafta kam. Shu qismga ko'proq vaqt ajrating — to'rt yo'l teng bo'lsa, til tezroq o'rganiladi.</p>}
+      </div>
+      <div className="td-week" aria-label={`${sk} kun ketma-ket`}>
         <b>{sk} kun ketma-ket</b>
         <span className="td-days">
           {Array.from({ length: 7 }, (_, k) => {
             const i = 6 - k, d = new Date(); d.setDate(d.getDate() - i);
-            return <span key={k} className={`${D[t - i] ? "on" : ""} ${i === 0 ? "now" : ""}`}><i>{D[t - i] ? <Check size={11} strokeWidth={3.5} aria-hidden /> : null}</i>{WD[d.getDay()]}</span>;
+            const dk = dayKey(d), on = !!act[dk] || fz.includes(dk);
+            return <span key={k} className={`${on ? "on" : ""} ${i === 0 ? "now" : ""}`}><i>{on ? <Check size={11} strokeWidth={3.5} aria-hidden /> : null}</i>{WD[d.getDay()]}</span>;
           })}
         </span>
       </div>
-      {!empty && (
-        <button type="button" className={`btn ${done ? "ghost" : "primary"} wide`} onClick={() => go("lesson", { book: bookId, plan, n: Date.now() })}>
-          {done ? "Yana bir dars" : "Darsni boshlash"}
-        </button>
-      )}
     </section>
   );
 }
 
 // ===== dars =====
-type Step = { k: "rev" | "intro" | "type"; it: Item; again?: boolean } | { k: "rq"; q: RQ };
+type Step = { k: "rev" | "rev2" | "intro" | "type"; it: Item; again?: boolean } | { k: "rq"; q: RQ };
 
 export function LessonScreen({ bookId, plan }: { bookId: string; plan: Plan }) {
   const { back } = useNav();
@@ -126,17 +211,20 @@ export function LessonScreen({ bookId, plan }: { bookId: string; plan: Plan }) {
   const [tries, setTries] = useState(0);
   const [val, setVal] = useState("");
   const [rq, setRq] = useState({ ok: 0, n: 0 });
-  const [end, setEnd] = useState<{ mins: number; sk: number } | null>(null);
+  const [end, setEnd] = useState<{ mins: number; sk: number; xp: number; bonus: number; again: boolean } | null>(null);
   const t0 = useRef(Date.now());
   const okN = useRef(0); // birinchi urinishda to'g'ri yozilganlar (eski L.ok)
   const inp = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (!book) return;
     const s: Step[] = [];
-    plan.due.forEach((it) => s.push({ k: "rev", it }));
+    // ikki yo'nalish: kamida 2 marta eslangan so'zlarning har ikkinchisi o'zbekchadan arabchaga so'raladi
+    const S = srsOf(bookId);
+    let r2 = 0;
+    plan.due.forEach((it) => s.push({ k: (S[it.ar]?.b || 0) >= 2 && r2++ % 2 === 0 ? "rev2" : "rev", it }));
     plan.news.forEach((it) => s.push({ k: "intro", it }));
     plan.news.forEach((it) => s.push({ k: "type", it }));
-    if (plan.rule) qsFor(book, plan.rule[0], plan.rule[1], 5).forEach((q) => s.push({ k: "rq", q }));
+    if (plan.rule) qsFor(book, plan.rule[0], plan.rule[1], 3).forEach((q) => s.push({ k: "rq", q })); // 13-partiya: 5 → 3
     setSteps(s);
   }, [book]); // eslint-disable-line react-hooks/exhaustive-deps
   const cur = steps?.[i];
@@ -148,15 +236,19 @@ export function LessonScreen({ bookId, plan }: { bookId: string; plan: Plan }) {
 
   const finish = () => {
     // bir marta: kun belgisi, dars qoidasi natijasi (eng yaxshisi), XP
-    const D = lessonsOf(bookId); D[dayNum()] = 1; store.set(bkKey(bookId, "lessons"), D);
+    // 12-partiya (A5): kunning birinchi darsi — 20, keyingilari — 8 (Nation: oraliqli o'rganish to'plab o'rganishdan yaxshi);
+    // vaqti kelgan 3+ so'z takrorlansa — +5 bonus
+    const D = lessonsOf(bookId), again = !!D[dayNum()]; D[dayNum()] = 1; store.set(bkKey(bookId, "lessons"), D);
+    const xp = again ? 8 : 20, bonus = plan.due.length >= 3 ? 5 : 0;
     if (plan.rule && rq.n) {
       const key = bkKey(bookId, `rule.${plan.rule[0]}.${plan.rule[1]}`);
       store.set(key, Math.max(store.get<number | null>(key, null) || 0, Math.round((rq.ok / rq.n) * 100)));
     }
-    gain("lesson", 20);
+    gain("lesson", xp);
+    if (bonus) gain("rev", bonus);
     report("bugungi dars", plan.u.uz || "", okN.current + rq.ok, steps.filter((s) => s.k !== "intro").length, true, plan.u.n);
     tg.haptic("success");
-    setEnd({ mins: Math.max(1, Math.round((Date.now() - t0.current) / 60000)), sk: lessonStreak(bookId) });
+    setEnd({ mins: Math.max(1, Math.round((Date.now() - t0.current) / 60000)), sk: streakNow(), xp, bonus, again });
   };
   const next = () => {
     setSt(null); setTries(0); setVal("");
@@ -165,13 +257,13 @@ export function LessonScreen({ bookId, plan }: { bookId: string; plan: Plan }) {
     window.scrollTo(0, 0);
   };
   const check = () => {
-    if (!cur || cur.k === "rq" || cur.k === "intro") return;
+    if (!cur || cur.k === "rq" || cur.k === "intro" || cur.k === "rev2") return;
     const r = checkTyped(cur.it, val, "uz");
     if (!r) return;
     if (r !== "no") {
       // "yaqin" javob ham to'g'ri; ikkinchi urinishdagi to'g'ri javob takrorlash uchun xato hisoblanadi (eski)
       if (!tries) okN.current++;
-      setSt("ok"); lessonSrs(book, cur.it, tries === 0); gain("fc", tries ? 1 : 3); tg.haptic("success");
+      setSt("ok"); lessonSrs(book, cur.it, tries === 0, cur.k === "type"); gain("fc", tries ? 1 : 3); tg.haptic("success");
     } else {
       const t = tries + 1;
       setTries(t); tg.haptic("error");
@@ -181,7 +273,15 @@ export function LessonScreen({ bookId, plan }: { bookId: string; plan: Plan }) {
       } else { setSt("no"); setVal(""); }
     }
   };
-  const dunno = () => { if (!cur || cur.k === "rq" || cur.k === "intro") return; setSt("show"); lessonSrs(book, cur.it, false); };
+  const dunno = () => { if (!cur || cur.k === "rq" || cur.k === "intro" || cur.k === "rev2") return; setSt("show"); lessonSrs(book, cur.it, false); };
+  // teskari yo'nalish: o'quvchi arabchasini eslab, o'zi baholaydi (yozish shart emas — telefonda arabcha klaviatura bo'lmasligi mumkin)
+  const rate = (ok: boolean) => {
+    if (!cur || cur.k !== "rev2") return;
+    lessonSrs(book, cur.it, ok);
+    if (ok) { okN.current++; gain("fc", 3); tg.haptic("success"); }
+    else { tg.haptic("error"); if (!cur.again) setSteps([...steps, { k: "rev", it: cur.it, again: true }]); }
+    next();
+  };
   const pickRq = (k: number) => {
     if (!cur || cur.k !== "rq" || st !== null) return;
     const ok = cur.q.opts[k] === cur.q.ans;
@@ -200,7 +300,7 @@ export function LessonScreen({ bookId, plan }: { bookId: string; plan: Plan }) {
   );
 
   if (end || !cur) {
-    const e = end || { mins: 1, sk: lessonStreak(bookId) };
+    const e = end || { mins: 1, sk: streakNow(), xp: 0, bonus: 0, again: false };
     return (
       <main className="round">
         {bar}
@@ -213,7 +313,10 @@ export function LessonScreen({ bookId, plan }: { bookId: string; plan: Plan }) {
             <span><b>{plan.news.length}</b>yangi so'z</span>
             <span><b>{rq.n ? `${Math.round((rq.ok / rq.n) * 100)}%` : "—"}</b>qoida</span>
           </div>
-          <p className="r-earn">+20&nbsp;yulduzcha</p>
+          {e.xp > 0 && <p className="r-earn">+{e.xp + e.bonus}&nbsp;yulduzcha</p>}
+          {e.bonus > 0 && <p className="muted ls-bonus">Shundan {e.bonus} tasi — vaqtida takrorlangan so'zlar uchun bonus</p>}
+          {e.again && <p className="muted ls-bonus">Bugungi ikkinchi dars kamroq yulduzcha beradi — so'zlar kunlar oralab takrorlansa yaxshiroq eslab qolinadi.</p>}
+          <GainNote />
           <p className="muted ls-tmr">Ertaga yangi so'zlar va takrorlash vaqti kelgan so'zlar sizni kutadi.</p>
           <button type="button" className="btn primary wide" onClick={back}>Bosh sahifaga</button>
         </div>
@@ -263,6 +366,29 @@ export function LessonScreen({ bookId, plan }: { bookId: string; plan: Plan }) {
             <button type="button" className="btn dark wide" onClick={next}>Davom etish</button>
           </div>
         )}
+      </main>
+    );
+  }
+
+  if (cur.k === "rev2") {
+    const it = cur.it;
+    const open = st === "show";
+    return (
+      <main className="round">
+        {bar}
+        <p className="ls-kind">Takrorlash · arabchasini eslang</p>
+        <section className="r-card cd-card ls-card">
+          <b className="ls-uz ls-q">{it.uz}</b>
+          {open
+            ? <div className="cd-q"><Ar className="ls-word">{it.ar}</Ar><button type="button" className="say" aria-label="Tinglash" onClick={() => void say(it.ar)}><Volume2 size={22} aria-hidden /></button></div>
+            : <p className="muted ls-recall">Arabchasini eslang va ovoz chiqarib ayting. Keyin javobni ochib, o'zingizni tekshiring.</p>}
+        </section>
+        {open
+          ? <div className="r-cmp two ls-rate">
+              <button type="button" className="btn ghost" onClick={() => rate(false)}><X size={18} aria-hidden />Eslay olmadim</button>
+              <button type="button" className="btn good" onClick={() => rate(true)}><Check size={18} aria-hidden />Esladim</button>
+            </div>
+          : <button type="button" className="btn primary wide ls-next" onClick={() => { setSt("show"); void say(it.ar); }}>Javobni ko'rish</button>}
       </main>
     );
   }

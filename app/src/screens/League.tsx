@@ -26,7 +26,8 @@ export function LeagueScreen() {
   const { me } = useSession();
   const { setTab } = useNav();
   const [period, setPeriod] = useState<Period>("week");
-  const [scope, setScope] = useState<Scope>(me?.group ? "group" : "all");
+  // 12-partiya (A4): guruhsiz o'quvchi reytingi avval o'z darajasidagilar bilan (TMLT, 6-bob: solishtirish xavotiri)
+  const [scope, setScope] = useState<Scope>(me?.group ? "group" : me?.level ? "level" : "all");
   const [res, setRes] = useState<Res | null | "err">(null);
   const [nonce, setNonce] = useState(0);
   const lvl = me?.level || null;

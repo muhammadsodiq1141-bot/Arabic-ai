@@ -1,6 +1,7 @@
-// Uy vazifasida "keyingi qadam": lug'at roundlari → (so'z testi 80%) → nazariya → grammatik test → mashqlar.
+// Uy vazifasida "keyingi qadam": lug'at roundlari → mashqlar 1-qism → nazariya → grammatik test → mashqlar 2-qism (13-partiya, A8).
 // Vahda ekranidagi "Davom etish" tugmasi va bosh sahifadagi uy vazifasi kartasi shu bir funksiyadan foydalanadi.
 import { isReadStep, kbBest, kbKeyOf, type KbLesson } from "./kb";
+import { unitGate } from "./order";
 import { bkKey, type Book } from "./progress";
 import { knownOf, store } from "./store";
 
@@ -26,33 +27,45 @@ export type Next = {
 export function nextStep(book: Book, unit: number, kb: KbLesson | null): Next {
   const u = book.units.find((x) => x.n === unit);
   const base = { book: book.id, unit };
-  if (u) {
-    const known = knownOf(book.id, unit);
-    for (let i = 0, n = 1; i < u.words.length; i += ROUND, n++) {
-      const r = u.words.slice(i, i + ROUND);
-      if (pctOf(r, known) < 100) return { kind: "round", view: "round", params: { ...base, n }, label: `${n}-round`, sub: `Lug'at · ${r.length} so'z` };
-    }
-    // so'zlar yodlangan, lekin so'z testi (round aniqligi) 80% dan past — bitta roundni qayta ishlash kerak
-    const wt = store.get<Record<string, number>>(bkKey(book.id, "tests"), {})[unit] || 0;
-    if (u.words.length && wt < 80) return { kind: "round", view: "round", params: { ...base, n: 1 }, label: "1-round (takror)", sub: `So'z testi ${wt}% — 80% kerak` };
-  }
-  const rules = rulesOf(book, unit);
-  if (rules.length) {
-    if (!store.get(theoryKey(book.id, unit), 0)) return { kind: "theory", view: "theory", params: base, label: "Nazariya", sub: `${rules.length} ta qoida` };
-    const g = gramPct(book, unit);
-    if (g < 80) return { kind: "test", view: "test", params: base, label: "Grammatik test", sub: g ? `Hozir ${g}% — 80% kerak` : `${rules.reduce((a, r) => a + (r.quiz?.length || 0), 0)} savol` };
-  }
+  // 13-partiya (A8): tartib lib/order.ts dagi qulflar bilan bir xil — lug'at → mashqlar 1-qism → nazariya → test → mashqlar 2-qism;
+  // past natija endi keyingi qadamni to'smaydi, faqat oxirida «qayta ishlash» taklif qilinadi
+  const g = unitGate(book, unit, kb);
   const key = kbKeyOf(book.id, unit);
-  if (kb && key) {
-    const B = kbBest(key);
-    const si = kb.steps.findIndex((_, i) => B[i] === undefined);
-    if (si >= 0) {
+  const B = key ? kbBest(key) : {};
+  const kbNext = (from: number, to: number): Next | null => {
+    if (!kb || !key) return null;
+    for (let si = from; si < to; si++) {
+      if (B[si] !== undefined) continue;
       const st = kb.steps[si], parts = st.t.split(" · ");
       // Madina o'qish matni: "O'qish · Asosiy matn"
       if (book.id.startsWith("md") && isReadStep(st)) return { kind: "kb", view: "kb", params: { ...base, key, si }, label: "O'qish", sub: parts.slice(1).join(" · ") || st.t };
       return { kind: "kb", view: "kb", params: { ...base, key, si }, label: `${si + 1}-topshiriq`, sub: parts[0] };
     }
+    return null;
+  };
+  if (u && !g.vocDone) {
+    const known = knownOf(book.id, unit);
+    for (let i = 0, n = 1; i < u.words.length; i += ROUND, n++) {
+      const r = u.words.slice(i, i + ROUND);
+      if (pctOf(r, known) < 100) return { kind: "round", view: "round", params: { ...base, n }, label: `${n}-round`, sub: `Lug'at · ${r.length} so'z` };
+    }
   }
+  const pre = kbNext(0, g.split);
+  if (pre) return pre;
+  const rules = rulesOf(book, unit);
+  if (rules.length) {
+    if (!g.theorySeen) return { kind: "theory", view: "theory", params: base, label: "Nazariya", sub: `${rules.length} ta qoida` };
+    if (!g.testDone) return { kind: "test", view: "test", params: base, label: "Grammatik test", sub: `${rules.reduce((a, r) => a + (r.quiz?.length || 0), 0)} savol` };
+  }
+  const post = kbNext(g.split, kb?.steps.length ?? 0);
+  if (post) return post;
+  // hammasi ishlangan — natija past bo'lsa, qayta ishlash taklifi (qulf emas)
+  if (rules.length) {
+    const gp = gramPct(book, unit);
+    if (gp < 80) return { kind: "test", view: "test", params: base, label: "Grammatik test (takror)", sub: `Hozir ${gp}% — 80% ga yetkazing` };
+  }
+  const wt = store.get<Record<string, number>>(bkKey(book.id, "tests"), {})[unit] || 0;
+  if (u?.words.length && wt < 80) return { kind: "round", view: "round", params: { ...base, n: 1 }, label: "1-round (takror)", sub: `So'z testi ${wt}% — 80% ga yetkazing` };
   return { kind: "done", view: "", params: base, label: "Bajarildi", sub: "" };
 }
 

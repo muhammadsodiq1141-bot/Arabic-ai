@@ -81,6 +81,19 @@ export function dailyTasks(day = dayKey()) {
   return list;
 }
 
+// 12-partiya (A5): o'yin yulduzchasining kunlik chegarasi — kuniga 40 tagacha to'liq, keyin har o'yin 2 ta.
+// Nation (8-bet): tanib olish o'yinlari asosiy yo'l emas — vaqt o'qish, tinglash va gapirishga ketsin. Hisob: x.gx = {d: kun, v: berilgan}.
+export const GAME_CAP = 40;
+export function gameXp(xp: number) {
+  const t = dayKey();
+  const G = store.get<{ d: string; v: number }>("x.gx", { d: "", v: 0 });
+  const used = G.d === t ? G.v : 0;
+  const give = used >= GAME_CAP ? Math.min(2, xp) : xp;
+  store.set("x.gx", { d: t, v: used + give });
+  return give;
+}
+export const gameCapped = () => { const G = store.get<{ d: string; v: number }>("x.gx", { d: "", v: 0 }); return G.d === dayKey() && G.v >= GAME_CAP; };
+
 // XP va faollik — eski gain bilan bir xil yozuvlar: x.d, x.t, x.c.<sana>, kunlik vazifa yulduzlari (x.cl, x.s), haftalik bonus (x.w).
 // Farq (ataylab): yangi ilovada har qanday mashq faol kun hisoblanadi (a1.days) — eskisida kitob mashqlari seriyani oshirmasdi.
 export function gain(kind: string, xp: number) {
