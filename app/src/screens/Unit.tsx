@@ -4,7 +4,8 @@
 // 13-partiya (A8): qat'iy tartib (lib/order.ts) — roundlar ketma-ket, mashqlar 1-qism → nazariya → test → mashqlar 2-qism;
 // «Bilaman — sinab ko'raman» (so'z testi 90%+); guruhsiz o'quvchida keyingi vahda joriysining majburiy qismi tugagach ochiladi.
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Bookmark, Check, ChevronDown, ChevronRight, ChevronUp, GraduationCap, KeyRound, Library, List, Lock, Ruler } from "lucide-react";
+import { ArrowRight, Bookmark, Check, ChevronDown, ChevronRight, ChevronUp, CloudDownload, GraduationCap, KeyRound, Library, List, Lock, Ruler } from "lucide-react";
+import { isLite, offOf, onWifi, saveUnit, type OffUnit } from "../lib/lite";
 import { preloadKitob } from "../lib/audio";
 import { loadData } from "../lib/data";
 import { GRADED, isReadStep, kbBest, kbKeyOf, loadKb, type KbLesson, type KbStep } from "../lib/kb";
@@ -221,6 +222,8 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
         </ul>
       </section>
 
+      {(isLite() || !!offOf(bookId, unitN)) && <OffRow bookId={bookId} unitN={unitN} words={[...u.words, ...(u.phrases || [])].map((w) => w[0])} />}
+
       <ol className="vpath" aria-label="Vahda bosqichlari">
         <li className={`vp vp-voc ${vocPct >= 100 ? "dn" : ""} ${next.kind === "round" ? "on" : ""}`}>
           {N(vocPct >= 100)}
@@ -356,6 +359,32 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
         )}
       </div>
     </main>
+  );
+}
+
+/** 17-partiya (A6): vahdani oldindan yuklab olish — so'z va mashq ovozlari internetsiz ishlaydi */
+function OffRow({ bookId, unitN, words }: { bookId: string; unitN: number; words: string[] }) {
+  const [st, setSt] = useState<OffUnit | null>(() => offOf(bookId, unitN));
+  const [prog, setProg] = useState<[number, number] | null>(null);
+  const wifi = onWifi();
+  const run = async () => {
+    if (prog) return;
+    tg.haptic();
+    setProg([0, 1]);
+    try { const r = await saveUnit(bookId, unitN, words, (d, a) => setProg([d, a])); setSt(r); tg.haptic("success"); toast("Vahda yuklab olindi — ovozlar internetsiz ishlaydi"); }
+    catch (e) { toast(e instanceof Error ? e.message : "Yuklab bo'lmadi"); }
+    setProg(null);
+  };
+  const mb = (kb: number) => (kb >= 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb} KB`);
+  return (
+    <button type="button" className={`off-row ${st ? "dn" : ""}`} disabled={!!prog} onClick={() => void run()}>
+      <span className="off-ic" aria-hidden>{st && !prog ? <Check size={18} strokeWidth={3} /> : <CloudDownload size={18} />}</span>
+      <span className="off-t">
+        <b>{prog ? `Yuklanmoqda… ${prog[0]} / ${prog[1]}` : st ? "Vahda yuklab olingan" : "Vahdani yuklab olish"}</b>
+        <small>{prog ? "Ilovani yopmang" : st ? `${st.n} ta ovoz · ${mb(st.kb)} · internetsiz ishlaydi · yangilash uchun bosing` : wifi === false ? "Hozir mobil internet — Wi-Fi'da yuklab olish tavsiya etiladi" : "Wi-Fi'da bir marta yuklang — keyin ovozlar trafik sarflamaydi"}</small>
+        {prog && <span className="vp-bar off-bar"><i style={{ width: `${Math.round((prog[0] / Math.max(1, prog[1])) * 100)}%` }} /></span>}
+      </span>
+    </button>
   );
 }
 

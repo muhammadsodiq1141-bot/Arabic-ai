@@ -2,9 +2,12 @@
 // Oqim — ibora 2 marta yangraydi, so'ng navbat sizda (sanoq bilan avtomatik keyingisiga o'tadi);
 // Solishtirish — 1 · Tinglang, 2 · Takrorlang (ovoz yoziladi), 3 · Solishtiring (asl va sizning ovozingiz).
 // Kunlik mashq (Mashq bo'limidan): 10 ibora, eski ilova bilan bir xil f.shd, har ibora gain("fc", 4).
+// 17-partiya (A4, TMLT 6-bob — ovoz yozish xavotiri): «Xor» — ovoz yozilmaydi, ibora 3 marta yangraydi (tinglash, 2 marta birga aytish),
+// o'zi keyingisiga o'tadi. Tanlov eslab qolinadi (f.shxor).
 import { Fragment, useEffect, useReducer, useRef } from "react";
 import { Mic, Play, RotateCcw, SkipForward, X } from "lucide-react";
-import { fmtT, kLag, kPaint, multLevel, shEnd, shKey, shMore, shPicks, SHSP, shRate, shToday, videoUrl, type Mult, type ShItem } from "../lib/mult";
+import { fmtT, kLag, kPaint, mediaUrl, multLevel, shEnd, shKey, shMore, shPicks, SHSP, shRate, shToday, type Mult, type ShItem } from "../lib/mult";
+import { isLite } from "../lib/lite";
 import { gain, store } from "../lib/store";
 import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
@@ -17,8 +20,8 @@ import { toast } from "../ui/Toast";
 import { LagRow, useMults } from "./Mult";
 import { GainNote } from "../ui/GainNote";
 
-type Phase = "idle" | "play" | "play2" | "turn" | "rec" | "compare";
-type Mode = "flow" | "card";
+type Phase = "idle" | "play" | "play2" | "play3" | "turn" | "rec" | "compare";
+type Mode = "flow" | "card" | "xor";
 type St = { k: number; mode: Mode; auto: boolean; phase: Phase; rate: number; left: number; rec: { url: string; dur: number } | null; rep: Record<string, number>; t0: number; sec: number };
 
 const recMime = () => ["audio/webm;codecs=opus", "audio/ogg;codecs=opus", "audio/mp4", "audio/webm"]
@@ -29,7 +32,7 @@ export function ShadowScreen({ items, mode, daily }: { items: ShItem[]; mode: Mo
   const { back, replace } = useNav();
   const { me } = useSession();
   const ms = useMults();
-  const S = useRef<St>({ k: 0, mode, auto: true, phase: "idle", rate: shRate(), left: 0, rec: null, rep: {}, t0: Date.now(), sec: 0 });
+  const S = useRef<St>({ k: 0, mode: mode === "card" && store.get("f.shxor", false) ? "xor" : mode, auto: true, phase: "idle", rate: shRate(), left: 0, rec: null, rep: {}, t0: Date.now(), sec: 0 });
   const [, force] = useReducer((x: number) => x + 1, 0);
   const vid = useRef<HTMLVideoElement>(null);
   const ph = useRef<HTMLSpanElement>(null);
@@ -56,27 +59,30 @@ export function ShadowScreen({ items, mode, daily }: { items: ShItem[]; mode: Mo
     const step = () => {
       const x = cur(); if (!x || !alive.current) return;
       const p = S.current.phase;
-      if (p === "play" || p === "play2") { kPaint(ph.current, x.c, vid.current?.currentTime ?? 0); raf.current = requestAnimationFrame(step); }
+      if (p === "play" || p === "play2" || p === "play3") { kPaint(ph.current, x.c, vid.current?.currentTime ?? 0); raf.current = requestAnimationFrame(step); }
       else kPaint(ph.current, x.c, x.c.e + 2 + kLag());
     };
     raf.current = requestAnimationFrame(step);
   };
 
-  const playSeg = (rate?: number, second = false) => {
+  const playSeg = (rate?: number, pass = 1) => {
     const x = cur(), el = vid.current;
     if (!x || !el || !alive.current) return;
     stopRec(); clearT();
     const st = S.current;
-    st.phase = second ? "play2" : "play"; st.rate = rate || shRate();
+    st.phase = pass === 1 ? "play" : pass === 2 ? "play2" : "play3"; st.rate = rate || shRate();
     force(); kara();
     try { el.playbackRate = st.rate; el.currentTime = Math.max(0, x.c.s - 0.05); void el.play().catch(() => {}); } catch { /* */ }
     tm.current = window.setInterval(() => {
       if (!alive.current) { clearT(); return; }
       if (el.currentTime >= shEnd(x.c) + kLag() + 0.1 || el.ended) {
         pauseV(); clearT();
-        if (!second) {
-          const cc = x.c;
-          setTimeout(() => { if (alive.current && S.current.phase === "play" && cur()?.c === cc) playSeg(S.current.rate, true); }, 500);
+        const cc = x.c, ph0 = S.current.phase;
+        const again = (n: number, ms: number) => setTimeout(() => { if (alive.current && S.current.phase === ph0 && cur()?.c === cc) playSeg(S.current.rate, n); }, ms);
+        if (pass === 1) again(2, 500);
+        else if (S.current.mode === "xor") {
+          if (pass === 2) again(3, 450);
+          else setTimeout(() => { if (alive.current && S.current.phase === ph0 && cur()?.c === cc) next(true); }, 700);
         } else turn();
       }
     }, 40);
@@ -118,7 +124,7 @@ export function ShadowScreen({ items, mode, daily }: { items: ShItem[]; mode: Mo
       release(); tg.haptic("success"); force(); return;
     }
     force();
-    if (auto || st.mode === "flow") setTimeout(() => playSeg(), 80);
+    if (auto || st.mode === "flow" || st.mode === "xor") setTimeout(() => playSeg(), 80);
   };
 
   const playMine = () => {
@@ -168,13 +174,14 @@ export function ShadowScreen({ items, mode, daily }: { items: ShItem[]; mode: Mo
     if (S.current.mode === md) return;
     stopRec(); clearT(); pauseV();
     Object.assign(S.current, { mode: md, phase: "idle" });
+    if (md !== "flow") store.set("f.shxor", md === "xor");
     force();
-    if (md === "flow") setTimeout(() => playSeg(), 300);
+    if (md === "flow" || md === "xor") setTimeout(() => playSeg(), 300);
   };
   const setRate = (r: number) => {
     store.set("f.shrate", r);
     S.current.rate = r;
-    if (S.current.phase === "play" || S.current.phase === "play2") { try { if (vid.current) vid.current.playbackRate = r; } catch { /* */ } }
+    if (S.current.phase === "play" || S.current.phase === "play2" || S.current.phase === "play3") { try { if (vid.current) vid.current.playbackRate = r; } catch { /* */ } }
     force();
   };
 
@@ -193,11 +200,12 @@ export function ShadowScreen({ items, mode, daily }: { items: ShItem[]; mode: Mo
   }, []);
   useEffect(() => {
     if (!ms) return;
-    if (S.current.mode === "flow" && !daily) { const h = setTimeout(() => playSeg(), 300); return () => clearTimeout(h); }
+    if ((S.current.mode === "flow" && !daily) || S.current.mode === "xor") { const h = setTimeout(() => playSeg(), 300); return () => clearTimeout(h); }
   }, [ms]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const st = S.current;
   const n = items.length;
+  const lite = isLite(); // 17-partiya (A6): video o'rniga yengil audio
   if (!ms) return <main className="round"><p className="muted pad">Yuklanmoqda…</p></main>;
 
   // ===== yakun =====
@@ -237,7 +245,7 @@ export function ShadowScreen({ items, mode, daily }: { items: ShItem[]; mode: Mo
   if (!x) return <main className="round"><p className="muted pad">Ibora topilmadi.</p><button type="button" className="btn dark wide" onClick={back}>Orqaga</button></main>;
   const { m, c } = x;
   const p = st.phase;
-  const playing = p === "play" || p === "play2";
+  const playing = p === "play" || p === "play2" || p === "play3";
   const words = c.ar.split(/\s+/);
   const phrase = (
     <div className="shcard">
@@ -263,18 +271,32 @@ export function ShadowScreen({ items, mode, daily }: { items: ShItem[]; mode: Mo
         <span className="r-count">{st.k + 1} / {n}</span>
       </header>
       <div className="r-bar" role="progressbar" aria-valuenow={st.k} aria-valuemin={0} aria-valuemax={n} aria-label="Shadowing"><i style={{ width: `${(st.k / n) * 100}%` }} /></div>
-      {!daily && (
-        <div className="seg small" role="group" aria-label="Rejim">
-          <button type="button" className={st.mode === "flow" ? "on" : ""} aria-pressed={st.mode === "flow"} onClick={() => setMode("flow")}>Oqim</button>
-          <button type="button" className={st.mode === "card" ? "on" : ""} aria-pressed={st.mode === "card"} onClick={() => setMode("card")}>Solishtirish</button>
-        </div>
-      )}
-      <div className={`mplayer ${st.mode === "card" ? "small" : ""}`}>
-        <video ref={vid} src={videoUrl(m)} playsInline preload="auto"
+      <div className="seg small" role="group" aria-label="Rejim">
+        {(daily ? ([["card", "Solishtirish"], ["xor", "Xor"]] as [Mode, string][]) : ([["flow", "Oqim"], ["card", "Solishtirish"], ["xor", "Xor"]] as [Mode, string][])).map(([md, l]) => (
+          <button key={md} type="button" className={st.mode === md ? "on" : ""} aria-pressed={st.mode === md} onClick={() => setMode(md)}>{l}</button>
+        ))}
+      </div>
+      <div className={`mplayer ${st.mode === "card" ? "small" : ""} ${lite ? "lite" : ""}`}>
+        <video ref={vid} src={mediaUrl(m, lite)} poster={lite ? m.thumb : undefined} playsInline preload="auto"
           onLoadedMetadata={(e) => { if (S.current.phase === "idle") { const y = cur(); if (y) e.currentTarget.currentTime = y.c.s; } }} />
       </div>
 
-      {st.mode === "flow" ? (
+      {st.mode === "xor" ? (
+        <>
+          <div className="shturn" aria-live="polite">
+            {p === "play" ? <b className="muted">1-marta · tinglang…</b>
+              : p === "play2" || p === "play3" ? <><span className="shring on2"><Mic size={20} aria-hidden /></span><b>{p === "play2" ? "Birga ayting" : "Yana bir bor — birga"}</b></>
+              : <b className="muted">Boshlash uchun «Qayta» ni bosing</b>}
+          </div>
+          {phrase}
+          <div className="shbtns two">
+            <button type="button" onClick={replay}><RotateCcw size={20} aria-hidden />Qayta</button>
+            <button type="button" onClick={() => next(false)}><SkipForward size={20} aria-hidden />Keyingi</button>
+          </div>
+          <p className="sh-hint">Xor: ovoz yozilmaydi. Ibora uch marta yangraydi — avval tinglang, keyin ovoz bilan birga ayting.</p>
+          {speedRow}
+        </>
+      ) : st.mode === "flow" ? (
         <>
           <div className="shturn" aria-live="polite">
             {p === "play2" ? <><span className="shring on2"><Mic size={20} aria-hidden /></span><b>Navbat sizda — ovoz bilan birga ayting!</b></>

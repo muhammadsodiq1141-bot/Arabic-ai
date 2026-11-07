@@ -2,9 +2,11 @@
 // Tayyorgarlik (60 s) → bir mavzuni 3 marta gapirish, har gal vaqt kamayadi (4/3/2 usulining qisqa shakli: 60 → 45 → 30 s).
 // Yozuvlar faqat telefonda (lib/vdb.ts): vahda bo'yicha birinchi va oxirgi urinish saqlanadi (o'sish portfeli — «Baholar»).
 // Ovoz yozib bo'lmasa yoki hozir gapira olmasa — matn bilan (xavfsiz sukut, A4). Guruhdagi o'quvchi xohlasa ustozga yuboradi.
+// 17-partiya (M7): yakunda «Namuna — kitobdan» (vahda matnidan o'zi haqidagi 3 gap, kitob ovozi) va o'z oxirgi yozuvi yonma-yon.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Mic, PenLine, Play, Send, Square, Volume2 } from "lucide-react";
-import { say } from "../lib/audio";
+import { preloadKitob, say } from "../lib/audio";
+import { dictOk, unitTexts, type Line } from "../lib/texts";
 import { blobB64, recMime, sendSub } from "../lib/kb";
 import { dayKey } from "../lib/progress";
 import { gain, knownOf, store } from "../lib/store";
@@ -44,6 +46,24 @@ export function SpeakScreen({ bookId, unitN }: { bookId: string; unitN: number }
     return [...u.words].sort((a, b) => Number(!!K[b[0]]) - Number(!!K[a[0]])).slice(0, 8);
   }, [u, bookId, unitN]);
   const lowLvl = !me?.level || ["A0", "A1"].includes(me.level);
+  const [model, setModel] = useState<Line[]>([]);
+  useEffect(() => {
+    let a = true;
+    unitTexts(bookId, unitN).then((t) => {
+      if (!a || !t) return;
+      const seen = new Set<string>();
+      const L = t.lines.filter((l) => dictOk(l) && !seen.has(l.ar) && !!seen.add(l.ar));
+      // o'zi haqidagi gap: «أَنَا …», «اِسْمِي …», «عِنْدِي …» yoki birinchi shaxs fe'li bilan boshlanadi (أَدْرُسُ، أُحِبُّ)
+      const first = L.filter((l) => {
+        const s = l.ar.trim(), fw = s.split(/\s+/)[0] || "";
+        return /^(أَنَا|اِسْمِي|اسْمِي|عِنْدِي|لَدَيَّ|لِي )/.test(s) || (/^أ[َُ]/.test(fw) && /ُّ?[.،؟!]?$/.test(fw));
+      });
+      const pick = (first.length >= 2 ? first : L).slice(0, 3);
+      setModel(pick);
+      if (pick.length) void preloadKitob(`${bookId}/${unitN}`, pick.map((l) => l.ar));
+    });
+    return () => { a = false; };
+  }, [bookId, unitN]);
 
   // tayyorgarlik taymeri
   useEffect(() => {
@@ -137,6 +157,18 @@ export function SpeakScreen({ bookId, unitN }: { bookId: string; unitN: number }
             <li key={k}><button type="button" className="spk-play" aria-label={`${k + 1}-urinishni tinglash`} onClick={() => void new Audio(r.url).play()}><Play size={16} aria-hidden /></button>
               <span><b>{k + 1}-urinish</b><small>{r.sec} soniya · {LIM[k]} s ichida</small></span></li>
           ))}</ul>
+          {model.length > 0 && (
+            <div className="spk-model">
+              <b>Namuna — kitobdan</b>
+              <small>Avval kitob ovozini, keyin o'zingizni tinglang. Talaffuz va ohangda farqni eshitasizmi?</small>
+              {model.map((l, k) => (
+                <button key={k} type="button" className="spk-ml" onClick={() => void say(l.ar)}>
+                  <Volume2 size={16} aria-hidden /><span><Ar>{l.ar}</Ar>{l.uz && <small>{l.uz}</small>}</span>
+                </button>
+              ))}
+              {recs.length > 0 && <button type="button" className="spk-ml mine" onClick={() => void new Audio(recs[recs.length - 1].url).play()}><Play size={16} aria-hidden /><span><b>Mening oxirgi yozuvim</b><small>{recs[recs.length - 1].sec} soniya</small></span></button>}
+            </div>
+          )}
           <p className="spk-priv">Yozuvlar faqat telefoningizda saqlanadi. «Baholar»da birinchi va oxirgi urinishingiz turadi.</p>
           {me?.group && recs.length > 0 && !sent && <button type="button" className="btn ghost wide" onClick={() => void sendTeacher(recs[recs.length - 1])}><Send size={18} aria-hidden />Oxirgi yozuvni ustozga yuborish</button>}
           <button type="button" className="btn primary wide" onClick={back}>Tayyor</button>

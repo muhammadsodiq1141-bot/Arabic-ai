@@ -12,6 +12,7 @@ import { a0Answer, a0HwFor, a0HwState, loadAllA0, revAnswer, revDue, revWrong, t
 import { gain, store } from "../lib/store";
 import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
+import { useSession } from "../state/session";
 import { Emo, EmoLead } from "../ui/Emo";
 import { Ar } from "../ui/kit";
 import { CountUp } from "../ui/CountUp";
@@ -19,7 +20,7 @@ import { reactMark, reactReset, reactStepEnd } from "../ui/Reaction";
 import { Scale } from "../ui/Scale";
 import { Alphabet, Hear, Ladder, LetterItem, Trace } from "./KbA0";
 import { GainNote } from "../ui/GainNote";
-import { HintLadder, noteHint } from "../ui/HintLadder";
+import { ERR_KIND, HintLadder, noteHint, typeFirst } from "../ui/HintLadder";
 import { strandSet } from "../lib/strand";
 import { rkOn } from "../lib/reaction";
 
@@ -59,6 +60,7 @@ const PRAISE = ["To'g'ri!", "Barakalla!", "Ajoyib!", "Zo'r!"];
 
 function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: KbStep; lessonKey: string; si: number; unitN: number; refs?: Rev[]; letter?: string }) {
   const { back, replace } = useNav();
+  const { me } = useSession(); // 17-partiya (A2): darajaga qarab maslahat
   const items = useMemo(() => st.items.map(prep), [st]);
   const n = items.length;
   const graded = items.filter((x) => GRADED.includes(x.type)).length;
@@ -229,7 +231,7 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
       </section>
 
       {tries > 0 && !done && !help && (
-        <HintLadder hint={hintOf(it)} onReveal={() => finish(false)}
+        <HintLadder hint={hintOf(it)} onReveal={() => finish(false)} kind={typeFirst(me?.level) ? ERR_KIND[it.type] : undefined}
           rule={st.rule ? <><Ar className="kb-rh small">{st.rule.h}</Ar>{st.rule.p.map((p, k) => <p key={k} dangerouslySetInnerHTML={{ __html: p }} />)}</> : undefined} />
       )}
       {isGraded && done && <Feedback it={it} good={!!ans} n={i} hinted={tries > 0} rev={a0n && (!ans || tries > 0) && it.type !== "trace"} />}

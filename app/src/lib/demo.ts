@@ -78,7 +78,7 @@ const MEM: Record<string, unknown>[] = [
   { name: "Aziz", full_name: "Aziz Karimov", login: "MJ-48213", level: "A1", username: "aziz_k", last_seen: iso(20), kid: "k1", xp: 95,
     sum: sum({ streak: 4, xpw: 95, xpt: 40, days: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 5, 2, 3], books: { a1: [42, 302] }, test: 70, kb: { "a1:4": [2, 10, 92] } }) },
   { name: "Madina", full_name: "Madina Yusupova", login: "MJ-48877", level: "A1", username: "madina_y", last_seen: iso(200), kid: "k2", xp: 160,
-    sum: sum({ streak: 9, xpw: 160, xpt: 25, days: [1, 2, 1, 3, 2, 0, 1, 2, 3, 2, 4, 2, 3, 1], books: { a1: [118, 302] }, test: 88, kb: { "a1:3": [10, 10, 95], "a1:4": [6, 10, 81] } }) },
+    sum: sum({ streak: 9, xpw: 160, xpt: 25, days: [1, 2, 1, 3, 2, 0, 1, 2, 3, 2, 4, 2, 3, 1], books: { a1: [118, 302] }, test: 88, kb: { "a1:3": [10, 10, 95], "a1:4": [6, 10, 81] }, lite: 1 }) }, // 17-partiya: kam trafik belgisi
   { name: "Dilnoza", full_name: "Dilnoza Rahmonova", login: "MJ-49002", level: "A1", username: "", last_seen: iso(60 * 26), kid: "k3", xp: 102,
     sum: sum({ streak: 0, xpw: 102, xpt: 0, days: [0, 1, 1, 0, 2, 0, 0, 1, 0, 2, 3, 1, 0, 0], books: { a1: [77, 302] }, test: 64 }) },
   { name: "Sardor", full_name: "Sardor Aliyev", login: "MJ-49110", level: "A1", username: "sardor_a", last_seen: iso(60 * 24 * 5), kid: "k4", xp: 0,

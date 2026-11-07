@@ -2,7 +2,7 @@
 // tekshiriladigan javoblar soni, uy vazifalari, taklif havolasi, o'quvchini guruhdan chiqarish (ikki marta bosib tasdiqlanadi).
 // 7-partiya: admin istalgan guruhni ochadi (fixed), guruhni o'chirish (groupDelete), yana guruh ochish.
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronRight, ClipboardList, Flame, Link2, MessageSquareText, Plus, Trash2, UserMinus, Users } from "lucide-react";
+import { ChevronDown, ChevronRight, ClipboardList, Flame, Link2, MessageSquareText, Plus, Presentation, Trash2, UserMinus, Users, Gauge } from "lucide-react";
 import { api } from "../lib/api";
 import { BOT_LINK } from "../lib/config";
 import { loadData, type BookIndex } from "../lib/data";
@@ -18,6 +18,7 @@ import { toast } from "../ui/Toast";
 export type Sum = {
   streak?: number; xpw?: number; xpt?: number; days?: number[]; book?: string; books?: Record<string, [number, number]>;
   test?: number | null; kb?: Record<string, [number, number, number]>; a0?: { m: string; sp?: number | null; rv?: number }; ob?: { d: number; n: number };
+  lite?: number; // 17-partiya (A6): kam trafik rejimi yoqilgan
 };
 export type Member = { name: string; full_name: string | null; login: string | null; level: string | null; username?: string; last_seen: string | null; kid: string; xp: number; sum: Sum | null };
 
@@ -113,6 +114,12 @@ export function TeacherScreen({ fixed }: { fixed?: { code: string; title: string
         <span><b>Uy vazifalari</b><small>{hwN === null ? "Yuklanmoqda…" : hwN ? `${hwN} ta vazifa · kim bajardi` : "Hali vazifa berilmagan"}</small></span>
         <ChevronRight size={20} aria-hidden />
       </button>
+      {/* 17-partiya (U7): darsda telefon yoki proyektorda — 4/3/2, rol kartalari, ustoz diktanti */}
+      <button type="button" className="rowbtn" onClick={() => go("class")}>
+        <Presentation size={24} aria-hidden />
+        <span><b>Sinf rejimi</b><small>Darsda: 4/3/2 taymeri, rol kartalari, diktant</small></span>
+        <ChevronRight size={20} aria-hidden />
+      </button>
       <div className="t-act">
         <button type="button" className="btn primary" onClick={() => go("thwnew", { code: cur.code })}><Plus size={18} aria-hidden />Vazifa berish</button>
         <button type="button" className="btn ghost" onClick={share}><Link2 size={18} aria-hidden />Taklif havolasi</button>
@@ -164,6 +171,7 @@ function MemberRow({ m, open, onToggle, bookName, onKick }: { m: Member; open: b
         <span className="t-who">
           <b>{name}</b>
           <small className={d === 0 ? "on" : d !== null && d > 3 ? "late" : ""}>{lastText(m.last_seen)}{m.level ? ` · ${m.level}` : ""}</small>
+          {s.lite ? <small className="t-lite"><Gauge size={13} aria-hidden />trafigi cheklangan</small> : null}
         </span>
         <span className="t-xp" aria-label={`Bu hafta ${m.xp} yulduzcha`}>+{m.xp}</span>
         <ChevronDown size={18} aria-hidden className="t-chev" />

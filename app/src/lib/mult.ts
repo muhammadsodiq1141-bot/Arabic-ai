@@ -23,9 +23,16 @@ export const VLAB = ["moziy", "muzoriy", "amr", "masdar"];
 export const loadMults = () => loadData<Mult[]>("MULT_DATA").catch(() => [] as Mult[]);
 // Videolar repo ildizida (eski ilova bilan umumiy fayl): v2/ papkasidan bir pog'ona yuqorida
 export const videoUrl = (m: Mult) => `../${m.src}`;
+/** 17-partiya (A6): yengil audio (mono 40 kbit/s m4a, v2/ma/ ichida) — kam trafik rejimida video o'rniga */
+export const audioUrl = (m: Mult) => `./ma/${String(m.src || m.id).replace(/^.*\//, "").replace(/\.mp4$/i, "")}.m4a`;
+export const mediaUrl = (m: Mult, lite: boolean) => (lite && m.src ? audioUrl(m) : videoUrl(m));
 export const fmtT = (s: number) => { s = Math.max(0, Math.round(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
 
 export const mDone = () => store.get<Record<string, number>>("f.mdone", {});
+/** 17-partiya (M11): ko'rilgan (ochilgan) multfilmlar — yangi qism bosh sahifada «Yangi multfilm» bo'lib chiqadi */
+export const mSeen = () => store.get<string[]>("f.mseen", []);
+export function setMSeen(id: string) { const S = mSeen(); if (!S.includes(id)) store.set("f.mseen", [...S, id]); }
+export const mFresh = (ms: Mult[]) => ms.filter((m) => !mSeen().includes(m.id) && mDone()[m.id] === undefined);
 export function setMDone(id: string, pct: number) { const D = mDone(); D[id] = Math.max(D[id] || 0, pct); store.set("f.mdone", D); }
 export const mSpeed = () => store.get<number>("f.mspeed", 1);
 export const shRate = () => store.get<number>("f.shrate", 1);

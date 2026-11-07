@@ -1,9 +1,10 @@
 // Multfilmlar: daraja bo'yicha ro'yxat → video (karaoke subtitr, gapma-gap boshqaruv, tezlik), lug'at, test.
 // Eski ilova bilan bir xil kalitlar: f.mdone (test natijasi %), f.mspeed, f.klag. Videolar repo ildizidagi .mp4 fayllar.
 import { Fragment, useEffect, useRef, useState, type MouseEvent } from "react";
-import { Check, ChevronRight, Clapperboard, Mic, Minus, Pause, Play, Plus, Repeat, RotateCcw, SkipBack, SkipForward, Volume2 } from "lucide-react";
+import { AudioLines, Check, ChevronRight, Clapperboard, Mic, Minus, Pause, Play, Plus, Repeat, RotateCcw, SkipBack, SkipForward, Volume2 } from "lucide-react";
 import { say } from "../lib/audio";
-import { kLag, kPaint, lastAt, loadMults, mDone, MLV, mSpeed, setKLag, setMDone, shOk, SPEEDS, TYL, VLAB, videoUrl, vocFor, fmtT, type Mult, type MVoc } from "../lib/mult";
+import { kLag, kPaint, lastAt, loadMults, mDone, MLV, mSpeed, setKLag, setMDone, shOk, SPEEDS, TYL, VLAB, mediaUrl, setMSeen, vocFor, fmtT, type Mult, type MVoc } from "../lib/mult";
+import { isLite, setLite } from "../lib/lite";
 import { normAr } from "../lib/practice";
 import { gain, store } from "../lib/store";
 import { tg } from "../lib/tg";
@@ -74,6 +75,7 @@ export function MultScreen({ id }: { id: string }) {
   const ms = useMults();
   const m = ms?.find((x) => x.id === id);
   const [tab, setTabS] = useState<Tab>(TABS[id] || "video");
+  useEffect(() => { if (m) setMSeen(m.id); }, [m]);
   const setTab = (t: Tab) => { TABS[id] = t; setTabS(t); window.scrollTo(0, 0); tg.haptic(); };
   useCoach("mult", !!m && tab === "video");
   if (!ms) return <main className="screen"><ScreenHeader title="Multfilm" /><p className="muted pad">Yuklanmoqda…</p></main>;
@@ -128,6 +130,13 @@ function MultVideo({ m }: { m: Mult }) {
   const [uz, setUz] = useState(true);
   const [bad, setBad] = useState(false);
   const [pop, setPop] = useState<{ w: string; i: number } | null>(null);
+  const [lite, setLiteS] = useState(isLite); // 17-partiya (A6): faqat audio + matn
+  const flipLite = () => {
+    const el = v.current, t = el?.currentTime || 0, was = !!el && !el.paused;
+    setLite(!lite); setLiteS(!lite); setBad(false); tg.haptic();
+    // manba almashganda joy saqlanadi
+    requestAnimationFrame(() => { const e2 = v.current; if (!e2) return; const go2 = () => { e2.currentTime = t; e2.playbackRate = mSpeed(); if (was) void e2.play().catch(() => {}); }; if (e2.readyState >= 1) go2(); else e2.addEventListener("loadedmetadata", go2, { once: true }); });
+  };
   const loopI = useRef(-1);
   const loopOn = useRef(false);
   loopOn.current = loop;
@@ -195,14 +204,17 @@ function MultVideo({ m }: { m: Mult }) {
   return (
     <>
       <div className="mstick">
-        <div className="mplayer">
-          <video ref={v} src={videoUrl(m)} playsInline controls preload="auto"
+        <div className={`mplayer ${lite ? "lite" : ""}`}>
+          <video ref={v} src={mediaUrl(m, lite)} poster={lite ? m.thumb : undefined} playsInline controls={!lite} preload={lite ? "metadata" : "auto"}
             onLoadedMetadata={(e) => { e.currentTarget.playbackRate = mSpeed(); }}
             onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)}
             onEnded={() => { setPlaying(false); if (mDone()[m.id] === undefined) toast("Zo'r! Endi lug'at va testni ko'ring"); }}
             onError={() => setBad(true)} />
         </div>
-        {bad && <p className="err">Video yuklanmadi. Internetni tekshirib, sahifani qayta oching.</p>}
+        {bad && <p className="err">{lite ? "Audio" : "Video"} yuklanmadi. Internetni tekshirib, sahifani qayta oching.</p>}
+        <button type="button" className={`m-lite ${lite ? "on" : ""}`} aria-pressed={lite} onClick={flipLite}>
+          <AudioLines size={16} aria-hidden />{lite ? "Faqat audio · trafik 7 baravar kam" : "Faqat audio + matn (trafik tejash)"}
+        </button>
         <div className="mbar">
           <button type="button" onClick={() => ctl("prev")} aria-label="Oldingi gap"><SkipBack size={20} aria-hidden /><span>Oldingi</span></button>
           <button type="button" onClick={() => ctl("again")} aria-label="Gapni qayta"><RotateCcw size={20} aria-hidden /><span>Qayta</span></button>

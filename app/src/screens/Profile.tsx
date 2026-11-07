@@ -2,11 +2,12 @@
 // ustozlik so'rovi, ustoz va admin panellariga kirish, ko'rinish. Server amallari eski ilova bilan umumiy.
 import { goalOf } from "../lib/goal";
 import { useEffect, useState } from "react";
-import { BookOpen, ChevronRight, Copy, GraduationCap, IdCard, KeyRound, LogOut, Moon, MoonStar, Send, ShieldCheck, Sun, SunMoon, Target, UserPen, Users } from "lucide-react";
+import { BookOpen, ChevronRight, Copy, GraduationCap, IdCard, KeyRound, LogOut, Moon, MoonStar, Send, ShieldCheck, Sun, SunMoon, Target, UserPen, Users, Gauge } from "lucide-react";
+import { isLite, setLite, slowNet } from "../lib/lite";
 import { api } from "../lib/api";
 import { BOT_LINK } from "../lib/config";
 import { loadData, type BookIndex } from "../lib/data";
-import { store } from "../lib/store";
+import { scheduleSync, store } from "../lib/store";
 import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
@@ -94,8 +95,26 @@ export function Profile() {
           <Switch on={night} label="Kechqurun o'zi almashsin" onClick={() => setNight(!night)} />
         </div>
       </section>
+      <LiteCard />
       <ReactionSettings />
     </main>
+  );
+}
+
+/** 17-partiya (A6): kam trafik rejimi — multfilm va shadowing faqat audio + matn; ustozga belgi */
+function LiteCard() {
+  const [on, setOn] = useState(isLite);
+  const slow = slowNet();
+  const flip = () => { setLite(!on); setOn(!on); scheduleSync(); tg.haptic(); toast(!on ? "Kam trafik rejimi yoqildi" : "Kam trafik rejimi o'chirildi"); };
+  return (
+    <section className="card rk-set">
+      <div className="rk-row">
+        <span className="rk-ic" aria-hidden><Gauge size={26} /></span>
+        <div><b>Kam trafik rejimi</b><small>Multfilm va shadowing faqat audio + matn — trafik 7 baravar kam. Vahdani oldindan yuklab olish ham ochiladi.</small></div>
+        <Switch on={on} label="Kam trafik rejimi" onClick={flip} />
+      </div>
+      {slow && !on && <p className="pf-lite-tip">Internetingiz sekin yoki telefonda «trafikni tejash» yoqilgan — shu rejimni yoqishni tavsiya qilamiz.</p>}
+    </section>
   );
 }
 

@@ -14,7 +14,10 @@ import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
 import { Ar, Avatar, SectionTitle } from "../ui/kit";
-import { applyFreeze } from "../lib/motiv";
+import { applyFreeze, monthBadge, MONTH_GOAL } from "../lib/motiv";
+import { mFresh, setMSeen } from "../lib/mult";
+import { useMults } from "./Mult";
+import { Emo } from "../ui/Emo";
 import { claimRef } from "../lib/ref";
 import { goalOf } from "../lib/goal";
 import { toast } from "../ui/Toast";
@@ -37,6 +40,10 @@ export function Home() {
   const [word, setWord] = useState<DayWord | null>(null);
   const [books, setBooks] = useState<BookIndex | null>(null);
   const [intro, setIntro] = useState(false);
+  const ms = useMults(); // 17-partiya (M11)
+  const lv0 = String(me?.level || "").toLowerCase();
+  const fresh = ms ? mFresh(ms).sort((x, y) => Number(y.level === lv0) - Number(x.level === lv0))[0] || null : null;
+  const mb = monthBadge();
   const name = me?.full_name || me?.name || "O'quvchi";
 
   useEffect(() => {
@@ -113,6 +120,15 @@ export function Home() {
             <span className="in s2">{sum!.streak} kunlik seriya<img src={img("fire")} alt="" /></span>
           </button>
         )}
+        {/* 17-partiya (M11): yangi multfilm qismi va oy marafoni */}
+        {fresh && (
+          <button type="button" role="listitem" className="story" onClick={() => { setMSeen(fresh.id); go("mult", { id: fresh.id }); }}>
+            <span className="in s3">Yangi multfilm<small className="st-sub">{fresh.title}</small>{fresh.thumb ? <img className="st-th" src={fresh.thumb} alt="" /> : <img src={img("tv")} alt="" />}</span>
+          </button>
+        )}
+        <button type="button" role="listitem" className={`story ${mb.ok ? "seen" : ""}`} aria-label={`${mb.t}: ${mb.d}`} onClick={() => setTab("profile")}>
+          <span className="in s4">{mb.t}<small className="st-sub">{Math.min(mb.n, MONTH_GOAL)} / {MONTH_GOAL} kun</small><span className="st-emo"><Emo e={mb.e} size={56} /></span></span>
+        </button>
       </div>
 
       <div className="grid">

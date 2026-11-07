@@ -29,6 +29,7 @@ export function localKeys(re: RegExp) {
 export async function mySummary(): Promise<Record<string, unknown>> {
   const out: Record<string, unknown> = { v: 1, at: new Date().toISOString(), books: {} };
   try { out.streak = streakFz(); } catch { out.streak = 0; }
+  if (get<boolean>("f.lite", false)) out.lite = 1; // 17-partiya (A6): ustoz panelida «trafigi cheklangan» belgisi
   try {
     const D = get<Record<string, number>>("x.d", {});
     const w = weekId().split("-").map(Number);

@@ -3,8 +3,9 @@
 // 3) serverda yangidan yaratish ("tts") → 4) telefonning o'z ovozi. Fayl nomi = matnning SHA-1 kaliti (UTF-8).
 import { api } from "./api";
 import { API_URL } from "./config";
+import { offAudio } from "./offline";
 
-const TTS_BASE = API_URL.replace(/\/functions\/v1\/api$/, "") + "/storage/v1/object/public/tts/";
+export const TTS_BASE = API_URL.replace(/\/functions\/v1\/api$/, "") + "/storage/v1/object/public/tts/";
 const KB: Record<string, string> = {};
 const kbAt: Record<string, number> = {}; // "papka|kalit" → so'ralgan vaqt (havola 6 soat amal qiladi, 5 soat ishlatamiz)
 let el: HTMLAudioElement | null = null;
@@ -15,6 +16,14 @@ export const clean = (t: string) => String(t || "").replace(/<[^>]+>/g, "").repl
 export async function sha1(t: string) {
   const b = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(t));
   return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join("");
+}
+
+/** 17-partiya (A6): matnlar kitob audiosining havolalari (kalit → havola) — vahdani yuklab olish uchun */
+export async function kitobUrls(dir: string, texts: string[]) {
+  await preloadKitob(dir, texts);
+  const out: Record<string, string> = {};
+  for (const t of texts) { const k = await sha1(clean(t)); if (KB[k]) out[k] = KB[k]; }
+  return out;
 }
 
 // Darsning kitob audiosi havolalarini oldindan olib qo'yish (dir: "a1/4")
@@ -44,7 +53,8 @@ function device(t: string, my: number) {
   } catch { /* ovoz yo'q */ }
 }
 
-export async function say(text: string) {
+/** rate — tezlik (17-partiya: matnni 0.75× sekin tinglash); yuklab olingan vahda ovozi internetsiz ham ishlaydi */
+export async function say(text: string, rate = 1) {
   const t = clean(text);
   if (!t) return;
   const my = ++tok;
@@ -54,6 +64,15 @@ export async function say(text: string) {
   try { a.pause(); } catch { /* */ }
   const hk = await sha1(t);
   if (my !== tok) return;
+  const off = await offAudio(hk).catch(() => null);
+  if (my !== tok) return;
+  a.defaultPlaybackRate = rate; a.playbackRate = rate;
+  if (off) {
+    a.onerror = () => device(t, my);
+    a.src = off;
+    a.play().catch((e: Error) => { if (e?.name === "NotAllowedError") device(t, my); });
+    return;
+  }
   const server = async () => {
     try {
       const r = await api<{ url: string }>("tts", { t });
@@ -69,10 +88,10 @@ export async function say(text: string) {
 }
 
 /** Matnni aytib, tugashini kutish (matnni ketma-ket o'qish uchun). Ovoz tugamasa — matn uzunligiga qarab kutadi. */
-export async function sayWait(text: string) {
+export async function sayWait(text: string, rate = 1) {
   const t = clean(text);
-  await say(t);
-  const ms = Math.max(2600, t.replace(/[ً-ْٰـ]/g, "").length * 170);
+  await say(t, rate);
+  const ms = Math.max(2600, t.replace(/[ً-ْٰـ]/g, "").length * 170) / Math.min(1, rate);
   await new Promise<void>((res) => {
     let done = false;
     const fin = () => { if (done) return; done = true; el?.removeEventListener("ended", fin); res(); };

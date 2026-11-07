@@ -14,12 +14,13 @@ import { gain, store } from "../lib/store";
 import { tg } from "../lib/tg";
 import { shuffle } from "../lib/words";
 import { useNav } from "../state/nav";
+import { useSession } from "../state/session";
 import { CountUp } from "../ui/CountUp";
 import { Ar, ScreenHeader } from "../ui/kit";
 import { MixedText } from "../ui/Mixed";
 import { Scale } from "../ui/Scale";
 import { GainNote } from "../ui/GainNote";
-import { HintLadder, noteHint } from "../ui/HintLadder";
+import { ERR_KIND, HintLadder, noteHint, typeFirst } from "../ui/HintLadder";
 
 export type Rule = { t: string; ar: string; html: string; quiz: [string, string[], number, string?][] };
 export type RBook = PBook & { gen?: Record<string, (string | null)[]> };
@@ -116,6 +117,7 @@ const isArOnly = (s: string) => /[؀-ۿ]/.test(s) && !hasLatin(s);
  *  Faqat birinchi urinish hisobga kiradi; xato savol oxiriga qayta qo'shiladi (ko'pi bilan 2 marta). */
 export function RulePractice({ bookId, list, title }: { bookId: string; list: [number, number][]; title: string }) {
   const { back, replace } = useNav();
+  const { me } = useSession(); // 17-partiya (A2): darajaga qarab maslahat
   const book = useRBook(bookId);
   const [qs, setQs] = useState<PQ[] | null>(null);
   const [total, setTotal] = useState(0);
@@ -212,7 +214,7 @@ export function RulePractice({ bookId, list, title }: { bookId: string; list: [n
         })}
       </div>
       {ans === null && tries > 0 && (
-        <HintLadder onReveal={reveal}
+        <HintLadder onReveal={reveal} kind={typeFirst(me?.level) ? ERR_KIND.rule : undefined}
           hint={R ? <>«{R.t}» qoidasini eslang{R.ar ? <> — <Ar className="hl-ar">{R.ar}</Ar></> : null}. Qolgan variantlardan birini tanlang.</> : "Qolgan variantlardan birini tanlang."}
           rule={R?.html ? <div className="rule-body" dangerouslySetInnerHTML={{ __html: R.html }} /> : undefined} />
       )}

@@ -79,6 +79,19 @@ export function applyFreeze(): boolean {
   return false;
 }
 
+// ===== 17-partiya (M11; TMLT 12-bob — almashinadigan nishonlar): oy marafoni — har oy yangi nishon, shu oyda 20 kun mashq =====
+export const MONTHS = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"];
+const SEASON = ["❄️", "❄️", "🌱", "🌱", "🌸", "☀️", "☀️", "☀️", "🍂", "🍂", "🍂", "❄️"];
+export const MONTH_GOAL = 20;
+export function monthDays(ym = dayKey().slice(0, 7)) {
+  const D = store.get<Record<string, number>>("a1.days", {});
+  return Object.keys(D).filter((k) => k.startsWith(ym) && D[k]).length;
+}
+export function monthBadge(ym = dayKey().slice(0, 7)): Badge & { n: number } {
+  const m = Number(ym.slice(5, 7)) - 1, n = monthDays(ym);
+  return { id: `m${ym}`, e: SEASON[m] || "🗓️", t: `${MONTHS[m]} marafoni`, d: `${MONTHS[m]} oyida ${MONTH_GOAL} kun mashq · ${Math.min(n, MONTH_GOAL)}/${MONTH_GOAL}`, ok: n >= MONTH_GOAL, n };
+}
+
 // ===== 12 nishon (har safar mavjud kalitlardan hisoblanadi; emoji — 3D rasm sifatida chiziladi) =====
 const BOOK_IDS = ["a1", "a2", "b1", "b2", "c1", "md1", "md2"];
 export type Badge = { id: string; e: string; t: string; d: string; ok: boolean };
@@ -100,6 +113,10 @@ export function badges(hasGroup: boolean): Badge[] {
     { id: "group", e: "👥", t: "Jamoa", d: "Guruhga qo'shildi", ok: hasGroup },
     { id: "t100", e: "💯", t: "A'lochi", d: "Testda 100%", ok: t100 },
     { id: "month", e: "🗓️", t: "Oy davomida", d: "30 kun mashq", ok: Object.keys(D).length >= 30 },
+    // 17-partiya (M11): joriy oy marafoni va oldingi oylarda olinganlari
+    monthBadge(),
+    ...[...new Set(Object.keys(D).map((k) => k.slice(0, 7)))].filter((ym) => ym !== dayKey().slice(0, 7)).sort().reverse()
+      .map((ym) => monthBadge(ym)).filter((b) => b.ok).map((b) => ({ ...b, t: `${b.t} · ${b.id.slice(1, 5)}` })),
   ];
 }
 

@@ -1,4 +1,7 @@
 // Ilova ma'lumotlari (lug'at, kitoblar, kun so'zi...) — kerak bo'lganda yuklanadi va xotirada saqlanadi.
+// 17-partiya (A6): internet bo'lmasa — oldindan yuklab olingan vahda ma'lumoti (offline.ts).
+import { offData } from "./offline";
+
 const cache = new Map<string, Promise<unknown>>();
 
 export function loadData<T>(name: string): Promise<T> {
@@ -7,6 +10,10 @@ export function loadData<T>(name: string): Promise<T> {
     p = fetch(`./data/${name}.json`).then((r) => {
       if (!r.ok) throw new Error(`Ma'lumot yuklanmadi: ${name}`);
       return r.json();
+    }).catch(async (e) => {
+      const o = await offData(name);
+      if (o === null) throw e;
+      return o;
     });
     p.catch(() => cache.delete(name));
     cache.set(name, p);

@@ -4,6 +4,8 @@
 // 6-partiya: Mashq bo'limi (game, cards, wtest, errors, night, known, qs; mults, mult, mvoc, shadow; duel, leveltest, cert).
 // 7-partiya: profil (books, account, idcard), admin (admin, ateachers, ausers), guruh havolasi g_KOD.
 import { SpeakScreen } from "./Speak";
+import { DictScreen } from "./Dict";
+import { ClassModeScreen } from "./ClassMode";
 import { GoalScreen } from "./Goal";
 import { InviteScreen } from "./Invite";
 import { useEffect, useLayoutEffect } from "react";
@@ -73,7 +75,7 @@ function useStartParam() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
-const GUARDED = new Set(["round", "kb", "lesson", "qs", "rprac", "game", "cards", "wtest", "test", "darslik"]);
+const GUARDED = new Set(["round", "kb", "lesson", "qs", "rprac", "game", "cards", "wtest", "test", "darslik", "dict"]);
 
 export function Main() {
   const { tab, route } = useNav();
@@ -97,6 +99,9 @@ export function Main() {
   if (route.view === "invite") return <InviteScreen />; // 14-partiya
   if (route.view === "goal") return <GoalScreen key={`${String(p.redo || "")}:${String(p.conf || "")}`} redo={!!p.redo} confOnly={!!p.conf} />; // 15-partiya
   if (route.view === "share") return <ShareScreen />;
+  // 17-partiya: sinf rejimi (U7, ustoz) va diktant (K7 o'zi / U7 ustoz kodi bilan)
+  if (route.view === "class") return <ClassModeScreen />;
+  if (route.view === "dict") return <DictScreen key={String(p.n || "")} bookId={String(p.book || store.get("a1.book", "a1"))} unitN={Number(p.unit) || 1} mode={p.mode ? String(p.mode) : undefined} code={p.code ? String(p.code) : undefined} seed={Number(p.n) || Date.now()} />;
   // A0 · Alifbo: n — dars, l — harf, id — vazifa
   if (route.view === "city") return <CityScreen />;
   if (route.view === "mem") return <MemScreen key={`${p.book}:${p.unit}`} bookId={String(p.book || "md1")} unitN={Number(p.unit) || 1} />;
