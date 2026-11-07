@@ -26,6 +26,7 @@ import { useSession } from "../state/session";
 import { toast } from "../ui/Toast";
 import { useMults } from "./Mult";
 import { shDaily } from "./Shadow";
+import { spkAll } from "./Speak";
 import { Ar } from "../ui/kit";
 import { MixedText } from "../ui/Mixed";
 import { streakNow } from "../lib/motiv";
@@ -123,6 +124,8 @@ export function TodayCard({ bookId }: { bookId: string }) {
   const nst = nx.kind === "kb" && kb ? kb.steps[Number(nx.params.si)] : null;
   const readNext = !!nst && (isReadStep(nst) || /^\s*O[ʻ'’`]?qish/i.test(nst.t));
   const sh = ms?.length ? shDaily(ms, me?.level) : null;
+  // 16-partiya: o'z gapi (ma'noli chiqarma) shadowing'dan oldin — vahda so'zlarining yarmidan ko'pi yodlangan, lekin shu vahdada hali gapirilmagan
+  const spkU = pctOf(plan.u.words, knownOf(bookId, plan.u.n)) >= 50 && !spkAll()[`${bookId}:${plan.u.n}`];
   // ravonlik: so'zlari to'liq yodlangan eng oxirgi vahda (tanish so'zlar tezlikda), bo'lmasa — joriy vahda
   const fluU = [...book.units].reverse().find((u) => u.n <= plan.u.n && pctOf(u.words, knownOf(bookId, u.n)) >= 100)?.n || plan.u.n;
   const parts: Part[] = [
@@ -133,10 +136,13 @@ export function TodayCard({ bookId }: { bookId: string }) {
       t: readNext ? "Kitob matnini tinglab o'qish" : "Multfilm tomosha qiling",
       d: readNext ? `${plan.u.n}-vahda · ${nx.sub}` : "Arabcha subtitr va tarjima bilan · ~5 daqiqa",
       run: () => (readNext ? go(nx.view, nx.params) : ms && !ms.length ? toast("Multfilmlar tez orada qo'shiladi") : go("mults")) },
-    { k: "o", tag: "Gapirish", done: today.o >= 120 || (!!sh && sh.done >= Math.min(5, sh.picks.length)),
-      t: "Ovoz chiqarib gapirish",
-      d: sh ? `Shadowing · ${sh.done} / ${sh.picks.length} ibora · ovozni faqat siz eshitasiz` : "Yuklanmoqda…",
-      run: () => (sh?.picks.length ? go("shadow", { items: sh.items, mode: "card", daily: true, n: Date.now() }) : toast("Iboralar tez orada qo'shiladi")) },
+    spkU
+      ? { k: "o", tag: "Gapirish", done: today.o >= 120, t: "O'zingiz gapiring",
+          d: `«${plan.u.uz}» mavzusida · 60 → 45 → 30 soniya`, run: () => go("speak", { book: bookId, unit: plan.u.n, n: Date.now() }) }
+      : { k: "o", tag: "Gapirish", done: today.o >= 120 || (!!sh && sh.done >= Math.min(5, sh.picks.length)),
+          t: "Ovoz chiqarib gapirish",
+          d: sh ? `Shadowing · ${sh.done} / ${sh.picks.length} ibora · ovozni faqat siz eshitasiz` : "Yuklanmoqda…",
+          run: () => (sh?.picks.length ? go("shadow", { items: sh.items, mode: "card", daily: true, n: Date.now() }) : toast("Iboralar tez orada qo'shiladi")) },
     { k: "r", tag: "Ravonlik", done: today.r >= 60, t: "60 soniya: tanish so'zlar",
       d: `${fluU}-vahda so'zlari · tez javob bering`, run: () => go("game", { book: bookId, unit: fluU, game: "speed" }) },
   ];

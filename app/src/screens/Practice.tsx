@@ -3,7 +3,7 @@
 // takrorlash: xatolar daftari, sokin takrorlash, saqlangan so'zlar, "Siz bilasiz"; tinglash: multfilmlar va kunlik shadowing.
 // sinov: bellashuv (do'st bilan) va daraja testi (sertifikat).
 import { useEffect, useState } from "react";
-import { ALargeSmall, ArrowLeftRight, Building2, Bookmark, ChevronRight, CircleDot, Clapperboard, ClipboardCheck, Coins, Gamepad2, Image, Layers, ListOrdered, Mic, Moon, PenLine, Puzzle, RotateCcw, Sparkles, Swords, Target, Zap } from "lucide-react";
+import { ALargeSmall, ArrowLeftRight, AudioLines, Building2, Bookmark, ChevronRight, CircleDot, Clapperboard, ClipboardCheck, Coins, Gamepad2, Image, Layers, ListOrdered, Mic, Moon, PenLine, Puzzle, RotateCcw, Sparkles, Swords, Target, Zap } from "lucide-react";
 import { loadData } from "../lib/data";
 import { bestKey, lastUnit, setLastUnit, usePics, type Err, type PBook } from "../lib/practice";
 import { useMults } from "./Mult";
@@ -130,6 +130,7 @@ export function Practice() {
       <h2 className="pr-h"><Ar className="pr-h-ar">الِاسْتِمَاعُ وَالْكَلَامُ</Ar><span>Tinglash va gapirish</span></h2>
       <div className="pr-list">
         {row("mults", Clapperboard, "Multfilmlar", ms ? `${ms.length} ta · arabcha subtitr va tarjima bilan` : "…", () => (ms && !ms.length ? toast("Multfilmlar tez orada qo'shiladi") : go("mults")))}
+        {row("speak", AudioLines, "Yakka gapirish", `${unit}-vahda mavzusida o'z gapingiz · 60 → 45 → 30 s`, () => go("speak", { book: bookId, unit, n: Date.now() }), !u)}
         {row("shadow", Mic, "Shadowing", !sh ? "…" : sh.done >= sh.picks.length ? "Bugungi mashq bajarildi · yana takrorlash mumkin" : `Bugungi ${sh.picks.length} ta ibora · ${sh.done} / ${sh.picks.length} · ~5 daqiqa`,
           () => sh && go("shadow", { items: sh.items, mode: "card", daily: true, n: Date.now() }), !sh?.picks.length)}
       </div>

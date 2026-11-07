@@ -1,7 +1,10 @@
 // Baholar: o'quvchining o'z natijalari vahdalar bo'yicha — lug'at, so'z testi, grammatika, mashqlar (telefondagi progressdan).
 // Ustoz bahosi (erkin javoblar) keyingi navbatda qo'shiladi.
 import { useEffect, useState } from "react";
-import { Check, ChevronRight, ClipboardCheck, TrendingUp } from "lucide-react";
+import { Check, ChevronRight, ClipboardCheck, Play, TrendingUp } from "lucide-react";
+import { vGet } from "../lib/vdb";
+import { toast } from "../ui/Toast";
+import { spkAll } from "./Speak";
 import { loadData } from "../lib/data";
 import { kbBest, kbKeyOf, loadKb } from "../lib/kb";
 import { gramPct, pctOf, rulesOf } from "../lib/next";
@@ -99,7 +102,10 @@ function Growth() {
   const sum = summarize(localRaw());
   const C = confAll();
   const h = Math.floor(t.sec / 3600), m = Math.round((t.sec % 3600) / 60);
-  const since = t.since ? new Date(t.since).toLocaleDateString("uz-UZ", { day: "numeric", month: "long" }) : "";
+  // brauzerlar o'zbekcha oy nomini bilmaydi («M11») — o'zimiz yozamiz: «6-noyabr»
+  const OY = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avgust", "sentabr", "oktabr", "noyabr", "dekabr"];
+  const sd = t.since ? new Date(t.since) : null;
+  const since = sd ? `${sd.getDate()}-${OY[sd.getMonth()]}` : "";
   return (
     <section className="card gr-card" aria-label="Mening o'sishim">
       <b className="gr-h"><TrendingUp size={18} aria-hidden />Mening o'sishim</b>
@@ -110,6 +116,33 @@ function Growth() {
         <div>{C.length ? <b>{C.length > 1 ? `${confAvg(C[0])} → ${confAvg(C[C.length - 1])}` : `${confAvg(C[0])}`}</b> : <b>—</b>}<span>o'ziga ishonch / 5</span></div>
       </div>
       <button type="button" className="btn ghost gr-cf" onClick={() => go("goal", { conf: 1 })}>{C.length ? "O'zingizni qayta baholang" : "O'zingizni baholang · 1 daqiqa"}</button>
+      <MyVoice />
     </section>
+  );
+}
+
+/** 16-partiya (K2/M7): «Mening ovozim» — har vahda bo'yicha birinchi va oxirgi yakka gapirish yozuvi (faqat shu telefonda) */
+function MyVoice() {
+  const S = spkAll();
+  const keys = Object.keys(S).sort((a, b) => (S[b].d > S[a].d ? 1 : -1)).slice(0, 4);
+  if (!keys.length) return null;
+  const play = async (k: string) => {
+    const b = await vGet(k);
+    if (!b) { toast("Bu yozuv boshqa telefonda qolgan"); return; }
+    const u = URL.createObjectURL(b); const au = new Audio(u); au.onended = () => URL.revokeObjectURL(u); void au.play();
+  };
+  return (
+    <div className="mv">
+      <b className="mv-h">Mening ovozim</b>
+      <ul>{keys.map((k) => {
+        const [, un] = k.split(":");
+        return (
+          <li key={k}><span><b>{un}-vahda</b><small>{S[k].n} marta · oxirgisi {S[k].d.split("-").reverse().slice(0, 2).join(".")}</small></span>
+            <button type="button" className="btn ghost sm" onClick={() => void play(`spk-first-${k}`)}><Play size={14} aria-hidden />Birinchi</button>
+            <button type="button" className="btn ghost sm" onClick={() => void play(`spk-last-${k}`)}><Play size={14} aria-hidden />Oxirgi</button>
+          </li>
+        );
+      })}</ul>
+    </div>
   );
 }

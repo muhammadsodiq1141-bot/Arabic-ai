@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { ChevronRight, Equal, EqualNot, Eye, EyeOff, Volume2 } from "lucide-react";
 import { say } from "../lib/audio";
 import { loadData } from "../lib/data";
+import { kbKeyOf, kbTexts, loadKb } from "../lib/kb";
 import { itemsOf, normAr, picOf, usePics, type Item } from "../lib/practice";
 import { knownOf } from "../lib/store";
 import { posLabel, type WordCard } from "../lib/words";
@@ -53,16 +54,17 @@ function markSub(sent: string, sub?: string): Seg[] | null {
   if (!sub || i < 0) return null;
   return [{ t: sent.slice(0, i) }, { t: sub, m: true }, { t: sent.slice(i + sub.length) }];
 }
-/** WF misollari (hammasi) + kitob gaplaridan so'z uchraganlari (tarjimasi takrorlanmasa), ko'pi bilan 4 ta */
-function examplesFor(book: RBook, wf: WF, ar: string, un: number) {
+/** WF misollari (hammasi) + kitob gaplaridan so'z uchraganlari (tarjimasi takrorlanmasa). 16-partiya (K7, Nation 32, 43-betlar):
+ *  avval 4 ta, «Yana misollar» bilan 12 tagacha — so'z turli gaplarda ko'rilsa, ma'nosi kengroq o'rganiladi */
+function examplesFor(book: RBook, wf: WF, ar: string, un: number, max = 12) {
   const out: { s: Seg[]; tr: string }[] = [];
   for (const e of wfOf(wf, ar, un)?.ex || []) out.push({ s: markSub(e[0], e[2]) || markTok(e[0], ar) || [{ t: e[0] }], tr: e[1] });
   for (const u of book.units) for (const s of book.sent?.[u.n] || []) {
-    if (out.length >= 4) break;
+    if (out.length >= max) break;
     const h = markTok(s[0], ar);
     if (h && !out.some((o) => o.tr === s[1])) out.push({ s: h, tr: s[1] });
   }
-  return out.slice(0, 4);
+  return out.slice(0, max);
 }
 /** 1..u vahdalardagi sinonim/antonim juftlari soni (eski synAntPool) */
 function synAntCount(book: RBook, wf: WF, un: number) {
@@ -124,6 +126,30 @@ export function WordScreen({ bookId, unitN, ar }: { bookId: string; unitN: numbe
   const book = useRBook(bookId);
   const wf = useWf(bookId);
   usePics();
+  // 16-partiya (K7): «Kitobdan yana misollar» — so'z kitob mashqlari matnlarida qayerda uchraydi (Nation, 32, 43-betlar)
+  const [kbEx, setKbEx] = useState<{ s: Seg[]; t: string; src: string }[] | null>(null);
+  const [kbBusy, setKbBusy] = useState(false);
+  const hasKb = !!book && book.units.some((x) => kbKeyOf(bookId, x.n));
+  const loadKbEx = async () => {
+    if (!book) return;
+    setKbBusy(true);
+    const out: { s: Seg[]; t: string; src: string }[] = [];
+    for (const x of book.units) {
+      const k = kbKeyOf(bookId, x.n);
+      if (!k || out.length >= 8) continue;
+      const L = await loadKb(k).catch(() => null);
+      if (!L) continue;
+      for (const st of L.steps) {
+        // ko'p qatorli matn gaplarga ajratiladi; bo'sh joyli (……, ___) mashq gaplari olinmaydi
+        for (const t of kbTexts(st).flatMap((x) => x.split(/\n+/)).map((x) => x.trim())) {
+          if (out.length >= 8 || /[…_]|\.{3}/.test(t) || t.split(/\s+/).length < 3 || out.some((o) => o.t === t)) continue;
+          const h = markTok(t, ar);
+          if (h) out.push({ s: h, t, src: `${unitLbl(x)} · ${st.t.split(" · ")[0]}` });
+        }
+      }
+    }
+    setKbEx(out); setKbBusy(false);
+  };
   if (!book || !wf) return <main className="screen"><ScreenHeader title="So'z" /><p className="muted pad">Yuklanmoqda…</p></main>;
   const u = book.units.find((x) => x.n === unitN) || book.units[0];
   const it: Item = itemsOf(u).find((x) => x.ar === ar) || { ar, uz: "", kind: "w", u: u.n };
@@ -160,6 +186,17 @@ export function WordScreen({ bookId, unitN, ar }: { bookId: string; unitN: numbe
           <li key={k}><p className="ar" dir="rtl" lang="ar">{e.s.map((s, j) => (s.m ? <mark key={j} className="hlw">{s.t}</mark> : s.t))}</p><span>{e.tr}</span></li>
         ))}</ul>
       ) : <p className="wc-empty">Bu so'z uchun misollar tez orada qo'shiladi.</p>}
+      {hasKb && kbEx === null && <button type="button" className="btn ghost wide wc-more" disabled={kbBusy} onClick={() => void loadKbEx()}>{kbBusy ? "Qidirilmoqda…" : "Kitobdan yana misollar"}</button>}
+      {kbEx && (kbEx.length ? (
+        <>
+          <h2 className="wc-sec">Kitobda yana uchraydi</h2>
+          <ul className="wc-ex wc-kb">{kbEx.map((e, k) => (
+            <li key={k}><button type="button" className="wc-kbb" onClick={() => void say(e.t)} aria-label="Tinglash">
+              <p className="ar" dir="rtl" lang="ar">{e.s.map((x, j) => (x.m ? <mark key={j} className="hlw">{x.t}</mark> : x.t))}</p><span>{e.src}</span>
+            </button></li>
+          ))}</ul>
+        </>
+      ) : <p className="wc-empty">Kitob mashqlarida bu so'z bilan boshqa gap topilmadi.</p>)}
       {it.kind === "w" && (
         <>
           <h2 className="wc-sec syn"><Equal size={16} aria-hidden />Sinonimlar · ma'nodosh</h2>

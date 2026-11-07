@@ -3,6 +3,7 @@
 // 4-partiya: reyting (league), baholar (o'quvchi natijalari). 5-partiya: ustoz paneli (teacher, tsubs, thw, thwnew).
 // 6-partiya: Mashq bo'limi (game, cards, wtest, errors, night, known, qs; mults, mult, mvoc, shadow; duel, leveltest, cert).
 // 7-partiya: profil (books, account, idcard), admin (admin, ateachers, ausers), guruh havolasi g_KOD.
+import { SpeakScreen } from "./Speak";
 import { GoalScreen } from "./Goal";
 import { InviteScreen } from "./Invite";
 import { useEffect, useLayoutEffect } from "react";
@@ -119,6 +120,7 @@ export function Main() {
   // uy vazifasi: book — kitob ID (a1, md1 ...), unit — vahda raqami, n — round raqami
   const book = String(p.book || "a1"), unit = Number(p.unit) || 1;
   if (route.view === "unit") return <UnitScreen key={`${book}:${unit}`} bookId={book} unitN={unit} />;
+  if (route.view === "speak") return <SpeakScreen key={`${book}:${unit}:${String(p.n || "")}`} bookId={book} unitN={unit} />; // 16-partiya
   if (route.view === "round") return <RoundScreen key={`${book}:${unit}:${p.n}`} bookId={book} unitN={unit} n={Number(p.n) || 1} />;
   if (route.view === "theory") return <TheoryScreen bookId={book} unitN={unit} />;
   if (route.view === "test") return <TestScreen key={`${book}:${unit}`} bookId={book} unitN={unit} />;

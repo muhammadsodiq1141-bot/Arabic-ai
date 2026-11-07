@@ -26,6 +26,7 @@ import { DrillHub } from "./Madina";
 import { HelpButton, useCoach } from "./Onboard";
 import { ruleStats, type RBook } from "./Rules";
 import { Round } from "./Round";
+import { spkAll } from "./Speak";
 
 // topshiriq turi (qadam kaliti) bo'yicha belgi
 const kbIcon = (k: string) => (/^(lugat|mufradat|tarakib)/.test(k) ? "📚" : /^(lmashq|tadrib)/.test(k) ? "🧩" : /^(oqish|matn|qiroat)/.test(k) ? "📖"
@@ -172,6 +173,7 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
   const rdIdx = md && kb ? postIdx.filter((i) => isReadStep(kb.steps[i])) : [];
   const exIdx = postIdx.filter((i) => !rdIdx.includes(i));
   const preRead = md && preIdx.length > 0; // Madina'da 1-qism — asosiy matn
+  const spoke = spkAll()[`${bookId}:${unitN}`]?.n || 0;
   const avg = (ix: number[]) => (ix.length ? Math.round(ix.reduce((a, i) => a + (kbB[i] || 0), 0) / ix.length) : 0);
   const exPct = avg(exIdx), rdPct = avg(rdIdx), prePct = avg(preIdx);
   const stepRow = (s: KbStep, si: number, read: boolean) => {
@@ -208,6 +210,16 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
           </button>
           <button type="button" className="ibtn" aria-label="Saqlangan so'zlar" onClick={() => go("saved")}><Bookmark size={22} aria-hidden /></button>
         </>} />
+
+      {/* 16-partiya (K3): vahda boshida maqsad — nima o'rganiladi (TMLT, 2-bob: aniq maqsad va tuzilma) */}
+      <section className="vgoal" aria-label="Vahda maqsadi">
+        <b>Bu vahdadan keyin siz:</b>
+        <ul>
+          <li>«{u.uz}» mavzusidagi {u.words.length} ta so'zni bilasiz</li>
+          {rules.length > 0 && <li>{rules.slice(0, 2).map((r) => r.t).filter(Boolean).join(" va ")} — qoidasini ishlata olasiz</li>}
+          <li>Shu mavzuda o'zingiz 3 ta gap ayta olasiz</li>
+        </ul>
+      </section>
 
       <ol className="vpath" aria-label="Vahda bosqichlari">
         <li className={`vp vp-voc ${vocPct >= 100 ? "dn" : ""} ${next.kind === "round" ? "on" : ""}`}>
@@ -309,6 +321,16 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
             </div>
           </li>
         )}
+
+        {/* 16-partiya (M7): o'z gapi — lug'at tugagach; vahda yakunini to'smaydi */}
+        <li className={`vp vp-speak ${spoke ? "dn" : ""} ${g.vocDone ? "" : "lk"}`}>
+          {N(spoke > 0, !g.vocDone)}
+          <button type="button" className="vp-c vp-main v-spk" aria-disabled={!g.vocDone}
+            onClick={() => (g.vocDone ? go("speak", { book: bookId, unit: unitN, n: Date.now() }) : lockMsg("Gapirish lug'at tugagach ochiladi"))}>
+            <span className="vp-h"><span className="vp-t"><b>Gapirish</b><Ar className="vp-ar">الْكَلَامُ</Ar></span>{g.vocDone ? <ChevronRight size={18} className="vp-go" aria-hidden /> : <Lock size={16} className="vp-go" aria-hidden />}</span>
+            <small className="vp-sub">{g.vocDone ? (spoke ? `${spoke} marta gapirildi · yana urinib ko'ring` : "Mavzu bo'yicha o'z gapingiz · 60 → 45 → 30 soniya") : "Lug'at tugagach ochiladi"}</small>
+          </button>
+        </li>
 
         {bookId.startsWith("md") && !!(u as { mem?: unknown }).mem && (
           <li className="vp">
