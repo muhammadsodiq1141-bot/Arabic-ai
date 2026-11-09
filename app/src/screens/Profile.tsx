@@ -2,7 +2,7 @@
 // ustozlik so'rovi, ustoz va admin panellariga kirish, ko'rinish. Server amallari eski ilova bilan umumiy.
 import { goalOf } from "../lib/goal";
 import { useEffect, useState } from "react";
-import { BookOpen, ChevronRight, Copy, GraduationCap, IdCard, KeyRound, LogOut, Moon, MoonStar, Send, ShieldCheck, Sun, SunMoon, Target, UserPen, Users, Gauge } from "lucide-react";
+import { BookOpen, ChevronRight, Coins, Copy, GraduationCap, IdCard, KeyRound, LogOut, Moon, MoonStar, Send, ShieldCheck, Sun, SunMoon, Target, UserPen, Users, Gauge } from "lucide-react";
 import { isLite, setLite, slowNet } from "../lib/lite";
 import { api } from "../lib/api";
 import { BOT_LINK } from "../lib/config";
@@ -67,6 +67,9 @@ export function Profile() {
       </button>
 
       <BadgesCard />
+      <button type="button" className="rowbtn" onClick={() => go("coins")}>
+        <Coins size={24} aria-hidden /><span><b>Tangalarim</b><small>Qoldiq va tarix · qayerdan keladi</small></span><ChevronRight size={20} aria-hidden />
+      </button>
       <FreezeCard />
 
       <h2 className="t-h">Guruh</h2>

@@ -3,10 +3,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Lightbulb, RotateCcw, Volume2, X } from "lucide-react";
 import { say } from "../lib/audio";
 import { loadData } from "../lib/data";
-import { checkTyped, errAdd, itemsOf, learnLater, picOf, srsSet, usePics, type Item, type PBook } from "../lib/practice";
+import { checkTyped, errAdd, extrasOf, isHard, itemsOf, learnLater, picOf, srsSet, usePics, xKnownOf, type Item, type PBook, type XSet } from "../lib/practice";
 import { bkKey } from "../lib/progress";
 import { report } from "../lib/report";
-import { gain, knownOf, markKnown, store } from "../lib/store";
+import { gain, knownOf as knownBook, markKnown, store } from "../lib/store";
 import { testOutKey } from "../lib/order";
 import { tg } from "../lib/tg";
 import { shuffle, strip } from "../lib/words";
@@ -23,17 +23,19 @@ function useBookP(id: string) {
 }
 
 // ===== Kartochka =====
-export function CardsScreen({ bookId, unit }: { bookId: string; unit: number }) {
+/** set — 2-paket: «Matndagi so'zlar» (tw) yoki «Qo'shimcha so'zlar» (xw); bo'lmasa vahdaning kitob lug'ati */
+export function CardsScreen({ bookId, unit, set }: { bookId: string; unit: number; set?: XSet }) {
   const book = useBookP(bookId);
   const pics = usePics();
   if (!book || !pics) return <main className="round"><p className="muted pad">Yuklanmoqda…</p></main>;
-  return <Cards book={book} unit={unit} />;
+  return <Cards book={book} unit={unit} set={set} />;
 }
 
-function Cards({ book, unit }: { book: PBook; unit: number }) {
+function Cards({ book, unit, set }: { book: PBook; unit: number; set?: XSet }) {
   const { back } = useNav();
   const u = book.units.find((x) => x.n === unit)!;
-  const all = useMemo(() => itemsOf(u), [u]);
+  const all = useMemo(() => (set ? extrasOf(u, set) : itemsOf(u)), [u, set]);
+  const knownOf = (bid: string, n: number) => (set ? xKnownOf(bid, n) : knownBook(bid, n));
   const [onlyNew, setOnlyNew] = useState(true);
   const [dir, setDir] = useState<"uz" | "ar">("uz");
   const build = (only: boolean) => { const k = knownOf(book.id, unit); return shuffle(only ? all.filter((x) => !k[x.ar]) : all); };
@@ -61,7 +63,8 @@ function Cards({ book, unit }: { book: PBook; unit: number }) {
     if (!r) return;
     if (r === "ok" || r === "near") {
       const first = !tries && !hint;
-      srsSet(book, card.ar, first); // birinchi urinishda — yodlandi; aks holda takrorlashga va xatolar daftariga
+      // birinchi urinishda — yodlandi; faqat yordam bilan — «qisman» (2-paket, N1); xato urinishdan keyin — takrorlashga va xatolar daftariga
+      srsSet(book, card.ar, first ? true : !tries ? "part" : false);
       gain("fc", first ? 3 : 1);
       report("kartochka", book.units.find((x) => x.n === unit)?.uz || "", null, null, false, unit);
       setState(r); tg.haptic("success");
@@ -82,7 +85,7 @@ function Cards({ book, unit }: { book: PBook; unit: number }) {
           <Scale size={140} />
           <h1>Barakalla!</h1>
           <span className="kb-big">{known} / {all.length}</span>
-          <p>Bu vahdadagi hamma so'zni yozib, yodladingiz.</p>
+          <p>{set ? "Bu ro'yxatdagi" : "Bu vahdadagi"} hamma so'zni yozib, yodladingiz.</p>
           <button type="button" className="btn primary wide" onClick={() => { setOnlyNew(false); setDeck(build(false)); }}><RotateCcw size={18} aria-hidden />Hammasini takrorlash</button>
           <button type="button" className="btn ghost wide" onClick={back}>Mashqqa qaytish</button>
         </div>
@@ -94,7 +97,7 @@ function Cards({ book, unit }: { book: PBook; unit: number }) {
     <main className="round game">
       <header className="r-top">
         <button type="button" className="r-close" aria-label="Chiqish" onClick={back}><X size={22} aria-hidden />Chiqish</button>
-        <b>Kartochka · {unit}-vahda</b>
+        <b>{set === "tw" ? "Matndagi so'zlar" : set === "xw" ? "Qo'shimcha so'zlar" : `Kartochka · ${unit}-vahda`}</b>
         <span className="r-count">{known} / {all.length}</span>
       </header>
       <div className="seg small cd-dir" role="tablist" aria-label="Yo'nalish">
@@ -102,6 +105,7 @@ function Cards({ book, unit }: { book: PBook; unit: number }) {
         <button type="button" role="tab" aria-selected={dir === "ar"} className={dir === "ar" ? "on" : ""} onClick={() => { setDir("ar"); setVal(""); setTries(0); setHint(0); setState(null); }}>Arabchasini yozaman</button>
       </div>
       <section className="r-card cd-card">
+        {isHard(card.ar) && <span className="hard-tag">Qiyin so'z</span>}
         {pic && <img className="cd-pic" src={pic} alt="" />}
         {dir === "uz"
           ? <div className="cd-q"><Ar className="r-ar">{card.ar}</Ar><button type="button" className="say" aria-label="Tinglash" onClick={() => void say(card.ar)}><Volume2 size={22} aria-hidden /></button></div>

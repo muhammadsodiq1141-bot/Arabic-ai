@@ -2,11 +2,11 @@
 // Karta: tarjima, turkum, fe'l shakllari yoki ko'plik, misollar (so'z belgilangan — eski markSub/markTok aynan), sinonim/antonim, sinonim-antonim mashqi.
 // Kirish: vahdadagi Lug'at → "So'zlar ro'yxati". Kartadan orqaga — ro'yxatga (joy saqlanadi).
 import { useEffect, useState } from "react";
-import { ChevronRight, Equal, EqualNot, Eye, EyeOff, Volume2 } from "lucide-react";
+import { ChevronRight, Equal, EqualNot, Eye, EyeOff, Layers, Volume2 } from "lucide-react";
 import { say } from "../lib/audio";
 import { loadData } from "../lib/data";
 import { kbKeyOf, kbTexts, loadKb } from "../lib/kb";
-import { itemsOf, normAr, picOf, usePics, type Item } from "../lib/practice";
+import { extrasOf, itemsOf, normAr, picOf, usePics, xKnownOf, type Item } from "../lib/practice";
 import { knownOf } from "../lib/store";
 import { posLabel, type WordCard } from "../lib/words";
 import { useNav } from "../state/nav";
@@ -105,6 +105,22 @@ export function WordsScreen({ bookId, unitN }: { bookId: string; unitN: number }
     );
   };
   const words = items.filter((x) => x.kind === "w"), phr = items.filter((x) => x.kind === "p");
+  // 2-paket: kitob matnlaridagi va qo'shimcha (boyitish) so'zlar — ixtiyoriy, uy vazifasi shartiga kirmaydi
+  const tw = extrasOf(u, "tw"), xw = u.xw || [], xk = xKnownOf(bookId, unitN);
+  const xrow = (ar: string, uz: string) => {
+    const hidden = hide && !peek.includes(ar);
+    return (
+      <div key={`x${ar}`} className={`wrow wx ${xk[ar] ? "known" : ""}`}>
+        <button type="button" className="wrow-main" aria-label={hidden ? `${ar} — tarjimani ko'rish` : `${ar} — ${uz}`} onClick={() => hidden && setPeek([...peek, ar])}>
+          <span className="wrow-tx"><Ar className="wrow-ar">{ar}</Ar><span className={`wrow-uz ${hidden ? "hid" : ""}`}>{hidden ? "Tarjimani ko'rish" : uz}</span></span>
+        </button>
+        <button type="button" className="say sm" aria-label="Tinglash" onClick={() => void say(ar)}><Volume2 size={20} aria-hidden /></button>
+      </div>
+    );
+  };
+  const cards = (set: "tw" | "xw") => (
+    <button type="button" className="btn ghost wl-cards" onClick={() => go("cards", { book: bookId, unit: unitN, set })}><Layers size={18} aria-hidden />Kartochka bilan yodlash</button>
+  );
   return (
     <main className="screen">
       <ScreenHeader title={`${unitLbl(u)} · So'zlar`} ar={u.ar} />
@@ -117,6 +133,25 @@ export function WordsScreen({ bookId, unitN }: { bookId: string; unitN: number }
       <SectionTitle ar="الْمُفْرَدَاتُ" uz={`Yangi so'zlar · ${words.length}`} />
       <div className="wlist">{words.map(row)}</div>
       {phr.length > 0 && <><SectionTitle ar="التَّرَاكِيبُ" uz={`Iboralar · ${phr.length}`} /><div className="wlist">{phr.map(row)}</div></>}
+      {tw.length > 0 && (
+        <>
+          <SectionTitle ar="مِنَ النُّصُوصِ" uz={`Matndagi so'zlar · ${tw.length}`} />
+          <p className="wl-note">Kitob matnlarida uchraydi. Ixtiyoriy — uy vazifasi shartiga kirmaydi.</p>
+          {cards("tw")}
+          <div className="wlist">{tw.map((x) => xrow(x.ar, x.uz))}</div>
+        </>
+      )}
+      {xw.length > 0 && (
+        <>
+          <SectionTitle ar="كَلِمَاتٌ إِضَافِيَّةٌ" uz={`Qo'shimcha so'zlar · ${xw.length}`} />
+          <p className="wl-note">Kitobda yo'q — mavzuni boyitish uchun. Ixtiyoriy.</p>
+          {cards("xw")}
+          {(u.xg || []).map((g, gi) => {
+            const ws = xw.filter((w) => w[2] === gi);
+            return ws.length ? <div key={gi} className="wl-grp"><b>{g}</b><div className="wlist">{ws.map((w) => xrow(w[0], w[1]))}</div></div> : null;
+          })}
+        </>
+      )}
     </main>
   );
 }

@@ -43,7 +43,7 @@ export function InviteScreen() {
         <ol className="inv-steps">
           <li><b>Havolani yuboring</b><small>Telegram'da do'stingizga</small></li>
           <li><b>Do'stingiz ro'yxatdan o'tadi</b><small>Admin kirishini tasdiqlaydi</small></li>
-          <li><b>Ikkalangiz tanga olasiz</b><small>Tanga muzlatish uchun kerak: seriya bir kun saqlanadi</small></li>
+          <li><b>Ikkalangiz tanga olasiz</b><small>Tanga muzlatish va do'kon uchun kerak</small></li>
         </ol>
         {link ? (
           <>

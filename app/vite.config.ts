@@ -52,9 +52,41 @@ function multIndex(): Plugin {
   };
 }
 
+// 2-paket: o'qishda yordam uchun umumiy lug'at — hamma kitoblarning so'z, ibora, matndagi va qo'shimcha so'zlari.
+// [arabcha, o'zbekcha, kitob, vahda, tur] (tur: 0 so'z, 1 ibora, 2 matndagi, 3 qo'shimcha, 4 yordamchi). Kitob fayllaridan yig'ishda yasaladi.
+function lexIndex(): Plugin {
+  const BOOKS = ["a1", "a2", "b1", "b2", "c1", "md1", "md2"];
+  const make = () => {
+    const out: (string | number)[][] = [];
+    for (const id of BOOKS) {
+      const f = path.resolve(__dirname, `public/data/books/${id}.json`);
+      if (!fs.existsSync(f)) continue;
+      const b = JSON.parse(fs.readFileSync(f, "utf8")) as { units: { n: number; words?: string[][]; phrases?: string[][]; tw?: string[][]; xw?: unknown[][] }[] };
+      for (const u of b.units) {
+        const add = (rows: unknown[][] | undefined, k: number) => { for (const r of rows || []) if (r[0] && r[1]) out.push([String(r[0]), String(r[1]), id, u.n, k]); };
+        add(u.words, 0); add(u.phrases, 1); add(u.tw, 2); add(u.xw, 3);
+      }
+    }
+    // yordamchi so'zlar (إِنَّ، هَلْ، الَّتِي…) — kitob lug'atlarida yo'q, lekin matnda eng ko'p uchraydi; hamma uchun tanish hisoblanadi
+    const core = path.resolve(__dirname, "public/data/LEX_CORE.json");
+    if (fs.existsSync(core)) for (const [ar, uz, m] of JSON.parse(fs.readFileSync(core, "utf8")) as string[][]) out.push([ar, uz, "core", 0, m === "m" ? 5 : 4]);
+    return JSON.stringify(out);
+  };
+  return {
+    name: "lex-index",
+    configureServer(s) {
+      s.middlewares.use((req, res, next) => {
+        if (!String(req.url || "").split("?")[0].endsWith("/data/LEX.json")) return next();
+        res.setHeader("Content-Type", "application/json"); res.end(make());
+      });
+    },
+    generateBundle() { this.emitFile({ type: "asset", fileName: "data/LEX.json", source: make() }); },
+  };
+}
+
 // Yangi ilova /v2/ papkasiga yig'iladi (GitHub Pages: .../Arabic-ai/v2/), eski ilova ildizda qoladi.
 export default defineConfig({
-  plugins: [react(), ildizVideo(), multIndex()],
+  plugins: [react(), ildizVideo(), multIndex(), lexIndex()],
   base: "./",
   // 1-paket: ilova versiyasi (xato jurnalida qaysi yig'ishda chiqqani ko'rinsin)
   define: { __APP_VER__: JSON.stringify(new Date().toISOString().slice(0, 16).replace("T", " ")) },

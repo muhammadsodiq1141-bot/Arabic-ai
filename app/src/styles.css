@@ -2150,3 +2150,100 @@ html.obscured .app { filter: blur(22px); }
 
 .story.st-ph { background: var(--line); }
 .story.st-ph .in { background: var(--soft); }
+
+/* ===== 2-paket (20-partiya) ===== */
+/* qiyin so'z belgisi (kartochka, sokin takrorlash) */
+.hard-tag { align-self: center; padding: 3px 10px; border-radius: 999px; background: var(--gold); color: #2A2418; font-size: 12px; font-weight: 800; }
+/* «Mening o'sishim» — uzoq xotira */
+.gr-ltm { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 12px; padding: 10px 12px; border-radius: 14px; background: var(--soft); }
+.gr-ltm > span { display: flex; flex-direction: column; min-width: 0; }
+.gr-ltm > span b { font-size: 14px; }
+.gr-ltm small { font-size: 12px; font-weight: 600; color: var(--muted); }
+.gr-ltm-v { font-size: 20px; font-variant-numeric: tabular-nums; }
+.gr-ltm-bar { grid-column: 1 / -1; height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; display: block; }
+.gr-ltm-bar > i { display: block; height: 100%; border-radius: inherit; background: var(--good); }
+/* so'zlar ro'yxati — matndagi va qo'shimcha so'zlar */
+.wl-note { margin: -4px 0 8px; font-size: 13px; color: var(--muted); }
+.wl-cards { margin-bottom: 10px; }
+.wl-grp { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.wl-grp > b { font-size: 13px; font-weight: 800; color: var(--muted); padding-top: 4px; }
+.wrow.wx .wrow-main { min-height: 56px; }
+/* o'qishda yordam: gap qatori (tinglash tugmasi o'ngda), bosiladigan so'zlar, «siz bilgan so'zlar» belgisi */
+.kb-lr { display: flex; flex-direction: row-reverse; align-items: flex-start; gap: 8px; }
+.kb-lr .say.sm { width: 36px; height: 36px; margin-top: 6px; }
+.kb-lr .kb-lt { flex: 1; min-width: 0; font-size: 22px; line-height: 1.8; font-weight: 600; text-align: right; }
+.tw { border: 0; margin: 0; padding: 0 1px; background: none; color: inherit; font: inherit; line-height: inherit; border-radius: 6px; cursor: pointer; }
+.tw:hover { background: var(--soft); }
+.tw:active { background: var(--gold); color: #2A2418; }
+.cov { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 2px 0 10px; padding: 8px 12px; border-radius: 14px; background: var(--soft); font-size: 14px; font-weight: 700; }
+.cov b { font-variant-numeric: tabular-nums; font-size: 15px; }
+.cov-l { display: inline-block; margin-inline-start: 4px; padding: 1px 9px; border-radius: 999px; font-style: normal; font-size: 12.5px; font-weight: 800; }
+.cov-ok { background: var(--ok-bg); color: var(--ok-line); }
+.cov-mid { background: var(--gold); color: #2A2418; }
+.cov-hard { background: var(--no-bg); color: var(--no-line); }
+.cov .btn.sm { min-height: 40px; }
+.mp-src { color: var(--muted); font-size: 12.5px; font-weight: 600; }
+.mp-none { margin: 4px 0 6px; color: var(--muted); font-size: 14.5px; max-width: 34ch; }
+.mpopc.pre { align-items: stretch; text-align: left; }
+.mpopc.pre > b, .mpopc.pre > .mp-src { text-align: center; }
+.pre-l { list-style: none; margin: 8px 0 4px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.pre-l li { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 10px; padding: 6px 10px; border-radius: 14px; background: var(--soft); }
+.pre-l .say.sm { width: 38px; height: 38px; }
+.pre-ar { font-size: 20px; text-align: right; }
+.pre-l li > span:last-child { font-size: 14px; font-weight: 600; }
+/* «Javoblar» — kitob mashqlari kaliti */
+.an-lead { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+.an-step { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.an-h { font-size: 15px; }
+.an-list { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 10px; }
+.an-list > li { display: flex; flex-direction: column; gap: 4px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.an-list > li:last-child { border-bottom: 0; padding-bottom: 0; }
+.an-list > li::marker { font-weight: 800; color: var(--muted); font-size: 13px; }
+.an-q { font-size: 14px; color: var(--muted); }
+.an-q .ar { font-size: 18px; line-height: 1.7; color: var(--ink); display: block; text-align: right; }
+.an-a { font-weight: 700; }
+.an-a > .ar { font-size: 19px; line-height: 1.7; display: block; text-align: right; color: var(--accent); }
+.an-ok { color: var(--ok-line); }
+.an-no { color: var(--no-line); }
+.an-pairs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.an-pairs li { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: flex-end; gap: 6px; }
+.an-pairs .ar { font-size: 18px; }
+.an-model { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 12px; background: var(--soft); }
+.an-model small, .an-free { font-size: 12px; font-weight: 700; color: var(--muted); }
+.an-model .ar { font-size: 18px; line-height: 1.7; text-align: right; display: block; }
+/* multfilm: ro'yxatda qamrov, har gapdan keyin to'xtash, yopiq subtitr */
+.m-cov { color: var(--muted); font-weight: 700; }
+.m-stop { margin: 10px auto 6px; }
+.mtrans.hid .mline:not(.rv) .ar, .mtrans.hid .mline:not(.rv) .uz { filter: blur(6px); opacity: .55; user-select: none; }
+.mtrans.hid .mline:not(.rv) { cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .mtrans.hid .mline .ar, .mtrans.hid .mline .uz { transition: none; } }
+.an-sub { margin: 0; padding: 0 22px 0 0; direction: rtl; display: flex; flex-direction: column; gap: 2px; }
+.an-sub .ar { font-size: 17px; line-height: 1.7; }
+
+/* ===== 3-paket (21-partiya): tanga serverda ===== */
+.tk-coin { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; border: 0; background: var(--soft); color: var(--ink); font: inherit; font-weight: 800; font-size: 13.5px; font-variant-numeric: tabular-nums; cursor: pointer; }
+.tk-coin:active { background: var(--gold); color: #2A2418; }
+.cn-bal { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 22px 16px; text-align: center; }
+.cn-bal svg { color: var(--accent); }
+.cn-bal b { font-size: 34px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.cn-bal span { color: var(--muted); font-weight: 700; }
+.cn-how { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.cn-how ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.cn-how li { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 14px; font-weight: 700; }
+.cn-how li small { color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+.cn-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.cn-list ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.cn-list li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.cn-list li:last-child { border-bottom: 0; }
+.cn-ic { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; }
+.cn-ic.in { background: var(--ok-bg); color: var(--ok-line); }
+.cn-ic.out { background: var(--no-bg); color: var(--no-line); }
+.cn-t { display: flex; flex-direction: column; min-width: 0; }
+.cn-t b { font-size: 14px; }
+.cn-t small { font-size: 12px; color: var(--muted); font-weight: 600; }
+.cn-a { font-variant-numeric: tabular-nums; font-size: 15px; }
+.cn-a.in { color: var(--ok-line); }
+.cn-a.out { color: var(--no-line); }
+.ts-coins { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.th-auto { margin-top: 8px; }
+.th-auto-n { display: block; font-size: 12px; margin-top: 4px; }

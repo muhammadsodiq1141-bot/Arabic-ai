@@ -11,6 +11,7 @@ import { gramPct, pctOf, rulesOf } from "../lib/next";
 import { bkKey, hwProgress, localRaw, summarize, type Book } from "../lib/progress";
 import { strandTotal } from "../lib/strand";
 import { confAll, confAvg } from "../lib/goal";
+import { ltmStat } from "../lib/practice";
 import { knownOf, store } from "../lib/store";
 import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
@@ -101,6 +102,7 @@ function Growth() {
   const t = strandTotal();
   const sum = summarize(localRaw());
   const C = confAll();
+  const L = ltmStat();
   const h = Math.floor(t.sec / 3600), m = Math.round((t.sec % 3600) / 60);
   // brauzerlar o'zbekcha oy nomini bilmaydi («M11») — o'zimiz yozamiz: «6-noyabr»
   const OY = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avgust", "sentabr", "oktabr", "noyabr", "dekabr"];
@@ -114,6 +116,12 @@ function Growth() {
         <div><b>{sum.known}</b><span>yodlangan so'z</span></div>
         <div><b>{sum.streak}</b><span>kun ketma-ket</span></div>
         <div>{C.length ? <b>{C.length > 1 ? `${confAvg(C[0])} → ${confAvg(C[C.length - 1])}` : `${confAvg(C[0])}`}</b> : <b>—</b>}<span>o'ziga ishonch / 5</span></div>
+      </div>
+      {/* 2-paket (N7): 7+ kunlik tanaffusdan keyin to'g'ri eslangan so'zlar ulushi — so'zni haqiqatan eslab qolayotganini ko'rsatadi */}
+      <div className="gr-ltm">
+        <span><b>Uzoq xotira</b><small>{L.pct === null ? `hali ma'lumot yetarli emas · ${L.n} / 20 takror` : "kamida 7 kunlik tanaffusdan keyin to'g'ri eslangan so'zlar · 30 kun"}</small></span>
+        {L.pct !== null && <b className="gr-ltm-v">{L.pct}%</b>}
+        {L.pct !== null && <i className="gr-ltm-bar" aria-hidden><i style={{ width: `${L.pct}%` }} /></i>}
       </div>
       <button type="button" className="btn ghost gr-cf" onClick={() => go("goal", { conf: 1 })}>{C.length ? "O'zingizni qayta baholang" : "O'zingizni baholang · 1 daqiqa"}</button>
       <MyVoice />

@@ -112,6 +112,9 @@ export function Lessons() {
 
 export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number }) {
   const { go } = useNav();
+  const { me } = useSession();
+  // «Javoblar» (kitob mashqlari kaliti) — faqat ustoz va admin uchun; o'quvchi ko'rmaydi (vazifa ustozga yuboriladi va baholanadi)
+  const staff = !!(me?.teacher || me?.admin || me?.myGroups?.length);
   const book = useBook(bookId);
   const u = book?.units.find((x) => x.n === unitN);
   const [words, setWords] = useState<Word[] | null>(null);
@@ -163,7 +166,6 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
   const exAr = /class=["']ex["'][^>]*>\s*<div>\s*<span class=["']ar["']>([^<]+)</.exec(rules[0]?.html || "")?.[1] || "";
   const nq = rules.reduce((a, r) => a + (r.quiz?.length || 0), 0);
   const gram = gramPct(book, unitN);
-  const finished = hwProgress(localRaw(), book, unitN).done; // uy vazifasi sharti: so'zlar, so'z testi va qoidalar ≥80%
   const kbB = kbKey ? kbBest(kbKey) : {};
   const g = unitGate(book, unitN, kb);
   // Madina: o'qish matnlari alohida "O'qish" bo'limida (qadam raqamlari o'zgarmaydi — natijalar shu tartibga bog'langan)
@@ -205,10 +207,12 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
       <ScreenHeader title={`${(u as { lbl?: string }).lbl || `${unitN}-vahda`} · ${u.uz}`} ar={u.ar}
         actions={<>
           <HelpButton k="vahda" />
-          <button type="button" className="hdr-lbl" aria-label={finished ? "Javoblar" : "Javoblar — vahda tugagach ochiladi"}
-            onClick={() => (finished ? go("soon", { title: "Javoblar" }) : lockMsg("Javoblar vahda to'liq bajarilgach ochiladi"))}>
-            {finished ? <KeyRound size={17} aria-hidden /> : <Lock size={16} aria-hidden />}Javoblar
-          </button>
+          {/* 2-paket: kitob mashqlari kaliti — faqat ustoz/admin va mashqi bor vahdada */}
+          {kbKey && staff && (
+            <button type="button" className="hdr-lbl" aria-label="Javoblar — ustoz uchun kalit" onClick={() => go("answers", { book: bookId, unit: unitN })}>
+              <KeyRound size={17} aria-hidden />Javoblar
+            </button>
+          )}
           <button type="button" className="ibtn" aria-label="Saqlangan so'zlar" onClick={() => go("saved")}><Bookmark size={22} aria-hidden /></button>
         </>} />
 
@@ -251,7 +255,7 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
               )}
               <button type="button" className="vp-row wl-rc" onClick={() => go("words", { book: bookId, unit: unitN })}>
                 <span className="vp-ic"><List size={17} aria-hidden /></span>
-                <span className="vp-rt"><b>So'zlar ro'yxati</b><small>{u.words.length + (u.phrases?.length || 0)} ta · misollar, sinonimlar</small></span>
+                <span className="vp-rt"><b>So'zlar ro'yxati</b><small>{u.words.length + (u.phrases?.length || 0)} ta{(u.tw?.length || 0) + (u.xw?.length || 0) ? ` + ${(u.tw?.length || 0) + (u.xw?.length || 0)} qo'shimcha` : " · misollar, sinonimlar"}</small></span>
                 <ChevronRight size={18} className="vp-go" aria-hidden />
               </button>
             </div>

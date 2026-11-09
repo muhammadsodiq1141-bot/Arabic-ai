@@ -1,12 +1,13 @@
 // Motivatsiya ekranlari (MOTIVATSIYA-SPEC §1–§5): bosh sahifadagi «Bugungi vazifalar» kartasi (kunlik maqsad halqasi, vazifalar, haftalik qator,
 // maqsad tanlovi), Profil bo'limlari (unvon va yulduzcha chizig'i, 12 nishon, muzlatish, ustozga hisobot, yutuqni ulashish),
 // «Yutuqlarim» kartasi (PNG qilib ulashiladi) va MotivHost — gain() xabarlari (toast) hamda unvon/nishon tabrigi.
+import { fmtCoins, useCoins } from "../lib/coins";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Award, Check, Coins, Flame, PenLine, Send, Share2, Snowflake } from "lucide-react";
+import { Award, Check, Coins, Flame, PenLine, Send, Share2, Snowflake, Star } from "lucide-react";
 import { useMyArName } from "../lib/arname";
 import { BOT_LINK, BOT_USER } from "../lib/config";
 import { loadData, type BookIndex } from "../lib/data";
-import { badges, buyFreeze, freezes, GOALS, goalXP, knownTotal, levelOf, pendingCele, reportText, shareText, streakNow, tanga, todayTasks,
+import { badges, buyFreeze, freezes, GOALS, goalXP, knownTotal, levelOf, pendingCele, reportText, shareText, streakNow, todayTasks,
   weekDays, xpToday, xpTotal, type Cele } from "../lib/motiv";
 import { gainPending, gainPush } from "../lib/gainNote";
 import { sharePng } from "../lib/sharePng";
@@ -41,6 +42,8 @@ function Ring({ v, g }: { v: number; g: number }) {
 
 export function TasksCard() {
   const [g, setG] = useState(goalXP());
+  const { go } = useNav();
+  const { bal } = useCoins(); // 3-paket: tanga serverda
   const v = xpToday(), T = todayTasks(), wd = weekDays(), wdone = !!store.get(`x.w.${weekIdNow()}`, 0);
   return (
     <section className="card tkcard" aria-label="Bugungi vazifalar">
@@ -51,7 +54,7 @@ export function TasksCard() {
           <b className="tk-goal">{v >= g ? "Bajarildi" : `${g - v} yulduzcha qoldi`}</b>
           <span className="tk-chips">
             <span title="Ketma-ket kunlar"><Flame size={15} aria-hidden />{streakNow()}</span>
-            <span title="Tanga"><Coins size={15} aria-hidden />{tanga()}</span>
+            <button type="button" className="tk-coin" title="Tangalarim" aria-label={`Tangalarim: ${bal}`} onClick={() => go("coins")}><Coins size={15} aria-hidden />{fmtCoins(bal)}</button>
             <span title="Muzlatish"><Snowflake size={15} aria-hidden />{freezes()}</span>
           </span>
         </div>
@@ -62,13 +65,13 @@ export function TasksCard() {
           <li key={t.k} className={t.done ? "done" : ""}>
             <span className="tk-c" aria-hidden>{t.done && <Check size={13} strokeWidth={3.5} />}</span>
             <span className="tk-t">{t.t}</span>
-            <span className="tk-v">{t.done ? <><Coins size={13} aria-hidden />{t.st}</> : `${t.val}/${t.n}`}</span>
+            <span className="tk-v">{t.done ? <><Star size={13} aria-hidden />{t.st * 10}</> : `${t.val}/${t.n}`}</span>
           </li>
         ))}
         <li className={`wk ${wdone ? "done" : ""}`}>
           <span className="tk-c" aria-hidden>{wdone && <Check size={13} strokeWidth={3.5} />}</span>
           <span className="tk-t">Haftalik: 5 kun mashq qiling</span>
-          <span className="tk-v">{wdone ? <><Coins size={13} aria-hidden />5</> : `${Math.min(wd, 5)}/5`}</span>
+          <span className="tk-v">{wdone ? <><Star size={13} aria-hidden />50</> : `${Math.min(wd, 5)}/5`}</span>
         </li>
       </ul>
       <label className="tk-sel">Kunlik maqsad:
@@ -129,19 +132,24 @@ export function BadgesCard() {
 export function FreezeCard() {
   const { armed, fire } = useArm();
   const [, force] = useState(0);
-  const buy = () => {
-    if (freezes() < 2 && tanga() >= 10 && !fire("fz")) return; // sotib olish — ikki bosish bilan
-    const r = buyFreeze();
+  const [busy, setBusy] = useState(false);
+  const { s, bal } = useCoins();
+  const price = s?.freeze || 500;
+  const buy = async () => {
+    if (freezes() < 2 && bal >= price && !fire("fz")) return; // sotib olish — ikki bosish bilan
+    setBusy(true);
+    const r = await buyFreeze();
+    setBusy(false);
     toast(r.msg); tg.haptic(r.ok ? "success" : "error"); force((x) => x + 1);
   };
   return (
     <section className="card fzc">
       <div className="fzc-h"><Snowflake size={22} aria-hidden /><span><b>Muzlatish</b><small>Bir kun mashq qilmasangiz ham ketma-ketlik uzilmaydi.</small></span></div>
-      <div className="tk-chips"><span><Coins size={15} aria-hidden />{tanga()} tanga</span><span><Snowflake size={15} aria-hidden />{freezes()} / 2</span></div>
-      <button type="button" className={`btn ghost wide ${armed === "fz" ? "armed" : ""}`} onClick={buy}>
-        {armed === "fz" ? "Yana bosing — 10 tanga sarflanadi" : "Muzlatish olish · 10 tanga"}
+      <div className="tk-chips"><span><Coins size={15} aria-hidden />{fmtCoins(bal)} tanga</span><span><Snowflake size={15} aria-hidden />{freezes()} / 2</span></div>
+      <button type="button" className={`btn ghost wide ${armed === "fz" ? "armed" : ""}`} disabled={busy} onClick={() => void buy()}>
+        {busy ? "Olinmoqda…" : armed === "fz" ? `Yana bosing — ${fmtCoins(price)} tanga sarflanadi` : `Muzlatish olish · ${fmtCoins(price)} tanga`}
       </button>
-      <small className="muted">Tanga kunlik vazifalar uchun beriladi.</small>
+      <small className="muted">Tanga uy vazifasi bahosi, qo'shimcha vazifa va darsdagi faollik uchun beriladi.</small>
     </section>
   );
 }

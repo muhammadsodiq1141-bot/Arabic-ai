@@ -14,6 +14,14 @@ export const itemsOf = (u: PBook["units"][number]): Item[] => [
   ...(u.phrases || []).map(([ar, uz, hint]) => ({ ar, uz, hint, kind: "p" as const, u: u.n })),
 ];
 export const allItems = (b: PBook) => b.units.flatMap(itemsOf);
+// 2-paket: «Matndagi so'zlar» (tw) va «Qo'shimcha so'zlar» (xw) — uy vazifasi shartiga kirmaydi, «yodlangan» belgisi alohida (xk.<vahda>)
+export type XSet = "tw" | "xw";
+export const extrasOf = (u: PBook["units"][number], set: XSet): Item[] =>
+  (set === "tw" ? u.tw || [] : u.xw || []).map((w) => ({ ar: String(w[0]), uz: String(w[1]), kind: "w" as const, u: u.n }));
+export const extrasAll = (b: PBook) => b.units.flatMap((u) => [...extrasOf(u, "tw"), ...extrasOf(u, "xw")]);
+/** takrorlash jadvali uchun: kitob so'zlari + qo'shimcha ro'yxatlar */
+export const allItemsX = (b: PBook) => [...allItems(b), ...extrasAll(b)];
+export const xKnownOf = (bid: string, u: number) => store.get<Record<string, number>>(bkKey(bid, `xk.${u}`), {});
 
 // ===== matnni solishtirish (eski normAr / normUz / lev) =====
 export const normAr = (t: string) => strip(t).replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي").replace(/[^ء-ي\s]/g, "").replace(/\s+/g, " ").trim();
@@ -84,20 +92,52 @@ export function errOk(ar: string) {
   if (E[k].n <= 0) { delete E[k]; store.set("f.errfix", store.get("f.errfix", 0) + 1); }
   store.set("f.err", E);
 }
+// ===== 2-paket: uzoq xotira jurnali va qiyin so'zlar (f.* — server bilan sinxronlanadi) =====
+/** [kun, 1|0] — kamida 7 kunlik tanaffusdan keyingi takror natijasi (oxirgi 400 ta) */
+type Ltm = [number, number][];
+const LTM_GAP = 7;
+function ltmLog(ok: boolean) {
+  const L = store.get<Ltm>("f.ltm", []);
+  L.push([dayNum(), ok ? 1 : 0]);
+  store.set("f.ltm", L.slice(-400));
+}
+/** «Uzoq xotira»: oxirgi 30 kundagi 7+ kunlik takrorlarda to'g'ri eslangan ulush; yozuv 20 tadan kam bo'lsa — null */
+export function ltmStat(days = 30) {
+  const t = dayNum();
+  const L = store.get<Ltm>("f.ltm", []).filter(([d]) => t - d < days);
+  return { n: L.length, pct: L.length >= 20 ? Math.round((L.reduce((s, [, ok]) => s + ok, 0) / L.length) * 100) : null };
+}
+/** Qiyin so'z: o'rganilgandan keyin (b ≥ 2) 3 marta unutilgan; 30 kunlik pog'onaga (b ≥ 5) qayta yetganda belgi olinadi */
+type Hard = Record<string, { n: number; b: string }>;
+const HARD_N = 3;
+export const hardOf = () => store.get<Hard>("f.hard", {});
+export const isHard = (ar: string) => (hardOf()[ar]?.n || 0) >= HARD_N;
+export const hardIn = (bid: string) => Object.entries(hardOf()).filter(([, v]) => v.b === bid && v.n >= HARD_N).map(([ar]) => ar);
+
+/** true — esladi, "part" — maslahat bilan topdi (oraliq oshmaydi, orqaga ham qaytmaydi, xato hisoblanmaydi), false — bilmadi */
+export type Grade = boolean | "part";
 /** Eski srsSet: xato bo'lsa daftarga; b — 1..6 pog'ona; joriy kitobdagi so'z bo'lsa "yodlangan" belgisi qo'yiladi/olinadi */
-export function srsSet(book: PBook, ar: string, ok: boolean) {
-  if (!ok) errAdd(ar, book.id);
+export function srsSet(book: PBook, ar: string, g: Grade) {
+  if (g === false) errAdd(ar, book.id);
   const key = bkKey(book.id, "srs");
   const S = store.get<Srs>(key, {});
   const cur = S[ar] || { b: 0, d: 0 };
-  const b = ok ? Math.min(cur.b + 1, 6) : 1;
+  // oldingi takrordan necha kun o'tgani: d = oxirgi takror kuni + SRS_INT[b] (eski ilovada ham shunday)
+  if (S[ar] && cur.b >= 1 && dayNum() - (cur.d - SRS_INT[cur.b]) >= LTM_GAP) ltmLog(g === true);
+  if (S[ar] && cur.b >= 2) {
+    const H = hardOf();
+    if (g === false) { H[ar] = { n: (H[ar]?.n || 0) + 1, b: book.id }; store.set("f.hard", H); }
+    else if (g === true && H[ar] && cur.b + 1 >= 5) { delete H[ar]; store.set("f.hard", H); }
+  }
+  const b = g === true ? Math.min(cur.b + 1, 6) : g === "part" ? Math.max(cur.b, 1) : 1;
   S[ar] = { b, d: dayNum() + SRS_INT[b] };
   store.set(key, S);
-  const it = allItems(book).find((x) => x.ar === ar);
-  if (it) {
-    const kk = bkKey(book.id, `known.${it.u}`);
+  const it = g === "part" ? null : allItems(book).find((x) => x.ar === ar);
+  const xt = g === "part" || it ? null : extrasAll(book).find((x) => x.ar === ar);
+  if (it || xt) {
+    const kk = it ? bkKey(book.id, `known.${it.u}`) : bkKey(book.id, `xk.${xt!.u}`);
     const k = store.get<Record<string, number>>(kk, {});
-    if (ok) k[ar] = 1; else delete k[ar];
+    if (g === true) k[ar] = 1; else delete k[ar];
     store.set(kk, k);
   }
   scheduleSync();

@@ -2,6 +2,7 @@
 // yutuq va ustozga hisobot matnlari. Kalitlar eski ilova bilan bir xil: x.t, x.d, x.c.<sana>, x.cl.<sana>, x.w.<dushanba>, x.s, x.f, x.fz, x.fchk, x.goal.
 // Tasdiqlangan farqlar: XP = «yulduzcha», ⭐ (x.s) = «tanga»; darajalar «unvon» deb ataladi; unvon yoki nishon olinganda bir martalik tabrik
 // (yangi kalitlar f.lvl, f.bdg); «A'lochi» — istalgan kitob testi; seriya hamma joyda muzlatish bilan; muzlatish ikki bosish bilan olinadi.
+import { buyFreezeServer, coinBalCached } from "./coins";
 import { bkKey, dayKey, localRaw, streak, summarize, weekId } from "./progress";
 import { dailyTasks, scheduleSync, store } from "./store";
 
@@ -17,7 +18,8 @@ export function levelOf(x: number): Unvon {
 
 export const xpTotal = () => store.get("x.t", 0);
 export const xpToday = () => store.get<Record<string, number>>("x.d", {})[dayKey()] || 0;
-export const tanga = () => store.get("x.s", 0);
+/** 3-paket: tanga serverda — bu yerda oxirgi ma'lum qoldiq (lib/coins.ts). Eski x.s (eski ilova) o'zgartirilmaydi */
+export const tanga = () => coinBalCached();
 export const freezes = () => store.get("x.f", 0);
 export const goalXP = () => store.get("x.goal", 50);
 export const GOALS: [number, string][] = [[30, "Yengil"], [50, "Oddiy"], [100, "Jiddiy"]];
@@ -52,14 +54,12 @@ export function todayTasks() {
   });
 }
 
-// ===== muzlatish (10 tanga, ko'pi bilan 2 ta; bitta muzlatish bitta o'tkazib yuborilgan kunni yopadi) =====
-export function buyFreeze(): { ok: boolean; msg: string } {
+// ===== muzlatish (narxi serverda — coin_rules.freeze, ko'pi bilan 2 ta; bitta muzlatish bitta o'tkazib yuborilgan kunni yopadi) =====
+export async function buyFreeze(): Promise<{ ok: boolean; msg: string }> {
   if (freezes() >= 2) return { ok: false, msg: "Sizda 2 ta muzlatish bor — bu eng ko'pi" };
-  if (tanga() < 10) return { ok: false, msg: "Muzlatish uchun 10 tanga kerak. Vazifalarni bajaring!" };
-  store.set("x.s", tanga() - 10);
-  store.set("x.f", freezes() + 1);
-  scheduleSync();
-  return { ok: true, msg: "Muzlatish olindi. Bir kun qoldirsangiz ham ketma-ketlik saqlanadi" };
+  const r = await buyFreezeServer(); // tanga serverda yechiladi
+  if (r.ok) { store.set("x.f", freezes() + 1); scheduleSync(); }
+  return r;
 }
 /** kuniga bir marta (x.fchk): kecha faol emas, oldingi kun faol yoki muzlatilgan va muzlatish bor → kecha muzlatiladi */
 export function applyFreeze(): boolean {

@@ -63,6 +63,8 @@ const CertScreen = lazy(() => import("./Level").then((m) => ({ default: m.CertSc
 const CityScreen = lazy(() => import("./City").then((m) => ({ default: m.CityScreen })));
 const InviteScreen = lazy(() => import("./Invite").then((m) => ({ default: m.InviteScreen })));
 const GameScreen = lazy(() => import("./Games").then((m) => ({ default: m.GameScreen })));
+const CoinsScreen = lazy(() => import("./Coins").then((m) => ({ default: m.CoinsScreen })));
+const AnswersScreen = lazy(() => import("./Answers").then((m) => ({ default: m.AnswersScreen })));
 const GoalScreen = lazy(() => import("./Goal").then((m) => ({ default: m.GoalScreen })));
 
 /** Bot havolasidan kelganda (?go=... yoki start_param): d_KOD — bellashuv, g_KOD — guruhga qo'shilish.
@@ -155,6 +157,8 @@ function Screens() {
   if (route.view === "saved") return <SavedScreen />;
   // 9b: so'zlar ro'yxati va so'z kartasi (ar — so'z), qoidalar markazi (u, i — qoida; list — mashqdagi qoidalar), bugungi dars (plan — bosh sahifa kartasidagi reja)
   if (route.view === "words") return <WordsScreen key={`${book}:${unit}`} bookId={book} unitN={unit} />;
+  if (route.view === "coins") return <CoinsScreen />;
+  if (route.view === "answers") return <AnswersScreen key={`${book}:${unit}`} bookId={book} unitN={unit} />;
   if (route.view === "word") return <WordScreen key={`${book}:${unit}:${p.ar}`} bookId={book} unitN={unit} ar={String(p.ar || "")} />;
   if (route.view === "rules") return <RulesHub key={book} bookId={book} />;
   if (route.view === "rule") return <RuleDetail key={`${book}:${p.u}:${p.i}`} bookId={book} u={Number(p.u) || 1} i={Number(p.i) || 0} />;
@@ -162,7 +166,7 @@ function Screens() {
   if (route.view === "lesson") return <LessonScreen key={String(p.n || "")} bookId={book} plan={p.plan as Plan} />;
   // mashq bo'limi
   if (route.view === "game") return <GameScreen key={`${book}:${unit}:${p.game}`} bookId={book} unit={unit} game={String(p.game)} />;
-  if (route.view === "cards") return <CardsScreen key={`${book}:${unit}`} bookId={book} unit={unit} />;
+  if (route.view === "cards") return <CardsScreen key={`${book}:${unit}:${p.set || ""}`} bookId={book} unit={unit} set={p.set === "tw" || p.set === "xw" ? p.set : undefined} />;
   if (route.view === "wtest") return <WordTestScreen key={`${book}:${unit}:${String(p.to || "")}`} bookId={book} unit={unit} to={p.to === "voc" || p.to === "unit" ? p.to : undefined} />;
   if (route.view === "errors") return <ErrorsScreen />;
   if (route.view === "night") return <NightScreen bookId={book} />;

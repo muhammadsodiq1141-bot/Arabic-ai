@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Check, Moon, RotateCcw, Sparkles, Volume2, X } from "lucide-react";
 import { say } from "../lib/audio";
 import { loadData } from "../lib/data";
-import { allItems, dayNum, isDue, normAr, srsOf, srsSet, type Err, type Item, type PBook } from "../lib/practice";
+import { allItems, allItemsX, dayNum, hardIn, isDue, isHard, normAr, srsOf, srsSet, type Err, type Item, type PBook } from "../lib/practice";
 import { dayKey, hash } from "../lib/progress";
 import { gain, gameXp, store } from "../lib/store";
 import { tg } from "../lib/tg";
@@ -87,12 +87,14 @@ export function NightScreen({ bookId }: { bookId: string }) {
   useEffect(() => {
     loadBook(bookId).then((b) => {
       setBook(b);
-      const all = allItems(b), S = srsOf(b.id), now = dayNum();
+      const all = allItemsX(b), S = srsOf(b.id), now = dayNum();
       const seen = all.filter((x) => S[x.ar]);
       const pool = seen.length >= 5 ? seen : all;
       const due = all.filter((x) => isDue(S[x.ar], now));
+      const H = new Set(hardIn(b.id));
+      const hard = shuffle(all.filter((x) => H.has(x.ar))).slice(0, 2); // 2-paket: qiyin so'zlardan 2 tasi albatta
       const uniq: Item[] = [];
-      for (const x of shuffle([...due, ...shuffle(pool)])) if (!uniq.some((y) => y.ar === x.ar)) { uniq.push(x); if (uniq.length >= 5) break; }
+      for (const x of [...hard, ...shuffle([...due, ...shuffle(pool)])]) if (!uniq.some((y) => y.ar === x.ar)) { uniq.push(x); if (uniq.length >= 5) break; }
       setItems(uniq);
     }).catch(() => setItems([]));
   }, [bookId]);
@@ -116,6 +118,7 @@ export function NightScreen({ bookId }: { bookId: string }) {
       {items && items.length > 0 && !fin && (
         <section className="nt-card">
           <Moon size={30} aria-hidden className="nt-moon" />
+          {isHard(items[i].ar) && <span className="hard-tag">Qiyin so'z</span>}
           <span className="nt-l">Uyqudan oldin takrorlash</span>
           <Ar className="nt-ar">{items[i].ar}</Ar>
           {!show ? (

@@ -4,6 +4,8 @@ import { DEMO } from "./demoFlag";
 export { DEMO };
 const q = new URLSearchParams(location.search);
 
+let autoGraded = false; // 3-paket: hwAutoGrade sinovi
+let demoSpent = 0; // 3-paket: muzlatish uchun sarflangan tanga (sinov)
 let demoRef = 2; // ?rd=1 — mukofoti olinmagan do'stlar (refClaim kamaytiradi)
 const people = [
   { sid: "tg101", name: "Aziz Karimov", tgName: "Aziz", user: "aziz_k", level: "A1", group: { code: "K7QX2M", title: "A1-ertalab", teacher: "Domla" }, at: new Date(Date.now() - 5 * 6e4).toISOString(), seen: null },
@@ -60,7 +62,23 @@ export async function demoApi(action: string, p: Record<string, unknown>): Promi
   }
   // 14-partiya: do'stni taklif qilish (?demo=approved&rd=1 — 2 ta do'st tasdiqlangan, mukofot kutilmoqda)
   if (action === "refList") return { ok: true, items: [{ n: "Bekzod T.", st: "approved", at: null }, { n: "Zarina S.", st: "pending", at: null }, { n: "Madina Y.", st: "approved", at: null }] };
-  if (action === "refClaim") { const n = Math.min(Number(p.n) || 0, demoRef); demoRef -= n; return { ok: true, n }; }
+  if (action === "refClaim") { const n = Math.min(Number(p.n) || 0, demoRef); demoRef -= n; return { ok: true, n, coins: n * 500 }; }
+  // 3-paket: tanga serverda (?demo=approved&coin=0 — hali tanga yo'q)
+  if (action === "refFriend") return { ok: true, coins: 0 };
+  if (action === "coins") {
+    const d = (h: number) => new Date(Date.now() - h * 36e5).toISOString();
+    const items = q.get("coin") === "0" ? [] : [
+      { id: 9, at: d(2), amount: 1000, kind: "hw", note: "Uy vazifasi · 5 baho" },
+      { id: 8, at: d(26), amount: 200, kind: "class", note: "Darsda faol" },
+      { id: 7, at: d(50), amount: -500, kind: "freeze", note: "Seriya muzlatish" },
+      { id: 6, at: d(75), amount: 600, kind: "hw", note: "Uy vazifasi · 4 baho" },
+      { id: 5, at: d(120), amount: 500, kind: "ref", note: "1 ta do'st taklifi" },
+      { id: 4, at: d(200), amount: 120, kind: "migrate", note: "Eski tangalar ko'chirildi" },
+    ];
+    return { ok: true, ready: true, bal: items.reduce((t, x) => t + x.amount, 0) - demoSpent, items, freeze: 500, grade: { 5: 1000, 4: 600, 3: 300, 2: 0, 1: 0 } };
+  }
+  if (action === "freezeBuy") { demoSpent += 500; return { ok: true, bal: 1920 - demoSpent, price: 500 }; }
+  if (action === "adminCoinRules") return { ok: true, rules: { grade: { 5: 1000, 4: 600, 3: 300, 2: 0, 1: 0 }, freeze: 500, ref: { inviter: 500, friend: 250 }, migrateCap: 300 } };
   if (action === "adminRequests") return { ok: true, status: p.status || "pending", items: p.status === "rejected" ? people.slice(3) : people.slice(0, 3) };
   if (action === "adminApprove") return { ok: true, n: Array.isArray(p.sids) ? p.sids.length : 1 };
   if (action === "logErr") return { ok: true, n: Array.isArray(p.errs) ? p.errs.length : 0 }; // 1-paket
@@ -96,18 +114,21 @@ const MEM: Record<string, unknown>[] = [
 function teacherDemo(action: string, p: Record<string, unknown>): Record<string, unknown> | null {
   if (action === "groupMembers") return { ok: true, members: p.code === "P4WZ8N" ? MEM.slice(0, 2).map((m) => ({ ...m, level: "A2" })) : MEM };
   if (action === "subList") return { ok: true, items: [
+    { id: 34, lesson: "a1:4", step: "hw", item: 7, text: "📘 Uy vazifasi: Kasblar va ishlar · o'rtacha 86% · 5/5 qadam · Hammasini bajardim, 3-savol qiyin bo'ldi.", created_at: iso(15), grade: null, comment: null, audio: false, name: "Aziz Karimov", login: "MJ-48213" },
     { id: 31, lesson: "a1:4", step: "suhbat", item: 5, text: "أَنَا طَالِبٌ فِي الْجَامِعَةِ. أَعْمَلُ مِنَ الصَّبَاحِ حَتَّى الْمَسَاءِ.", created_at: iso(35), grade: null, comment: null, audio: false, name: "Aziz Karimov", login: "MJ-48213" },
     { id: 32, lesson: "a1:4", step: "yozish", item: 10, text: "🎙 Ovozli javob", created_at: iso(120), grade: null, comment: null, audio: true, name: "Madina Yusupova", login: "MJ-48877" },
     { id: 33, lesson: "a1:4", step: "lmashq2", item: 302, text: "Tushunmadim: «Lugʻat mashqlari» topshirig'ida 2 ta savolni o'tkazib yubordi (3, 7-savol).", created_at: iso(240), grade: null, comment: null, audio: false, name: "Dilnoza Rahmonova", login: "MJ-49002" },
     { id: 30, lesson: "a1:3", step: "yozish", item: 9, text: "هَذِهِ جَامِعَتِي. هِيَ كَبِيرَةٌ وَجَمِيلَةٌ.", created_at: iso(60 * 30), grade: 5, comment: "Barakalla!", audio: false, name: "Madina Yusupova", login: "MJ-48877" },
-  ] };
+  ], coinGrade: { 5: 1000, 4: 600, 3: 300, 2: 0, 1: 0 } };
   if (action === "subAudio") throw new Error("Sinov rejimida ovoz yo'q");
   if (action === "hwList") return { ok: true, items: [
     { id: 7, group_code: "K7QX2M", book: "a1", unit: 4, title: "Kasblar va ishlar", due: day(2), mine: null, teacher: true, stats: { total: 6, done: 2 } },
     { id: 8, group_code: "P4WZ8N", book: "a2", unit: 2, title: "", due: day(-1), mine: null, teacher: true, stats: { total: 2, done: 0 } },
   ] };
-  if (action === "hwStatus") return { ok: true, rows: MEM.map((m, i) => ({ n: m.full_name, lg: m.login, done: i === 1 || i === 2, progress: i < 3 ? { words: [60, 100, 95][i], test: [70, 90, 82][i], rules: [50, 100, 80][i] } : null })) };
-  if (["subGrade", "hwDelete", "groupKick", "groupDelete"].includes(action)) return { ok: true };
+  if (action === "hwStatus") return { ok: true, rows: MEM.map((m, i) => ({ n: m.full_name, lg: m.login, done: i === 1 || i === 2, progress: i < 3 ? { words: [60, 100, 95][i], test: [70, 90, 82][i], rules: [50, 100, 80][i], ...(i > 0 ? { avg: [0, 94, 78][i], ...(autoGraded ? { grade: [0, 5, 4][i], auto: true } : {}) } : {}) } : null })) };
+  if (action === "subGrade") return { ok: true, coins: ({ 5: 1000, 4: 600, 3: 300 } as Record<number, number>)[Number(p.grade)] || 0 };
+  if (action === "hwAutoGrade") { autoGraded = true; return { ok: true, n: 2, coins: 1600 }; }
+  if (["hwDelete", "groupKick", "groupDelete"].includes(action)) return { ok: true };
   if (action === "hwCreate") return { ok: true, id: 9 };
   return null;
 }

@@ -6,7 +6,7 @@ export const OB_INTRO: Slide[] = [
   { t: "Miyzan'ga xush kelibsiz", d: "Bu yerda arab tilini kitob, lug'at, multfilm va gapirish mashqi orqali tizimli o'rganasiz.",
     rows: [["Darslar", "Manhaj A1–C1, Madina 1–2: so'zlar, qoidalar va kitob mashqlari"], ["Mashq", "O'yinlar, kartochka, multfilm, takrorlash va bellashuv"], ["Guruh", "Ustozingiz bilan birga o'qish va uy vazifalari"]] },
   { t: "Har kuni 15 daqiqa", d: "Miyzan har kuni nima qilishni o'zi ko'rsatadi. Shunchaki ketma-ket bajaring.",
-    rows: [["Bugun — 4 qism", "Takrorlash, tinglash, gapirish va ravonlik · ~15 daq"], ["Kunlik vazifalar", "Bajarsangiz tanga olasiz; tanga seriyangizni saqlab qoladi"], ["Gapirish", "3 ta gapni ovoz chiqarib takrorlang · 3 daq"]],
+    rows: [["Bugun — 4 qism", "Takrorlash, tinglash, gapirish va ravonlik · ~15 daq"], ["Kunlik vazifalar", "Bajarsangiz qo'shimcha yulduzcha olasiz; tanga esa ustoz bahosi va vazifalar uchun beriladi"], ["Gapirish", "3 ta gapni ovoz chiqarib takrorlang · 3 daq"]],
     note: "Ustozingiz vazifa bersa, u bosh sahifada «Uy vazifasi» kartasida chiqadi — avval shuni bajaring." },
   { t: "Adashsangiz — «?» ni bosing", d: "Har bir bo'limning tepasida «?» tugmasi bor. U shu bo'lim nima va qanday ishlashini 3 qadamda tushuntiradi.",
     rows: [["Birinchi hafta yo'li", "Bosh sahifada har kuni tayyor 3 ta vazifa"], ["Ko'rsatmalar", "Bo'limga ilk kirganingizda nimani bosishni ko'rsatamiz"]] },
@@ -39,7 +39,7 @@ export const OB_TIPS: Record<string, Tip[]> = {
 export type Help = { t: string; s: [string, string][]; tip: string; coach?: string };
 export const OB_HELP: Record<string, Help> = {
   home: { t: "Bosh sahifa", coach: "home", s: [["Uy vazifasi", "Ustozingiz vazifa bersa, shu kartada chiqadi. Avval shuni bajaring."],
-    ["Bugun — 4 qism", "Har kuni takrorlash, tinglash, gapirish va ravonlik. Kunlik vazifalarni bajarsangiz, tanga olasiz."],
+    ["Bugun — 4 qism", "Har kuni takrorlash, tinglash, gapirish va ravonlik. Kunlik vazifalarni bajarsangiz, qo'shimcha yulduzcha olasiz."],
     ["Yulduzcha va reyting", "Har bir mashq uchun yulduzcha olasiz. Reyting har dushanba yangilanadi."]], tip: "Kuniga 10 daqiqa ham yetarli — asosiysi har kuni." },
   vahda: { t: "Vahda", coach: "vahda", s: [["Lug'at", "So'zlarni roundlarda yodlang. «So'zlar ro'yxati» da tinglab, misollarini ko'ring."],
     ["Nazariya va test", "Qoidani o'qing, keyin testda o'zingizni sinang."], ["Mashqlar", "Kitobdagi topshiriqlar: o'qish, tinglash, yozish. Har biri oldingisidan keyin ochiladi."]],

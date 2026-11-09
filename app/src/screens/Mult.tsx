@@ -1,11 +1,13 @@
 // Multfilmlar: daraja bo'yicha ro'yxat → video (karaoke subtitr, gapma-gap boshqaruv, tezlik), lug'at, test.
 // Eski ilova bilan bir xil kalitlar: f.mdone (test natijasi %), f.mspeed, f.klag. Videolar repo ildizidagi .mp4 fayllar.
-import { Fragment, useEffect, useRef, useState, type MouseEvent } from "react";
-import { AudioLines, Check, ChevronRight, Clapperboard, Mic, Minus, Pause, Play, Plus, Repeat, RotateCcw, SkipBack, SkipForward, Volume2 } from "lucide-react";
+import { Fragment, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { AudioLines, Check, ChevronRight, Clapperboard, Mic, Minus, Pause, PauseCircle, Play, Plus, Repeat, RotateCcw, SkipBack, SkipForward, Volume2 } from "lucide-react";
 import { say } from "../lib/audio";
 import { loadData } from "../lib/data";
 import { kLag, kPaint, lastAt, loadMults, mDone, MLV, mSpeed, setKLag, setMDone, shOk, SPEEDS, TYL, VLAB, mediaUrl, setMSeen, vocFor, fmtT, type Mult, type MultIdx, type MVoc } from "../lib/mult";
 import { isLite, onWifi, setLite } from "../lib/lite";
+import { coverage, covLabel, lookup, RANK, rankFor, useLex } from "../lib/lex";
+import { WordPop } from "../ui/Lex";
 import { normAr } from "../lib/practice";
 import { gain, store } from "../lib/store";
 import { tg } from "../lib/tg";
@@ -47,6 +49,17 @@ export function MultsScreen() {
   const pick = (l: string) => { LVL = l; setLvl(l); tg.haptic(); };
   const D = mDone();
   const list = (ms || []).filter((m) => m.level === lvl);
+  // 2-paket: har multfilm uchun «siz bilgan so'zlar» foizi (subtitrdagi so'zlar umumiy lug'atda)
+  const lex = useLex();
+  const cov = useMemo(() => {
+    const o: Record<string, string> = {};
+    if (!lex) return o;
+    for (const m of list) {
+      const c = coverage(lex, m.cues.map((x) => x.ar), RANK[m.level] ? { b: m.level, u: 99 } : undefined, rankFor(m.level), 0.4);
+      if (c.ok) o[m.id] = `~${c.pct}% so'zni bilasiz · ${covLabel(c.pct)}`;
+    }
+    return o;
+  }, [lex, ms, lvl]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <main className="screen">
       <ScreenHeader title="Multfilmlar" ar="رُسُومٌ مُتَحَرِّكَةٌ" actions={<HelpButton k="mults" />} />
@@ -66,6 +79,7 @@ export function MultsScreen() {
               <span className="m-meta">
                 <b>{m.title}</b>
                 {m.sub && <small>{m.sub}</small>}
+                {cov[m.id] && <small className="m-cov">{cov[m.id]}</small>}
                 <span className={`m-pill ${D[m.id] !== undefined ? "done" : ""}`}>
                   {D[m.id] !== undefined ? <><Check size={14} strokeWidth={3} aria-hidden />Ko'rildi · test {D[m.id]}%</> : `${(m.vocab || []).length} ta yangi so'z`}
                 </span>
@@ -136,6 +150,13 @@ function MultVideo({ m }: { m: Mult }) {
   const [loop, setLoop] = useState(false);
   const [ar, setAr] = useState(true);
   const [uz, setUz] = useState(true);
+  // 2-paket: subtitr «yopiq» — gap xira, bosganda ochiladi; «har gapdan keyin to'xtash»
+  const [hid, setHid] = useState(false);
+  const [stop, setStopS] = useState(() => store.get<boolean>("f.mstop", false));
+  const stopOn = useRef(stop);
+  stopOn.current = stop;
+  const stopDone = useRef(-1), prevI = useRef(-1);
+  const lex = useLex();
   const [bad, setBad] = useState(false);
   const [pop, setPop] = useState<{ w: string; i: number } | null>(null);
   const [lite, setLiteS] = useState(isLite); // 17-partiya (A6): faqat audio + matn
@@ -165,6 +186,13 @@ function MultVideo({ m }: { m: Mult }) {
           if (t >= Math.max(c.e, c.x || c.e) + 0.2 + lag || t < c.s - 1.5) el.currentTime = c.s;
         }
         const i = lastAt(m, t - lag);
+        // har gapdan keyin to'xtash: gap tugaganda (yoki keyingisi boshlanganda) pauza — bir gapda bir marta
+        if (stopOn.current && !loopOn.current && !el.paused && i >= 0 && stopDone.current !== i) {
+          const c = m.cues[i], pi = prevI.current;
+          if (t - lag >= c.e + 0.1) { el.pause(); stopDone.current = i; }
+          else if (pi >= 0 && pi < i && stopDone.current !== pi) { el.pause(); el.currentTime = c.s - 0.05; stopDone.current = pi; }
+        }
+        prevI.current = i;
         if (i !== last) {
           b.querySelectorAll(".mline.on").forEach((x) => { x.classList.remove("on"); x.querySelectorAll(".kw").forEach((k) => k.classList.remove("sd", "cur")); });
           last = i;
@@ -179,7 +207,8 @@ function MultVideo({ m }: { m: Mult }) {
     return () => { cancelAnimationFrame(raf); window.removeEventListener("touchmove", touch); window.removeEventListener("wheel", touch); };
   }, [m]);
 
-  const seek = (t: number) => { const el = v.current; if (!el) return; el.currentTime = Math.max(0, t); void el.play().catch(() => {}); };
+  const seek = (t: number) => { const el = v.current; if (!el) return; stopDone.current = -1; prevI.current = -1; el.currentTime = Math.max(0, t); void el.play().catch(() => {}); };
+  const flipStop = () => { const on = !stop; store.set("f.mstop", on); setStopS(on); stopDone.current = -1; tg.haptic(); if (on) toast("Video har gapdan keyin to'xtaydi"); };
   const ctl = (k: "play" | "loop" | "again" | "prev" | "next") => {
     const el = v.current; if (!el) return;
     tg.haptic();
@@ -196,6 +225,9 @@ function MultVideo({ m }: { m: Mult }) {
   // gapni bosish → o'sha joydan; to'xtatilganda so'zni bosish → tarjimasi
   const lineClick = (e: MouseEvent, i: number) => {
     const el = v.current;
+    // yopiq subtitr: avval gap ochiladi (sinf DOM'da — karaoke «on» sinfi kabi, React qayta chizmaydi)
+    const ln = e.currentTarget as HTMLElement;
+    if (hid && !ln.classList.contains("rv")) { ln.classList.add("rv"); return; }
     const w = (e.target as HTMLElement).closest(".kw")?.getAttribute("data-w");
     if (w && el && el.paused) { setPop({ w, i: vocFor(m, w) }); return; }
     loopI.current = i; userScroll.current = 0; seek(m.cues[i].s - 0.05);
@@ -239,10 +271,14 @@ function MultVideo({ m }: { m: Mult }) {
       <div className="seg small m-tog" role="group" aria-label="Subtitr">
         <button type="button" className={ar ? "on" : ""} aria-pressed={ar} onClick={() => setAr(!ar)}>Arabcha</button>
         <button type="button" className={uz ? "on" : ""} aria-pressed={uz} onClick={() => setUz(!uz)}>O'zbekcha</button>
+        <button type="button" className={hid ? "on" : ""} aria-pressed={hid} onClick={() => { setHid(!hid); box.current?.querySelectorAll(".mline.rv").forEach((x) => x.classList.remove("rv")); }}>Yopiq</button>
       </div>
-      <p className="m-hint">Gapni bossangiz — video o'sha joydan boshlanadi. Video to'xtab turganda so'zni bossangiz — tarjimasi chiqadi.</p>
+      <button type="button" className={`m-lite m-stop ${stop ? "on" : ""}`} aria-pressed={stop} onClick={flipStop}>
+        <PauseCircle size={16} aria-hidden />Har gapdan keyin to'xtash
+      </button>
+      <p className="m-hint">{hid ? "Subtitr yopiq: avval eshitib tushunishga urining, keyin gapni bosib oching." : "Gapni bossangiz — video o'sha joydan boshlanadi. Video to'xtab turganda so'zni bossangiz — tarjimasi chiqadi."}</p>
 
-      <div ref={box} className={`mtrans ${ar ? "" : "noar"} ${uz ? "" : "nouz"}`}>
+      <div ref={box} className={`mtrans ${ar ? "" : "noar"} ${uz ? "" : "nouz"} ${hid ? "hid" : ""}`}>
         {m.cues.map((c, i) => (
           <div key={i} className="mline" data-i={i} role="button" tabIndex={0} onClick={(e) => lineClick(e, i)}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); loopI.current = i; seek(c.s - 0.05); } }}>
@@ -256,7 +292,9 @@ function MultVideo({ m }: { m: Mult }) {
       </div>
       <LagRow />
 
-      {pop && (
+      {/* multfilm lug'atida yo'q so'z — umumiy lug'atdan (2-paket) */}
+      {pop && !V && lex && <WordPop w={pop.w.replace(/[،؟!.:«»]/g, "")} e={lookup(lex, pop.w, RANK[m.level] ? { b: m.level, u: 99 } : undefined)} onClose={() => setPop(null)} />}
+      {pop && (V || !lex) && (
         <div className="mpop" role="dialog" aria-modal="true" aria-label="So'z tarjimasi" onClick={(e) => { if (e.target === e.currentTarget) setPop(null); }}>
           <div className="mpopc">
             <Ar className="mp-w">{pop.w.replace(/[،؟!.:«»]/g, "")}</Ar>

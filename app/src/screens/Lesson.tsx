@@ -13,7 +13,7 @@ import { isReadStep, kbKeyOf, loadKb, type KbLesson } from "../lib/kb";
 import { STRANDS, strandToday, strandWeek, type Strand } from "../lib/strand";
 import { goalOf, MIX } from "../lib/goal";
 import type { Book } from "../lib/progress";
-import { allItems, checkTyped, confusable, dayNum, errAdd, isDue, itemsOf, LATER_MS, picOf, SRS_INT, srsOf, usePics, type Item } from "../lib/practice";
+import { allItemsX, checkTyped, confusable, dayNum, errAdd, isDue, itemsOf, LATER_MS, picOf, SRS_INT, srsOf, usePics, type Item } from "../lib/practice";
 import { loadData } from "../lib/data";
 import { bkKey, dayKey } from "../lib/progress";
 import { report } from "../lib/report";
@@ -65,7 +65,7 @@ export function planLesson(book: RBook, rel?: Set<string>): Plan {
   const S = srsOf(book.id), t = dayNum();
   const seen = new Set<string>();
   const dueAll: Item[] = [];
-  for (const x of allItems(book)) if (isDue(S[x.ar], t) && !seen.has(x.ar)) { seen.add(x.ar); dueAll.push(x); }
+  for (const x of allItemsX(book)) if (isDue(S[x.ar], t) && !seen.has(x.ar)) { seen.add(x.ar); dueAll.push(x); }
   // chalkashadigan juftlikdan bittasi keyingi darsga qoladi (Nation, 32-bet: birga o'rganilsa 50–100% qiyinroq)
   const due: Item[] = [];
   for (const x of shuffle(dueAll)) { if (due.length >= 8) break; if (!due.some((y) => confusable(x.ar, y.ar, rel))) due.push(x); }

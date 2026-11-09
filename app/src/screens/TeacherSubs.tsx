@@ -20,10 +20,11 @@ export function TeacherSubsScreen({ code }: { code: string }) {
   const [items, setItems] = useState<Sub[] | null | "err">(null);
   const [tab, setTab] = useState<Tab>("wait");
   const [titles, setTitles] = useState<Record<string, string>>({});
+  const [cg, setCg] = useState<Record<string, number> | null>(null); // 3-paket: baho → tanga jadvali
 
   useEffect(() => {
     let alive = true;
-    api<{ items: Sub[] }>("subList", { code }).then((r) => alive && setItems(r.items || [])).catch(() => alive && setItems("err"));
+    api<{ items: Sub[]; coinGrade?: Record<string, number> | null }>("subList", { code }).then((r) => { if (!alive) return; setItems(r.items || []); setCg(r.coinGrade || null); }).catch(() => alive && setItems("err"));
     return () => { alive = false; };
   }, [code]);
   // dars va qadam nomlari (a1:4 · suhbat → "4-vahda · Suhbat")
@@ -66,13 +67,13 @@ export function TeacherSubsScreen({ code }: { code: string }) {
           text={tab === "dunno" ? "O'quvchi mashqni tushunmay o'tkazib yuborsa, shu yerda ko'rinadi." : "O'quvchilar yangi javob yuborganda shu yerda paydo bo'ladi."} />
       )}
       <ul className="ts-list">
-        {shown.map((x) => <SubCard key={x.id} x={x} title={titles[`${x.lesson}|${x.step}`] || x.lesson} onGraded={graded} />)}
+        {shown.map((x) => <SubCard key={x.id} x={x} title={titles[`${x.lesson}|${x.step}`] || x.lesson} onGraded={graded} cg={x.step === "hw" ? cg : null} />)}
       </ul>
     </main>
   );
 }
 
-function SubCard({ x, title, onGraded }: { x: Sub; title: string; onGraded: (id: number, g: number, c: string) => void }) {
+function SubCard({ x, title, onGraded, cg }: { x: Sub; title: string; onGraded: (id: number, g: number, c: string) => void; cg: Record<string, number> | null }) {
   const dunno = x.item >= 300;
   const [grade, setGrade] = useState<number | null>(x.grade);
   const [comment, setComment] = useState(x.comment || "");
@@ -83,8 +84,8 @@ function SubCard({ x, title, onGraded }: { x: Sub; title: string; onGraded: (id:
     if (!grade) { toast("Avval bahoni tanlang (1–5)"); return; }
     setBusy(true);
     try {
-      await api("subGrade", { id: x.id, grade, comment: comment.trim() });
-      tg.haptic("success"); toast("Baho yuborildi — o'quvchiga Telegram'da xabar boradi");
+      const r = await api<{ coins?: number }>("subGrade", { id: x.id, grade, comment: comment.trim() });
+      tg.haptic("success"); toast(r.coins ? `Baho yuborildi · o'quvchiga +${r.coins} tanga` : "Baho yuborildi — o'quvchiga Telegram'da xabar boradi");
       onGraded(x.id, grade, comment.trim()); setEdit(false);
     } catch (e) { toast(e instanceof Error ? e.message : "Saqlanmadi"); }
     setBusy(false);
@@ -102,6 +103,7 @@ function SubCard({ x, title, onGraded }: { x: Sub; title: string; onGraded: (id:
               <button key={g} type="button" role="radio" aria-checked={grade === g} className={grade === g ? "on" : ""} onClick={() => setGrade(g)}>{g}</button>
             ))}
           </div>
+          {cg && <small className="ts-coins">Uy vazifasi: {[5, 4, 3].map((g) => `${g} → ${cg[String(g)] ?? 0}`).join(" · ")} tanga{grade && cg[String(grade)] ? ` — tanlangan: +${cg[String(grade)]}` : ""}</small>}
           <input className="ts-cmt" value={comment} maxLength={300} onChange={(e) => setComment(e.target.value)} placeholder="Izoh (ixtiyoriy): masalan, «harakatlarga e'tibor bering»" />
           <button type="button" className="btn primary wide" disabled={busy || !grade} onClick={() => void save()}><Send size={18} aria-hidden />{busy ? "Yuborilmoqda…" : "Bahoni yuborish"}</button>
         </div>

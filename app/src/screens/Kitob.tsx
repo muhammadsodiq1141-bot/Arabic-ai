@@ -23,6 +23,8 @@ import { GainNote } from "../ui/GainNote";
 import { ERR_KIND, HintLadder, noteHint, typeFirst } from "../ui/HintLadder";
 import { strandSet } from "../lib/strand";
 import { rkOn } from "../lib/reaction";
+import { coverage, lookup, RANK, rankFor, useLex, type LexE } from "../lib/lex";
+import { CoverBar, PreWords, TapText, WordPop } from "../ui/Lex";
 
 export function KbScreen({ lessonKey, si, unitN, letter }: { lessonKey: string; si: number; unitN: number; letter?: string }) {
   const { back } = useNav();
@@ -213,7 +215,7 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
       <section className="kb-card" key={i}>
         <div className="kb-ins">{it.ins ? <><Ar className="kb-ins-ar">{it.ins}</Ar><span>{insUz(it.ins, it.type)}</span></> : <span>{tipOf(it.type)}</span>}</div>
         {it.type === "intro" && <Intro it={it} />}
-        {it.type === "read" && <Read it={it} normKey={`${lessonKey}#${si}.${i}`} />}
+        {it.type === "read" && <Read it={it} normKey={`${lessonKey}#${si}.${i}`} lk={lessonKey} />}
         {(it.type === "choose" || it.type === "qa") && <Choose {...props} />}
         {it.type === "listen1" && <Listen1 {...props} />}
         {it.type === "pick" && <Pick {...props} />}
@@ -356,13 +358,20 @@ function Intro({ it }: { it: KbItem }) {
   );
 }
 
-function Read({ it, normKey }: { it: KbItem; normKey: string }) {
+function Read({ it, normKey, lk }: { it: KbItem; normKey: string; lk: string }) {
   const [playing, setPlaying] = useState(-1);
   const [uz, setUz] = useState(false);
   const run = useRef(0);
   useEffect(() => () => { run.current++; }, []);
   const lines = ((it.lines || []) as (string | string[])[]).map((l) => (Array.isArray(l) ? l : ["", l, ""]));
   const hasUz = lines.some((l) => !!l[2]);
+  // 2-paket: so'zni bosib tarjima, «siz bilgan so'zlar» foizi, qiyin matndan oldin 5 ta so'z
+  const lex = useLex();
+  const [bk, un] = lk.split(":");
+  const ctx = RANK[bk] ? { b: bk, u: Number(un) || 1 } : undefined;
+  const cov = useMemo(() => (lex && ctx ? coverage(lex, lines.map((l) => l[1]), ctx, rankFor(ctx.b)) : null), [lex, lk, it]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [pop, setPop] = useState<{ w: string; e: LexE | null } | null>(null);
+  const [pre, setPre] = useState(false);
   const playAll = async () => {
     if (playing >= 0) { run.current++; stopSay(); setPlaying(-1); return; }
     const my = ++run.current;
@@ -377,18 +386,25 @@ function Read({ it, normKey }: { it: KbItem; normKey: string }) {
   return (
     <>
       {it.title && <Ar className="kb-ti ar-t">{it.title}</Ar>}
+      {cov?.ok && <CoverBar cov={cov} onPre={() => setPre(true)} />}
       {it.norm ? <NormTimer norm={it.norm} k={normKey} /> : null}
       <button type="button" className="btn ghost kb-play" onClick={() => void playAll()}>{playing >= 0 ? <><Pause size={18} aria-hidden />To'xtatish</> : <><Play size={18} aria-hidden />Hammasini tinglash</>}</button>
       <div className="kb-dlg">
         {lines.map((l, k) => (
           <div key={k} className={`kb-ln ${playing === k ? "on" : ""}`}>
             {l[0] && <Ar className="kb-sp">{l[0]}</Ar>}
-            <button type="button" className="kb-lt" onClick={() => void say(l[1])}><Ar>{l[1]}</Ar></button>
+            <div className="kb-lr">
+              <button type="button" className="say sm" aria-label="Gapni tinglash" onClick={() => void say(l[1])}><Volume2 size={18} aria-hidden /></button>
+              <Ar className="kb-lt">{lex ? <TapText text={l[1]} onWord={(w) => setPop({ w, e: lookup(lex, w, ctx) })} /> : l[1]}</Ar>
+            </div>
             {uz && l[2] && <small>{l[2]}</small>}
           </div>
         ))}
       </div>
       {hasUz && <button type="button" className="kb-link" onClick={() => setUz(!uz)}>{uz ? "Tarjimani yashirish" : "Tarjimani ko'rsatish"}</button>}
+      {lex && <p className="kb-tip">So'zni bossangiz — tarjimasi chiqadi.</p>}
+      {pop && <WordPop w={pop.w} e={pop.e} onClose={() => setPop(null)} />}
+      {pre && cov && <PreWords list={cov.unknown.slice(0, 5)} onClose={() => setPre(false)} />}
     </>
   );
 }

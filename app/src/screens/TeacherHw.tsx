@@ -14,7 +14,7 @@ import { toast } from "../ui/Toast";
 import { useTeacherGroup } from "./Teacher";
 
 type Hw = { id: number; group_code: string; book: string; unit: number; title: string; due: string; teacher?: boolean; stats?: { total: number; done: number } };
-type Row = { n: string; lg: string; done: boolean; progress: { words?: number; test?: number; rules?: number; grade?: number } | null };
+type Row = { n: string; lg: string; done: boolean; progress: { words?: number; test?: number; rules?: number; grade?: number; avg?: number; auto?: boolean } | null };
 type Units = { n: number; uz: string }[];
 
 // kitob vahdalari nomi (A0 — mavzular ro'yxati)
@@ -75,6 +75,18 @@ export function TeacherHwScreen({ code }: { code: string }) {
 function HwCard({ h, title, unitName, open, onToggle, onDeleted }: { h: Hw; title: string; unitName: string; open: boolean; onToggle: () => void; onDeleted: () => void }) {
   const [rows, setRows] = useState<Row[] | null | "err">(null);
   const [sure, setSure] = useState(false);
+  const [busy, setBusy] = useState(false);
+  // 3-paket: topshirgan, lekin baholanmaganlarga ilova bahosi (o'rtacha %) bo'yicha baho va tanga
+  const toGrade = rows && rows !== "err" ? rows.filter((r) => r.done && r.progress && !r.progress.grade && Number.isFinite(Number(r.progress.avg))).length : 0;
+  const autoGrade = async () => {
+    setBusy(true);
+    try {
+      const r = await api<{ n: number; coins: number }>("hwAutoGrade", { id: h.id });
+      tg.haptic("success"); toast(r.n ? `${r.n} ta o'quvchi baholandi · jami ${r.coins} tanga` : "Baholanadigan javob qolmadi");
+      setRows(null);
+    } catch (e) { toast(e instanceof Error ? e.message : "Baholanmadi"); }
+    setBusy(false);
+  };
   useEffect(() => {
     if (!open || rows) return;
     api<{ rows: Row[] }>("hwStatus", { id: h.id }).then((r) => setRows(r.rows || [])).catch(() => setRows("err"));
@@ -105,9 +117,15 @@ function HwCard({ h, title, unitName, open, onToggle, onDeleted }: { h: Hw; titl
             <div key={i} className={`th-row ${r.done ? "ok" : ""}`}>
               <span className="th-mark" aria-label={r.done ? "Bajardi" : "Bajarmagan"}>{r.done ? <Check size={16} strokeWidth={3} aria-hidden /> : null}</span>
               <span className="th-n"><b>{r.n}</b><small>{r.lg}</small></span>
-              <span className="th-p">{r.progress ? (r.progress.grade ? `Baho: ${r.progress.grade}/5` : `So'z ${r.progress.words ?? 0}% · test ${r.progress.test ?? 0}% · qoida ${r.progress.rules ?? 0}%`) : "boshlamagan"}</span>
+              <span className="th-p">{r.progress ? (r.progress.grade ? `Baho: ${r.progress.grade}/5${r.progress.auto ? " (ilova)" : ""}` : Number.isFinite(Number(r.progress.avg)) ? `Topshirdi · ilova ${Math.round(Number(r.progress.avg))}%` : `So'z ${r.progress.words ?? 0}% · test ${r.progress.test ?? 0}% · qoida ${r.progress.rules ?? 0}%`) : "boshlamagan"}</span>
             </div>
           ))}
+          {toGrade > 0 && (
+            <button type="button" className="btn primary wide th-auto" disabled={busy} onClick={() => void autoGrade()}>
+              {busy ? "Baholanmoqda…" : `Ilova bahosi bo'yicha baholash · ${toGrade} ta`}
+            </button>
+          )}
+          {toGrade > 0 && <small className="muted th-auto-n">90%+ → 5, 75%+ → 4, 60%+ → 3, kamroq → 2. Tanga bahoga yarasha tushadi. Yozma yoki ovozli javobni «Javoblar»da o'zingiz baholang.</small>}
           <div className="t-kick">
             {!sure
               ? <button type="button" className="btn ghost bad" onClick={() => setSure(true)}><Trash2 size={18} aria-hidden />Vazifani o'chirish</button>

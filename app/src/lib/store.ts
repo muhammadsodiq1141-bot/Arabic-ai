@@ -111,7 +111,7 @@ export function gain(kind: string, xp: number) {
   const L = store.get<Record<string, number>>("a1.days", {});
   L[t] = (L[t] || 0) + 1;
   store.set("a1.days", L);
-  // kunlik vazifalar va haftalik bonus — yulduzlar (x.s) eski ilovadagi "muzlatish" uchun kerak
+  // kunlik vazifalar va haftalik bonus — 3-paket: endi YULDUZCHA beradi (tanga serverda: ustoz bahosi, vazifa, dars). Bonus = mukofot × 10
   try {
     let got = 0;
     const cl = store.get<Record<string, number>>(`x.cl.${t}`, {});
@@ -126,7 +126,13 @@ export function gain(kind: string, xp: number) {
       for (let i = 0; i < 7; i++) if ((D[dayKey(new Date(w[0], w[1] - 1, w[2] + i))] || 0) > 0) days++;
       if (days >= 5) { store.set(`x.w.${wk}`, 1); got += 5; msgs.push("Haftalik vazifa bajarildi"); }
     }
-    if (got) { store.set(`x.cl.${t}`, cl); store.set("x.s", store.get("x.s", 0) + got); msgs.push(`+${got} tanga`); }
+    if (got) {
+      const bonus = got * 10;
+      store.set(`x.cl.${t}`, cl);
+      D[t] = (D[t] || 0) + bonus; store.set("x.d", D);
+      store.set("x.t", store.get("x.t", 0) + bonus);
+      msgs.push(`+${bonus} yulduzcha`);
+    }
   } catch { /* */ }
   scheduleSync();
   // motivatsiya: xabar (toast) va unvon/nishon tabrigi — Motiv.tsx dagi MotivHost tinglaydi (x.s = «tanga»)

@@ -1,5 +1,6 @@
 // Bosh sahifa (shablon tuzilishi, Miyzan ranglari). Haqiqiy ma'lumot: progress (eski ilova formati), uy vazifasi (hwList),
 // guruh reytingi (leaderboard), kun so'zi (DAY_WORDS). Hali tayyor bo'lmagan bo'limlar bitta sokin "Tez orada" ro'yxatida (bosilmaydi).
+import { loadCoins, newCoinMsgs, REF_INVITER } from "../lib/coins";
 import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Gift, GraduationCap, Headphones, MessageCircle, Search, Star, Target, TrendingUp, Trophy } from "lucide-react";
 import { a0Data, a0HwState, type Hw as A0Hw } from "../lib/a0";
@@ -57,6 +58,8 @@ export function Home() {
       if (applyFreeze()) window.setTimeout(() => toast("Muzlatish ishlatildi — ketma-ketlik saqlandi"), 800);
       // 14-partiya: do'stni taklif qilish — tasdiqlangan do'stlar uchun tanga
       void claimRef(me).then((m) => { if (m && alive) window.setTimeout(() => toast(m), 1400); });
+      // 3-paket: yangi tangalar (ustoz bahosi va h.k.) — ilova ochilganda bir marta xabar
+      void loadCoins(true).then((c) => { const m = newCoinMsgs(c.items); if (m.length && alive) window.setTimeout(() => toast(m.join(" · ")), 2600); }).catch(() => {});
       window.dispatchEvent(new Event("mezon:check"));
       void kbFlush(); // internetsiz yozilgan javoblar (f.kbq) — eski ilovadagi kabi ochilganda yuboriladi
       const raw = localRaw();
@@ -197,7 +200,7 @@ export function Home() {
 
       <button type="button" className="rowbtn invite" onClick={() => go("invite")}>
         <img src={img("handshake")} alt="" />
-        <span><b>Do'stni taklif qilish</b><small>Har bir do'stingiz uchun 10 tanga</small></span>
+        <span><b>Do'stni taklif qilish</b><small>Har bir do'stingiz uchun {REF_INVITER} tanga</small></span>
         <ArrowUpRight size={20} aria-hidden />
       </button>
 

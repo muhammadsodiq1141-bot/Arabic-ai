@@ -47,7 +47,7 @@ export function summarize(raw: Raw): Summary {
   const wk = weekId();
   const weekXp = Object.entries(daily).filter(([d]) => d >= wk).reduce((a, [, v]) => a + (+v || 0), 0);
   return {
-    xp: parse(raw["x.t"], 0), stars: parse(raw["x.s"], 0), streak: streak(parse(raw["a1.days"], {}), parse(raw["x.fz"], [])), known,
+    xp: parse(raw["x.t"], 0), stars: parse(raw["f.coinBal"], 0) /* 3-paket: tanga serverda */, streak: streak(parse(raw["a1.days"], {}), parse(raw["x.fz"], [])), known,
     todayXp: daily[dayKey()] || 0, weekXp, book: parse(raw["a1.book"], "a1"),
   };
 }
@@ -66,7 +66,7 @@ export async function loadProgress(meId: string): Promise<{ raw: Raw; source: "p
 }
 
 // Uy vazifasi foizi: eski ilovadagi hwProgress bilan bir xil (so'zlar ≥80%, test ≥80%, qoidalar ≥80% — bajarildi)
-export type Book = { id: string; title: string; units: { n: number; uz?: string; ar?: string; words: string[][]; phrases: string[][] }[]; rules: Record<string, unknown[]> };
+export type Book = { id: string; title: string; units: { n: number; uz?: string; ar?: string; words: string[][]; phrases: string[][]; tw?: string[][]; xw?: [string, string, number][]; xg?: string[] }[]; rules: Record<string, unknown[]> };
 export function hwProgress(raw: Raw, book: Book, unitN: number) {
   const u = book.units.find((x) => x.n === unitN);
   if (!u) return { words: 0, test: 0, rules: 0, done: false, pct: 0 };
