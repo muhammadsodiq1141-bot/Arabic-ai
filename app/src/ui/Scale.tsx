@@ -1,4 +1,4 @@
-// Mezon tarozisi — yakun lahzalari uchun (brend: مِيزَان). Yulduzcha yengil pallaga tushadi va shayin muvozanatga keladi.
+// Miyzan tarozisi — yakun lahzalari uchun (brend: مِيزَان). Yulduzcha yengil pallaga tushadi va shayin muvozanatga keladi.
 // balanced=false bo'lsa tarozi qiyshiq qoladi (natija hali yetarli emas). Harakatni kamaytirish sozlamasida darhol oxirgi holat.
 export function Scale({ size = 150, balanced = true, star = true }: { size?: number; balanced?: boolean; star?: boolean }) {
   return (

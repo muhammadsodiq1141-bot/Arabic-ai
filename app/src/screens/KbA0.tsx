@@ -3,6 +3,7 @@
 // (600×600, glif 330px markazi 300,320; foydalanuvchi chizig'i 40px; ruxsat hududi glif + 56px kontur; qamrov ≥55%, aniqlik ≥70%).
 import { useEffect, useRef, useState, type PointerEvent as RPE, type ReactNode } from "react";
 import { Check, Eraser, PenLine, Volume2, X } from "lucide-react";
+import { tg } from "../lib/tg";
 import { a0Data, a0State, forms, FORM_UZ, FORM_UZ2, info, sound, syl, type Let } from "../lib/a0";
 import { say } from "../lib/audio";
 import type { Prepared } from "../lib/kb";
@@ -133,6 +134,7 @@ function check(g: string, user: HTMLCanvasElement) {
 }
 
 export function Trace({ it, done, ans, mark }: P) {
+  useEffect(() => { tg.swipes(false); return () => tg.swipes(true); }, []); // 1-paket D11
   const l = it.l || "ب", f = it.f || 0;
   const g = forms(l)[f];
   const LETS = useLets();

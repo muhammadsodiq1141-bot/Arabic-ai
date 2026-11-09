@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Check, Delete, Eraser, Heart, X } from "lucide-react";
 import { loadData } from "../lib/data";
+import { GAME_NAMES, okLetters } from "../lib/gamesMeta";
 import { AB, bestKey, emoOf, itemsOf, picOf, poolFor, usePics, type Item, type PBook } from "../lib/practice";
 import { report } from "../lib/report";
 import { gain, gameCapped, gameXp, saveRecord, store } from "../lib/store";
@@ -14,9 +15,6 @@ import { Ar } from "../ui/kit";
 import { Scale } from "../ui/Scale";
 import { GainNote } from "../ui/GainNote";
 
-export const GAME_NAMES: Record<string, string> = {
-  match: "Juftini top", pic: "Rasmni top", bubble: "Pufakchalar", million: "Million so'm", letters: "Harflardan yig'", speed: "60 soniya", order: "Gapni tartibla", synant: "Sinonim va antonim",
-};
 const LOWER = new Set(["match"]);
 const pickN = <T,>(a: T[], n: number) => shuffle(a).slice(0, n);
 
@@ -196,6 +194,7 @@ function Choice4({ book, unit, game, qs, onAgain }: GP & { game: string; qs: { i
 // ===== 3. Pufakchalar =====
 const BUB_COLORS = ["b1", "b2", "b3", "b4"];
 function Bubble({ book, unit, onAgain }: GP) {
+  useEffect(() => { tg.swipes(false); return () => tg.swipes(true); }, []); // 1-paket D11
   const pool = useMemo(() => itemsOf(book.units.find((x) => x.n === unit)!), [book, unit]);
   const [stage, setStage] = useState<"ready" | "play" | "end">("ready");
   const [score, setScore] = useState(0);
@@ -342,7 +341,6 @@ function Million({ book, unit, onAgain }: GP) {
 }
 
 // ===== 5. Harflardan yig' =====
-const okLetters = (x: Item) => { const s = strip(x.ar); return !/[\s×]/.test(s) && s.length >= 3 && s.length <= 7; };
 function Letters({ book, unit, onAgain }: GP) {
   const qs = useMemo(() => {
     const pool = poolFor(book, unit, okLetters, 6);
@@ -521,12 +519,3 @@ function Order({ book, unit, onAgain }: GP) {
   );
 }
 
-/** O'yinni o'ynash mumkinmi (savol yetadimi) — menyuda ko'rsatish uchun */
-export function gameAvailable(book: PBook, unit: number, game: string) {
-  const u = book.units.find((x) => x.n === unit);
-  if (!u) return false;
-  if (game === "order") return !!(book.sent?.[unit]?.length);
-  if (game === "pic") return poolFor(book, unit, (x) => !!picOf(x.ar), 4).length >= 4;
-  if (game === "letters") return poolFor(book, unit, okLetters, 6).length >= 3;
-  return itemsOf(u).length >= 6 || game !== "match";
-}

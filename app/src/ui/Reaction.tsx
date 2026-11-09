@@ -84,7 +84,8 @@ export function useReactions() {
       el.id = "rk-root";
       document.body.appendChild(el);
       createRoot(el).render(<Layer />);
-      rkLoad().catch(() => { /* keyingi chaqiruvda yana urinadi */ });
+      // 1-paket: stiker rasmlari (~190 KB) ochilish paytida emas — 5 soniyadan keyin va faqat stikerlar yoqilgan bo'lsa
+      if (rkOn()) window.setTimeout(() => { rkLoad().catch(() => { /* keyingi chaqiruvda yana urinadi */ }); }, 5000);
     }
     if (rkFirstHi()) {
       // tanishuv yoki ko'rsatma ochiq bo'lsa, ular yopilguncha kutiladi (bir vaqtda ikki qatlam chiqmasin)

@@ -24,7 +24,7 @@ export function InviteScreen() {
   const share = () => {
     if (!link) return;
     tg.haptic();
-    tg.openLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent("Men Mezon'da arab tilini o'rganyapman: kitob, lug'at, multfilm va gapirish mashqlari. Sen ham qo'shil!")}`);
+    tg.openLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent("Men Miyzan'da arab tilini o'rganyapman: kitob, lug'at, multfilm va gapirish mashqlari. Sen ham qo'shil!")}`);
   };
   const copy = async () => {
     if (!link) return;

@@ -27,7 +27,7 @@ export function NoAuth() {
   return (
     <main className="gate">
       <Logo />
-      <h1>Mezon'ga xush kelibsiz</h1>
+      <h1>Miyzan'ga xush kelibsiz</h1>
       <p>Ilovani Telegram bot orqali oching yoki shaxsiy loginingiz bilan kiring.</p>
       <button type="button" className="btn primary wide" onClick={() => tg.openLink(BOT_LINK)}><Send size={20} aria-hidden />Telegram'da ochish</button>
       <form className="card form" onSubmit={(e) => { e.preventDefault(); if (ok) void submit(); }}>
@@ -103,7 +103,7 @@ export function Pending() {
     <main className="gate">
       <Logo />
       <h1>So'rovingiz qabul qilindi</h1>
-      <p>Mezon'dan faqat bosh admin tasdiqlagan o'quvchilar foydalanadi. Tasdiqlanganda Telegram orqali xabar olasiz.</p>
+      <p>Miyzan'dan faqat bosh admin tasdiqlagan o'quvchilar foydalanadi. Tasdiqlanganda Telegram orqali xabar olasiz.</p>
       <div className="who2"><Avatar name={name} size={44} /><div><b>{name}</b><span>{sub}</span></div></div>
       <ol className="steps">
         <li><span className="k ok"><Check size={18} aria-hidden /></span><div><b>Ro'yxatdan o'tdingiz</b><span>Ism va daraja</span></div></li>
@@ -122,7 +122,7 @@ export function Rejected() {
     <main className="gate">
       <Logo />
       <h1>So'rovingiz tasdiqlanmadi</h1>
-      <p>Hozircha Mezon'ga kirish ruxsati berilmadi. Savollar bo'lsa, ustozingizga yoki adminga yozing.</p>
+      <p>Hozircha Miyzan'ga kirish ruxsati berilmadi. Savollar bo'lsa, ustozingizga yoki adminga yozing.</p>
       <button type="button" className="btn ghost wide" onClick={() => tg.openLink(BOT_LINK)}><Send size={18} aria-hidden />Botga yozish</button>
     </main>
   );

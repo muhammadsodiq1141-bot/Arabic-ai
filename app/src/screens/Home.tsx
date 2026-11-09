@@ -1,6 +1,6 @@
-// Bosh sahifa (shablon tuzilishi, Mezon ranglari). Haqiqiy ma'lumot: progress (eski ilova formati), uy vazifasi (hwList),
+// Bosh sahifa (shablon tuzilishi, Miyzan ranglari). Haqiqiy ma'lumot: progress (eski ilova formati), uy vazifasi (hwList),
 // guruh reytingi (leaderboard), kun so'zi (DAY_WORDS). Hali tayyor bo'lmagan bo'limlar bitta sokin "Tez orada" ro'yxatida (bosilmaydi).
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Gift, GraduationCap, Headphones, MessageCircle, Search, Star, Target, TrendingUp, Trophy } from "lucide-react";
 import { a0Data, a0HwState, type Hw as A0Hw } from "../lib/a0";
 import { api } from "../lib/api";
@@ -9,14 +9,14 @@ import { hash, dayKey, hwProgress, localRaw, summarize, weekId, type Book, type 
 import { kbFlush, kbKeyOf, loadKb } from "../lib/kb";
 import { dueText, nextStep } from "../lib/next";
 import { savedAll } from "../lib/saved";
-import { bootSync, store } from "../lib/store";
+import { bootSync, localEmpty, store } from "../lib/store";
 import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
 import { Ar, Avatar, SectionTitle } from "../ui/kit";
 import { applyFreeze, monthBadge, MONTH_GOAL } from "../lib/motiv";
 import { mFresh, setMSeen } from "../lib/mult";
-import { useMults } from "./Mult";
+import { useMultIndex } from "./Mult";
 import { Emo } from "../ui/Emo";
 import { claimRef } from "../lib/ref";
 import { goalOf } from "../lib/goal";
@@ -29,18 +29,19 @@ import { HelpButton, IntroOverlay, setCoachBlocked, useCoach } from "./Onboard";
 import { ensureWeek, introDone, WeekCard } from "./Week";
 
 type Hw = { id: number; book: string; unit: number; title: string; due: string; mine: { done?: boolean } | null; teacher?: boolean };
-type HwCard = { book: string; title: string; unitAr: string; unitN: number; pct: number; due: string; next: string } | null | "none" | "nogroup";
+type HwCard = { book: string; title: string; unitAr: string; unitN: number; pct: number; due: string; next: string } | null | "none" | "nogroup" | "err";
 
 export function Home() {
   const { me } = useSession();
   const { go, setTab } = useNav();
-  const [sum, setSum] = useState<Summary | null>(null);
+  // 1-paket (D4): telefonda ma'lumot bo'lsa kartalar darhol chiziladi — server bilan sinxronlashgach yangilanadi (sakrash yo'q)
+  const [sum, setSum] = useState<Summary | null>(() => (localEmpty() ? null : summarize(localRaw())));
   const [hw, setHw] = useState<HwCard>(null);
   const [rank, setRank] = useState<{ n: number; scope: "group" | "all" } | null | "none">(null);
   const [word, setWord] = useState<DayWord | null>(null);
   const [books, setBooks] = useState<BookIndex | null>(null);
   const [intro, setIntro] = useState(false);
-  const ms = useMults(); // 17-partiya (M11)
+  const ms = useMultIndex(); // 17-partiya (M11); 1-paket: rasmsiz yengil ro'yxat (MULT_INDEX)
   const lv0 = String(me?.level || "").toLowerCase();
   const fresh = ms ? mFresh(ms).sort((x, y) => Number(y.level === lv0) - Number(x.level === lv0))[0] || null : null;
   const mb = monthBadge();
@@ -69,19 +70,26 @@ export function Home() {
       .then((r) => alive && setRank(r.me ? { n: r.me.rank, scope: me.group ? "group" : "all" } : "none"))
       .catch(() => alive && setRank("none"));
 
-    async function loadHomework(raw: Raw) {
+    return () => { alive = false; hwRun.current++; };
+  }, [me]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // uy vazifasi kartasi: yuklash, bo'sh, xato (1-paket D5 — internet bo'lmasa «vazifa yo'q» emas, «yuklanmadi»)
+  const hwRun = useRef(0);
+  async function loadHomework(raw: Raw) {
+      const my = ++hwRun.current;
+      const alive = () => hwRun.current === my;
       if (!me?.group) { setHw("nogroup"); return; }
       try {
         const r = await api<{ items: Hw[] }>("hwList");
         store.set("f.hw", r.items); // eski ilova bilan bir xil kesh: sinxronlashda uy vazifasi holati shundan hisoblanadi
         const open = r.items.filter((h) => !h.teacher && !h.mine?.done).sort((a, b) => a.due.localeCompare(b.due));
         const h = open[0];
-        if (!h) { if (alive) setHw("none"); return; }
+        if (!h) { if (alive()) setHw("none"); return; }
         if (h.book === "a0") {
           // A0 vazifasi: kitob emas, alifbo darsi (eski ilovada ham alohida karta)
           const [L, d] = await Promise.all([loadKb(`a0:${h.unit}`).catch(() => null), a0Data()]);
           const s = a0HwState(h as unknown as A0Hw, L);
-          if (alive) setHw({ book: "a0", title: d.TOPICS[h.unit - 1] || "", unitAr: "", unitN: h.unit, pct: s.tot ? Math.round((s.done / s.tot) * 100) : 0, due: h.due, next: s.full ? "Ustozga topshirish" : `${s.done}/${s.tot} qadam` });
+          if (alive()) setHw({ book: "a0", title: d.TOPICS[h.unit - 1] || "", unitAr: "", unitN: h.unit, pct: s.tot ? Math.round((s.done / s.tot) * 100) : 0, due: h.due, next: s.full ? "Ustozga topshirish" : `${s.done}/${s.tot} qadam` });
           return;
         }
         const book = await loadData<Book>(`books/${h.book}`);
@@ -89,11 +97,9 @@ export function Home() {
         const key = kbKeyOf(h.book, h.unit);
         const kb = key ? await loadKb(key).catch(() => null) : null;
         const nx = nextStep(book, h.unit, kb);
-        if (alive) setHw({ book: h.book, title: h.title || u?.uz || "", unitAr: u?.ar || "", unitN: h.unit, pct: hwProgress(raw, book, h.unit).pct, due: h.due, next: nx.kind === "done" ? "" : nx.label });
-      } catch { if (alive) setHw("none"); }
-    }
-    return () => { alive = false; };
-  }, [me]);
+        if (alive()) setHw({ book: h.book, title: h.title || u?.uz || "", unitAr: u?.ar || "", unitN: h.unit, pct: hwProgress(raw, book, h.unit).pct, due: h.due, next: nx.kind === "done" ? "" : nx.label });
+      } catch { if (alive()) setHw("err"); }
+  }
 
   useCoach("home", !!sum && !intro);
   const level = books?.find((b) => b.id === (sum?.book || "a1"));
@@ -109,34 +115,36 @@ export function Home() {
         <button type="button" className="ibtn" aria-label="Reyting" onClick={() => go("league")}><Trophy size={22} aria-hidden /></button>
       </header>
 
-      <div className="stories" role="list">
-        {word && (
-          <button type="button" role="listitem" className="story" onClick={() => go("dayword", { word })}>
+      <ul className="stories" aria-label="Yangiliklar">
+        {/* 1-paket: «Kun so'zi» joyi oldindan band — boshqa hikoyalar surilmaydi */}
+        <li>{word ? (
+          <button type="button" className="story" onClick={() => go("dayword", { word })}>
             <span className="in s1">Kun so'zi<img src={img("book")} alt="" /></span>
           </button>
-        )}
+        ) : <span className="story st-ph" aria-hidden><span className="in" /></span>}</li>
         {(sum?.streak || 0) > 0 && (
-          <button type="button" role="listitem" className="story seen" onClick={() => setTab("marks")}>
+          <li><button type="button" className="story seen" onClick={() => setTab("marks")}>
             <span className="in s2">{sum!.streak} kunlik seriya<img src={img("fire")} alt="" /></span>
-          </button>
+          </button></li>
         )}
         {/* 17-partiya (M11): yangi multfilm qismi va oy marafoni */}
-        {fresh && (
-          <button type="button" role="listitem" className="story" onClick={() => { setMSeen(fresh.id); go("mult", { id: fresh.id }); }}>
-            <span className="in s3">Yangi multfilm<small className="st-sub">{fresh.title}</small>{fresh.thumb ? <img className="st-th" src={fresh.thumb} alt="" /> : <img src={img("tv")} alt="" />}</span>
-          </button>
-        )}
-        <button type="button" role="listitem" className={`story ${mb.ok ? "seen" : ""}`} aria-label={`${mb.t}: ${mb.d}`} onClick={() => setTab("profile")}>
+        <li><button type="button" className={`story ${mb.ok ? "seen" : ""}`} aria-label={`${mb.t}: ${mb.d}`} onClick={() => setTab("profile")}>
           <span className="in s4">{mb.t}<small className="st-sub">{Math.min(mb.n, MONTH_GOAL)} / {MONTH_GOAL} kun</small><span className="st-emo"><Emo e={mb.e} size={56} /></span></span>
-        </button>
-      </div>
+        </button></li>
+        {/* kech yuklanadi — oxirida turadi, oldingilarni surmaydi */}
+        {fresh && (
+          <li><button type="button" className="story" onClick={() => { setMSeen(fresh.id); go("mult", { id: fresh.id }); }}>
+            <span className="in s3">Yangi multfilm<small className="st-sub">{fresh.title}</small><img src={img("tv")} alt="" /></span>
+          </button></li>
+        )}
+      </ul>
 
       <div className="grid">
         <div className="stat">
           <div><Star size={40} className="st" aria-hidden /><b>{sum ? sum.xp.toLocaleString("ru-RU") : "…"}</b><span>Yulduzcha</span></div>
           <div><TrendingUp size={40} className="wk" aria-hidden /><b>{sum ? `+${sum.weekXp.toLocaleString("ru-RU")}` : "…"}</b><span>Bu hafta</span></div>
         </div>
-        <HomeworkCard hw={hw} onOpen={() => (hw && typeof hw === "object" ? (hw.book === "a0" ? go("a0d", { n: hw.unitN }) : go("unit", { book: hw.book, unit: hw.unitN })) : setTab("lessons"))} />
+        <HomeworkCard hw={hw} onOpen={() => (hw === "err" ? (setHw(null), void loadHomework(localRaw())) : hw && typeof hw === "object" ? (hw.book === "a0" ? go("a0d", { n: hw.unitN }) : go("unit", { book: hw.book, unit: hw.unitN })) : setTab("lessons"))} />
         <button type="button" className="rank" onClick={() => go("league")}>
           <img src={img("trophy")} alt="" />
           <b>{rank === null ? "…" : rank === "none" ? "Reyting" : `${rank.n}-o'rin`}</b>
@@ -154,6 +162,7 @@ export function Home() {
           </div>
         </section>
       )}
+      {!sum && <div className="hm-skel" aria-hidden><i /><i /><i /></div>}
       {sum && <WeekCard bookId={store.get("a1.book", bookOfLevel(me?.level))} />}
       {me?.level === "A0" && <A0Entry />}
       {sum && <TodayCard bookId={store.get("a1.book", bookOfLevel(me?.level))} />}
@@ -210,6 +219,7 @@ function HomeworkCard({ hw, onOpen }: { hw: HwCard; onOpen: () => void }) {
     hw === null ? <p className="hw-note">Yuklanmoqda…</p>
     : hw === "nogroup" ? <p className="hw-note">Uy vazifasini ustozingiz beradi. Avval guruhga qo'shiling.</p>
     : hw === "none" ? <p className="hw-note">Hozircha ochiq vazifa yo'q. Barakalla!</p>
+    : hw === "err" ? <p className="hw-note">Vazifalar yuklanmadi — internetni tekshiring. Qayta urinish uchun bosing</p>
     : (
       <>
         <div className="unit">{hw.unitN}-vahda{hw.unitAr && <Ar className="unit-ar">{hw.unitAr}</Ar>}</div>

@@ -6,7 +6,7 @@ import { bkKey, dayKey, localRaw, streak, summarize, weekId } from "./progress";
 import { dailyTasks, scheduleSync, store } from "./store";
 
 /** [yulduzchadan, nomi, arabchasi] — LEVELS.json bilan aynan (nomlardagi apostrof oddiy ') */
-export const UNVON: [number, string, string][] = [[0, "Mubtadi'", "مُبْتَدِئ"], [300, "Tolib", "طَالِب"], [1000, "Doris", "دَارِس"], [2500, "Bohis", "بَاحِث"], [5000, "Mohir", "مَاهِر"], [10000, "Mezon", "مُجْتَهِد"]];
+export const UNVON: [number, string, string][] = [[0, "Mubtadi'", "مُبْتَدِئ"], [300, "Tolib", "طَالِب"], [1000, "Doris", "دَارِس"], [2500, "Bohis", "بَاحِث"], [5000, "Mohir", "مَاهِر"], [10000, "Miyzan", "مِيزَان"]];
 export type Unvon = { i: number; name: string; ar: string; from: number; next: number | null; nextName: string | null };
 export function levelOf(x: number): Unvon {
   let i = 0;
@@ -139,12 +139,12 @@ export function pendingCele(hasGroup: boolean): Cele | null {
 
 // ===== Telegram matnlari (emoji — xabar matnida qoladi, foydalanuvchi qarori) =====
 export function shareText() {
-  return `Men Mezon ilovasida arab tilini o'rganyapman: ${streakNow()} kun ketma-ket 🔥, ${knownTotal()} ta so'z, ${xpTotal()} yulduzcha. Sen ham qo'shil! 👇`;
+  return `Men Miyzan ilovasida arab tilini o'rganyapman: ${streakNow()} kun ketma-ket 🔥, ${knownTotal()} ta so'z, ${xpTotal()} yulduzcha. Sen ham qo'shil! 👇`;
 }
 type Sum = { streak?: number; xpw?: number; days?: number[]; books?: Record<string, [number, number]>; mlt?: number; test?: number | null };
 export function reportText(s: Sum, name: string, login: string, bookName: (id: string) => string) {
   const bl = Object.entries(s.books || {}).map(([id, v]) => `• ${bookName(id)}: ${v[0]}/${v[1]} so'z`).join("\n");
   const act = (s.days || []).slice(-7).filter((x) => x > 0).length;
-  return `📊 Mezon hisobot\n👤 ${name}${login ? ` (${login})` : ""}\n🔥 Ketma-ket: ${s.streak || 0} kun · oxirgi 7 kunda ${act} kun faol\n⚡ Shu hafta: ${s.xpw || 0} yulduzcha\n`
+  return `📊 Miyzan hisobot\n👤 ${name}${login ? ` (${login})` : ""}\n🔥 Ketma-ket: ${s.streak || 0} kun · oxirgi 7 kunda ${act} kun faol\n⚡ Shu hafta: ${s.xpw || 0} yulduzcha\n`
     + bl + (s.test != null ? `\n🎯 Testlar o'rtachasi: ${s.test}%` : "") + `\n🎬 Ko'rilgan multfilm: ${s.mlt || 0}`;
 }

@@ -1,8 +1,8 @@
 // Sinov rejimi: faqat shu kompyuterda (localhost) va manzilda ?demo=... bo'lsa ishlaydi. Serverga umuman murojaat qilmaydi,
 // hamma ma'lumot soxta. Haqiqiy saytda (github.io) yoqilmaydi.
+import { DEMO } from "./demoFlag";
+export { DEMO };
 const q = new URLSearchParams(location.search);
-const local = ["localhost", "127.0.0.1"].includes(location.hostname);
-export const DEMO: string | null = local ? q.get("demo") : null; // pending | rejected | approved | admin | new | teacher
 
 let demoRef = 2; // ?rd=1 — mukofoti olinmagan do'stlar (refClaim kamaytiradi)
 const people = [
@@ -63,6 +63,12 @@ export async function demoApi(action: string, p: Record<string, unknown>): Promi
   if (action === "refClaim") { const n = Math.min(Number(p.n) || 0, demoRef); demoRef -= n; return { ok: true, n }; }
   if (action === "adminRequests") return { ok: true, status: p.status || "pending", items: p.status === "rejected" ? people.slice(3) : people.slice(0, 3) };
   if (action === "adminApprove") return { ok: true, n: Array.isArray(p.sids) ? p.sids.length : 1 };
+  if (action === "logErr") return { ok: true, n: Array.isArray(p.errs) ? p.errs.length : 0 }; // 1-paket
+  if (action === "adminErrors") return { ok: true, days: Number(p.days) || 7, total: 9, items: [
+    { kind: "react", msg: "Cannot read properties of undefined (reading 'words')", screen: "unit", n: 5, people: 3, last: new Date(Date.now() - 36e5).toISOString(), ver: "2026-11-09 10:20", ua: "tg:android 8.0 · Android 11 · Chrome/120", stack: "TypeError: Cannot read properties of undefined · at UnitScreen (Unit.tsx:212)" },
+    { kind: "api", msg: "kitobAudio: 502", screen: "kb", n: 3, people: 2, last: new Date(Date.now() - 864e5).toISOString(), ver: "2026-11-09 10:20", ua: "tg:ios 7.10 · iPhone OS 16_5" },
+    { kind: "chunk", msg: "Failed to fetch dynamically imported module", screen: "teacher", n: 1, people: 1, last: new Date(Date.now() - 2 * 864e5).toISOString(), ver: "2026-11-07 06:00", ua: "tg:android 7.2 · Android 9" },
+  ] };
   if (action === "kitobAudio") return { ok: true, urls: {} }; // kitob audiosi yo'q — ovoz tts omboridan yoki telefondan
   if (action === "tts") throw new Error("demo: server ovozi yo'q"); // telefonning o'z ovoziga o'tadi
   if (action === "subSend") return { ok: true, id: 1 };

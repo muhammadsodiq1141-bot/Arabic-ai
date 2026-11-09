@@ -17,7 +17,7 @@ import { useSession } from "../state/session";
 import { Ar, SectionTitle } from "../ui/kit";
 import { HelpButton } from "./Onboard";
 import { toast } from "../ui/Toast";
-import { gameAvailable, GAME_NAMES } from "./Games";
+import { gameAvailable, GAME_NAMES } from "../lib/gamesMeta";
 import { synAntConf } from "./Review";
 import { bookOfLevel } from "./Unit";
 

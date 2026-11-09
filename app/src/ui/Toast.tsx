@@ -1,4 +1,4 @@
-// Qisqa xabar (masalan qulf sababi): ekran pastida 2,6 soniya ko'rinadi, ekran o'qiydigan dastur ham aytadi.
+// Qisqa xabar (masalan qulf sababi): ekran pastida kamida 4 soniya (uzun matnda ko'proq) ko'rinadi, ekran o'qiydigan dastur ham aytadi.
 import { useEffect, useState } from "react";
 
 let push: ((m: string) => void) | null = null;
@@ -14,7 +14,7 @@ export function Toaster() {
       clearTimeout(h);
       if (!t) { setMsg(null); return; }
       setMsg({ t, k: Date.now() });
-      h = window.setTimeout(() => setMsg(null), 2600);
+      h = window.setTimeout(() => setMsg(null), Math.min(8000, Math.max(4000, t.length * 70))); // 1-paket D16
     };
     return () => { push = null; clearTimeout(h); };
   }, []);

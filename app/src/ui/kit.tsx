@@ -67,7 +67,7 @@ export function Avatar({ name, photo, size = 52 }: { name: string; photo?: strin
 
 export function Logo({ size = 112 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 120 120" role="img" aria-label="Mezon">
+    <svg width={size} height={size} viewBox="0 0 120 120" role="img" aria-label="Miyzan">
       <circle cx="60" cy="60" r="60" fill="var(--hero)" />
       <path d="M60 30V86" stroke="var(--gold)" strokeWidth="4" strokeLinecap="round" />
       <path d="M44 92h32l-4-6H48z" fill="var(--gold)" />

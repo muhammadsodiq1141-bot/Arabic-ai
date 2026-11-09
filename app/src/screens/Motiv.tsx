@@ -171,7 +171,7 @@ export async function drawShare(name: string): Promise<Blob> {
   c.width = W; c.height = H;
   const ctx = c.getContext("2d");
   if (!ctx) throw new Error("canvas yo'q");
-  await Promise.all([document.fonts.load("800 40px Manrope", "0123456789 Mezon"), document.fonts.load('700 40px "Noto Naskh Arabic"', SLOGAN)]).catch(() => undefined);
+  await Promise.all([document.fonts.load("800 40px Manrope", "0123456789 Miyzan"), document.fonts.load('700 40px "Noto Naskh Arabic"', SLOGAN)]).catch(() => undefined);
   ctx.fillStyle = p.bg; ctx.fillRect(0, 0, W, H);
   rr(ctx, M, M, W - 2 * M, H - 2 * M, 64); ctx.fillStyle = p.hero; ctx.fill();
   ctx.strokeStyle = p.gold;
@@ -181,7 +181,7 @@ export async function drawShare(name: string): Promise<Blob> {
   ctx.textAlign = "center"; ctx.direction = "ltr"; ctx.fillStyle = p.gold;
   ctx.font = "800 30px Manrope, sans-serif";
   if ("letterSpacing" in ctx) (ctx as unknown as { letterSpacing: string }).letterSpacing = "6px";
-  ctx.fillText("MEZON · ARAB TILI", W / 2, 340);
+  ctx.fillText("MIYZAN · ARAB TILI", W / 2, 340);
   if ("letterSpacing" in ctx) (ctx as unknown as { letterSpacing: string }).letterSpacing = "0px";
   ctx.font = "800 230px Manrope, sans-serif"; ctx.fillText(String(streakNow()), W / 2, 590);
   ctx.fillStyle = p.ink; ctx.font = "800 46px Manrope, sans-serif"; ctx.fillText("kun ketma-ket", W / 2, 660);
@@ -216,14 +216,14 @@ export function ShareScreen() {
   const share = async () => {
     const b = blob.current || (await drawShare(name).catch(() => null));
     if (!b) { toast("Rasm tayyorlanmadi"); return; }
-    const r = await sharePng(b, "mezon-yutuq.png", shareText());
+    const r = await sharePng(b, "miyzan-yutuq.png", shareText());
     if (r === "failed") setImg(URL.createObjectURL(b)); // Telegram ichida ulashib bo'lmasa — rasmni ko'rsatamiz
   };
   return (
     <main className="screen">
       <ScreenHeader title="Yutuqlarim" />
       <section className="sharecard" aria-label="Yutuq kartasi">
-        <span className="sk">MEZON · ARAB TILI</span>
+        <span className="sk">MIYZAN · ARAB TILI</span>
         <span className="sn">{streakNow()}</span>
         <b className="sl"><Flame size={18} aria-hidden />kun ketma-ket</b>
         <span className="sg"><span><b>{knownTotal()}</b>so'z</span><span><b>{xpTotal()}</b>yulduzcha</span><span><b>{L.name}</b>unvon</span></span>

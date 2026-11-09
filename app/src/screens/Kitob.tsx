@@ -5,7 +5,7 @@ import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "
 import { Check, HelpCircle, Mic, Pause, Play, RotateCcw, Send, Square, Star, Volume2, X } from "lucide-react";
 import { preloadKitob, say, sayWait, stopSay } from "../lib/audio";
 import {
-  blobB64, GRADED, HOW, insUz, isAr, kbFlush, kbSaveBest, loadKb, prep, recMime, rightOf, sayAfter, sayAuto, sendSub, tipOf, kbTexts,
+  blobB64, freeOptional, GRADED, HOW, insUz, isAr, kbFlush, kbSaveBest, loadKb, prep, recMime, rightOf, sayAfter, sayAuto, sendSub, tipOf, kbTexts,
   type KbItem, type KbLesson, type KbStep, type Prepared,
 } from "../lib/kb";
 import { a0Answer, a0HwFor, a0HwState, loadAllA0, revAnswer, revDue, revWrong, type Rev } from "../lib/a0";
@@ -204,7 +204,7 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
   const done = ans !== null;
   const isGraded = GRADED.includes(it.type);
   // Madina'da erkin javob ixtiyoriy: ustozga yubormasdan ham keyingisiga o'tish mumkin (natijaga ta'sir qilmaydi)
-  const optFree = it.type === "free" && lessonKey.startsWith("md") && !freeSent;
+  const optFree = it.type === "free" && freeOptional(lessonKey) && !freeSent;
   const canNext = ["intro", "read", "ladder", "letter", "alphabet"].includes(it.type) ? true : it.type === "free" ? !!freeSent || optFree : done;
   const props = { it, done, ans, mark, tries };
   return (
@@ -635,6 +635,12 @@ function Free({ it, sent, onSent, sub }: { it: KbItem; sent: "srv" | "local" | n
       <textarea className="kb-free" dir="rtl" lang="ar" rows={4} placeholder="Arabcha yozing" value={text} disabled={!!sent || busy} onChange={(e) => setText(e.target.value)} />
       {!sent && <><div className="kb-or"><span>yoki</span></div><VoiceRec value={voice} onChange={setVoice} disabled={busy} /></>}
       {err && <p className="err">{err}</p>}
+      {sent && !!it.ans?.length && (
+        <details className="kb-model" open>
+          <summary>Kitobdagi namuna javob</summary>
+          <ol>{it.ans.map((a, k) => <li key={k}><Mixed text={a} /></li>)}</ol>
+        </details>
+      )}
       {sent
         ? <p className="kb-sent"><Check size={18} aria-hidden />{sent === "local" ? "Saqlandi. Internet ulanganda ustozga yuboriladi." : "Ustozga yuborildi. Baho qo'yilgach, Telegram orqali xabar keladi."}</p>
         : <button type="button" className="btn primary wide" disabled={busy} onClick={() => void send()}><Send size={18} aria-hidden />{busy ? "Yuborilmoqda…" : "Ustozga yuborish"}</button>}

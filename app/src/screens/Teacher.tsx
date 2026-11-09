@@ -86,7 +86,7 @@ export function TeacherScreen({ fixed }: { fixed?: { code: string; title: string
   const today = list.filter((m) => daysAgo(m.last_seen) === 0).length;
   const week = list.filter((m) => { const d = daysAgo(m.last_seen); return d !== null && d < 7; }).length;
   const link = `${BOT_LINK}?start=g_${cur.code}`;
-  const share = () => tg.openLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(`«${cur.title}» guruhiga qo'shiling — Mezon'da arab tilini birga o'rganamiz.`)}`);
+  const share = () => tg.openLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(`«${cur.title}» guruhiga qo'shiling — Miyzan'da arab tilini birga o'rganamiz.`)}`);
   const bookName = (id: string) => books.find((b) => b.id === id)?.title || id;
 
   return (
@@ -193,7 +193,7 @@ function MemberRow({ m, open, onToggle, bookName, onKick }: { m: Member; open: b
                 <b>{v[0]}/{v[1]}</b></div>
             );
           })}
-          {s.kb && Object.entries(s.kb).map(([k, v]) => <p key={k} className="t-note">Mashqlar · {k.startsWith("a0:") ? `A0 ${k.slice(3)}-dars` : k.startsWith("md") ? `Madina ${k[2]} · ${k.split(":")[1]}-vahda` : `${k.split(":")[1]}-vahda`}: {v[0]}/{v[1]} topshiriq · o'rtacha {v[2]}%</p>)}
+          {s.kb && Object.entries(s.kb).map(([k, v]) => <p key={k} className="t-note">Mashqlar · {k.startsWith("a0:") ? `A0 ${k.slice(3)}-dars` : k.startsWith("md") ? `Madina ${k[2]} · ${k.split(":")[1]}-vahda` : `${k.startsWith("a1:") ? "" : k.split(":")[0].toUpperCase() + " · "}${k.split(":")[1]}-vahda`}: {v[0]}/{v[1]} topshiriq · o'rtacha {v[2]}%</p>)}
           {s.a0 && <p className="t-note">A0 alifbo: {(s.a0.m.match(/2/g) || []).length}/28 harf{s.a0.sp ? ` · ${s.a0.sp} bo'g'in/daqiqa` : ""}</p>}
           {s.ob && <p className="t-note">Birinchi hafta: {s.ob.d > 7 ? "tugadi" : `${s.ob.d}-kun`} · {s.ob.n} / 21 vazifa</p>}
           {!m.sum && <p className="t-note">Natijalar hali serverga kelmagan.</p>}

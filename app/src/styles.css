@@ -1,7 +1,7 @@
-/* Mezon dizayn tizimi — B varianti: bej kunduz / xaki tun (03.11.2026 tanlangan) */
+/* Miyzan dizayn tizimi — B varianti: bej kunduz / xaki tun (03.11.2026 tanlangan) */
 :root,
 :root[data-theme="light"] {
-  --bg: #F3EBDD; --card: #FBF7EF; --soft: #E9DECB; --ink: #2A2418; --muted: #6B5F4B; --line: #E2D5BE;
+  --bg: #F3EBDD; --card: #FBF7EF; --soft: #E9DECB; --ink: #2A2418; --muted: #6B5F4B; --line: #E2D5BE; --edge: #9C8A6E; /* 1-paket D3: boshqaruv elementlari chegarasi (3:1) */
   --accent: #7A4F00; --gold: #F5B544; --hero: #2A2418; --hero-ink: #FBF7EF;
   --good: #1F6B45; --good-ink: #FFFFFF; --bad: #A33A28; --star: #E39B1F;
   --navon: #2A2418; --navonink: #F5B544; --backbg: #2A2418; --backink: #FBF7EF;
@@ -10,7 +10,7 @@
   color-scheme: light;
 }
 :root[data-theme="dark"] {
-  --bg: #262A1F; --card: #31362A; --soft: #3A4030; --ink: #F1EEE2; --muted: #B9B6A3; --line: #444A37;
+  --bg: #262A1F; --card: #31362A; --soft: #3A4030; --ink: #F1EEE2; --muted: #B9B6A3; --line: #444A37; --edge: #80886B;
   --accent: #F5B544; --gold: #F5B544; --hero: #3A4030; --hero-ink: #F1EEE2;
   --good: #2A7A50; --good-ink: #FFFFFF; --bad: #F7A898; --star: #F5B544;
   --navon: #F5B544; --navonink: #1E2118; --backbg: #F5B544; --backink: #1E2118;
@@ -169,7 +169,8 @@ html.obscured .app { filter: blur(22px); }
   --s1: #3A4030; --s2: #4A4326; --podc: #F5B544; --vidc: #4A4326;
 }
 .home button { text-align: left; }
-.stories { display: flex; gap: 12px; margin: 16px -16px 0 0; padding-right: 16px; overflow-x: auto; scrollbar-width: none; }
+.stories { display: flex; gap: 12px; margin: 16px -16px 0 0; padding: 0 16px 0 0; list-style: none; overflow-x: auto; scrollbar-width: none; }
+.stories > li { flex: none; display: flex; }
 .stories::-webkit-scrollbar { display: none; }
 .story { flex: none; width: 92px; height: 112px; border-radius: 22px; padding: 3px; border: 0; background: var(--accent); }
 .story.seen { background: var(--line); }
@@ -245,7 +246,7 @@ html.obscured .app { filter: blur(22px); }
 }
 :root[data-theme="dark"] {
   --u1: #3A4030; --u3: #6B4A12; --vidbg: #1E2118; --test: #2A7A50; --tray: #2A2E22;
-  --ok-bg: #22402F; --ok-line: #4FB37F; --no-bg: #4A2A22; --no-line: #F7A898;
+  --ok-bg: #22402F; --ok-line: #5CC08B; /* 1-paket D1: tunda o'qiladigan yashil (5:1) */ --no-bg: #4A2A22; --no-line: #F7A898;
 }
 
 /* Darslar ro'yxati */
@@ -370,7 +371,7 @@ html.obscured .app { filter: blur(22px); }
 .round > .r-card + .btn, .round > .r-img + .btn { margin-top: 20px; }
 .r-opts { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
 .r-opts.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
-.opt { min-height: 56px; padding: 12px 16px; border: 2px solid var(--line); border-radius: 18px; background: var(--card); font-weight: 700; font-size: 16px; text-align: left; transition: opacity .2s; }
+.opt { min-height: 56px; padding: 12px 16px; border: 2px solid var(--edge); border-radius: 18px; background: var(--card); font-weight: 700; font-size: 16px; text-align: left; transition: opacity .2s; }
 .opt:disabled { cursor: default; }
 .r-opts.grid .opt { aspect-ratio: 1 / .82; display: grid; place-items: center; padding: 8px; }
 .r-opts.grid .opt img { width: 72%; height: auto; max-height: 100%; }
@@ -510,7 +511,7 @@ html.obscured .app { filter: blur(22px); }
 .kb-link { align-self: center; border: 0; background: none; color: var(--accent); font-weight: 800; padding: 8px; min-height: 44px; }
 /* erkin javob */
 .kb-hint { display: block; font-size: 19px; line-height: 1.7; text-align: right; color: var(--muted); padding: 8px 12px; border-radius: 14px; background: var(--bg); }
-.kb-free { width: 100%; min-height: 110px; border-radius: 16px; border: 1.5px solid var(--line); background: var(--bg); padding: 12px 14px; font: 600 20px/1.6 "Noto Naskh Arabic", serif; color: var(--ink); resize: vertical; }
+.kb-free { width: 100%; min-height: 110px; border-radius: 16px; border: 1.5px solid var(--edge); background: var(--bg); padding: 12px 14px; font: 600 20px/1.6 "Noto Naskh Arabic", serif; color: var(--ink); resize: vertical; }
 .kb-free:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
 .kb-or { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; font-weight: 700; }
 .kb-or::before, .kb-or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
@@ -786,7 +787,7 @@ html.obscured .app { filter: blur(22px); }
 
 /* ===== Mashq bo'limi ===== */
 .pr-unit { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 6px; font-size: 13px; font-weight: 800; color: var(--muted); }
-.pr-unit select { height: 52px; border-radius: 16px; border: 1.5px solid var(--line); background: var(--card); padding: 0 14px; font: 700 15.5px Manrope, sans-serif; color: var(--ink); box-shadow: var(--shadow); }
+.pr-unit select { height: 52px; border-radius: 16px; border: 1.5px solid var(--edge); background: var(--card); padding: 0 14px; font: 700 15.5px Manrope, sans-serif; color: var(--ink); box-shadow: var(--shadow); }
 .pr-games { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .pg { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-height: 132px; padding: 14px; border: 0; border-radius: 20px; background: var(--card); box-shadow: var(--shadow); text-align: left; }
 .pg-i { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--hero); color: var(--gold); margin-bottom: 4px; }
@@ -835,7 +836,7 @@ html.obscured .app { filter: blur(22px); }
 .g-target b { display: block; font-size: 22px; color: var(--ink); }
 .bub-arena { position: relative; height: min(62vh, 460px); margin-top: 8px; border-radius: 22px; background: var(--card); overflow: hidden; box-shadow: inset 0 0 0 1px var(--line); }
 .bub { position: absolute; bottom: -110px; width: 22%; aspect-ratio: 1; border: 0; border-radius: 50%; display: grid; place-items: center; padding: 4px; color: #FBF7EF; box-shadow: inset -6px -8px 0 rgba(0, 0, 0, .12), 0 6px 14px -8px rgba(0, 0, 0, .5); animation-name: bub-up; animation-timing-function: linear; animation-fill-mode: forwards; }
-.bub .ar { font-size: 15px; line-height: 1.25; overflow-wrap: anywhere; }
+.bub .ar { font-size: 15px; line-height: 1.5; overflow-wrap: normal; } /* 1-paket D8 */
 .bub.b1 { background: #1F6B45; } .bub.b2 { background: #7A4F00; } .bub.b3 { background: #2A2418; } .bub.b4 { background: #8A5A2B; }
 :root[data-theme="dark"] .bub.b3 { background: #4A5238; }
 .bub.pop { animation: bub-pop .32s ease-out forwards !important; }
@@ -1299,7 +1300,7 @@ html.obscured .app { filter: blur(22px); }
 .a0-radar { display: block; width: 100%; max-width: 280px; margin: 0 auto; }
 .a0-radar .grid { fill: none; stroke: var(--line); }
 .a0-radar .val { fill: rgba(245, 181, 68, .35); stroke: var(--accent); stroke-width: 2; }
-.a0-radar text { font-size: 9px; font-weight: 700; fill: var(--ink); }
+.a0-radar text { font-size: 10.5px; font-weight: 700; fill: var(--ink); }
 .a0-chart { display: block; width: 100%; }
 .a0-chart polyline { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linejoin: round; }
 .a0-chart circle { fill: var(--accent); }
@@ -1342,7 +1343,7 @@ html.obscured .app { filter: blur(22px); }
 .a0-heat { display: flex; flex-direction: column; gap: 6px; }
 .a0-heat .lbl { margin: 0; }
 .a0-heat .a0-c { display: flex; flex-direction: column; gap: 0; }
-.a0-heat .a0-c small { font-size: 9.5px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.a0-heat .a0-c small { font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums; }
 
 /* ===== 9a: Madina Yodlash, darslik mashqlari, Shahrim, birinchi hafta ===== */
 .unit .ub.v-mem { background: var(--u1); margin-top: 16px; width: 100%; text-align: left; }
@@ -1444,7 +1445,7 @@ html.obscured .app { filter: blur(22px); }
 .wk-later { flex: none; font-size: 11px; opacity: .7; }
 .wk-list .btn.sm { flex: none; }
 .wk-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; }
-.wk-days span { display: flex; flex-direction: column; font-size: 9.5px; font-weight: 600; opacity: .6; }
+.wk-days span { display: flex; flex-direction: column; font-size: 11px; font-weight: 600; opacity: .6; }
 .wk-days span b { font-size: 13px; }
 .wk-days span.past { opacity: .35; }
 .wk-days span.now { opacity: 1; color: var(--gold); }
@@ -1980,7 +1981,7 @@ html.obscured .app { filter: blur(22px); }
 .spk-text { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .spk-text label { display: flex; flex-direction: column; }
 .spk-text label small { color: var(--muted); font-weight: 600; font-size: 12.5px; }
-.spk-text textarea { width: 100%; padding: 10px 12px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); font: inherit; font-size: 16px; line-height: 1.6; resize: vertical; }
+.spk-text textarea { width: 100%; padding: 10px 12px; border-radius: 14px; border: 1.5px solid var(--edge); background: var(--card); color: var(--ink); font: inherit; font-size: 16px; line-height: 1.6; resize: vertical; }
 .spk-words button:focus-visible, .spk-play:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .mv { display: flex; flex-direction: column; gap: 6px; padding-top: 10px; border-top: 1px solid var(--line); }
 .mv-h { font-size: 14px; }
@@ -2039,7 +2040,7 @@ html.obscured .app { filter: blur(22px); }
 .dict-ic { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: var(--hero); color: var(--gold); }
 .dict-code { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 10px 12px; align-items: center; }
 .dict-code label { display: flex; flex-direction: column; }
-.dict-code input { grid-column: 1 / -1; height: 52px; padding: 0 14px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); font: inherit; font-size: 20px; font-weight: 800; letter-spacing: .06em; text-align: center; }
+.dict-code input { grid-column: 1 / -1; height: 52px; padding: 0 14px; border-radius: 14px; border: 1.5px solid var(--edge); background: var(--card); color: var(--ink); font: inherit; font-size: 20px; font-weight: 800; letter-spacing: .06em; text-align: center; }
 .dict-code .btn { grid-column: 1 / -1; }
 .dict-note { display: flex; align-items: center; gap: 6px; margin: 8px 0 12px; font-size: 13px; font-weight: 600; color: var(--muted); }
 .dict-one { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
@@ -2048,7 +2049,7 @@ html.obscured .app { filter: blur(22px); }
 .dict-play { width: 72px; height: 72px; border: 0; border-radius: 50%; display: grid; place-items: center; background: var(--hero); color: var(--gold); }
 .dict-play.sm { width: 40px; height: 40px; margin-left: auto; }
 .dict-slow { display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 14px; border-radius: 22px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); font-weight: 800; font-size: 13.5px; }
-.dict textarea { width: 100%; padding: 10px 12px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); font-family: "Noto Naskh Arabic", serif; font-size: 22px; line-height: 1.6; resize: vertical; }
+.dict textarea { width: 100%; padding: 10px 12px; border-radius: 14px; border: 1.5px solid var(--edge); background: var(--card); color: var(--ink); font-family: "Noto Naskh Arabic", serif; font-size: 22px; line-height: 1.6; resize: vertical; }
 .dict-kt { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
 .dict-kt.on { color: var(--muted); }
 .dict-res { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 16px; background: var(--no-bg); border: 1px solid var(--no-line); }
@@ -2076,7 +2077,7 @@ html.obscured .app { filter: blur(22px); }
 
 /* sinf rejimi (U7) */
 .cm-pick { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 8px; margin-top: 8px; }
-.cm-pick select { height: 48px; padding: 0 10px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); font: inherit; font-weight: 700; font-size: 14px; min-width: 0; }
+.cm-pick select { height: 48px; padding: 0 10px; border-radius: 14px; border: 1.5px solid var(--edge); background: var(--card); color: var(--ink); font: inherit; font-weight: 700; font-size: 14px; min-width: 0; }
 .cm-topic { display: flex; flex-direction: column; gap: 4px; }
 .cm-topic > b { font-size: 22px; line-height: 1.25; }
 .cm-tar { font-size: 22px; color: var(--muted); }
@@ -2112,3 +2113,40 @@ html.obscured .app { filter: blur(22px); }
 .cm-code { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
 .cm-codev { font-size: clamp(34px, 11vw, 56px); font-weight: 800; letter-spacing: .06em; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .cm-code small { font-size: 13px; color: var(--muted); font-weight: 600; line-height: 1.45; max-width: 40ch; }
+
+/* 18-partiya: erkin javobdan keyin kitobdagi namuna javob */
+.kb-model { margin-top: 10px; padding: 10px 12px; border-radius: 14px; background: var(--ok-bg); }
+.kb-model summary { font-weight: 800; font-size: 13.5px; color: var(--ok-line); cursor: pointer; min-height: 32px; display: flex; align-items: center; }
+.kb-model ol { margin: 6px 0 0; padding-right: 18px; padding-left: 0; direction: rtl; display: flex; flex-direction: column; gap: 4px; }
+.kb-model li { font-size: 15px; line-height: 1.6; }
+
+
+/* ===== 1-paket (19-partiya) ===== */
+/* xato himoyasi va admin xatolar ro'yxati */
+.eb-card { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; }
+.eb-card > b { font-size: 18px; }
+.eb-card p { margin: 0; font-size: 14.5px; color: var(--muted); }
+.ae-sum { margin: 4px 0 10px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.ae-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.ae-it { margin: 0; padding: 0; overflow: hidden; }
+.ae-h { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 20px; gap: 4px 10px; padding: 14px 16px; border: 0; background: transparent; color: var(--ink); text-align: left; }
+.ae-k { grid-column: 1; justify-self: start; padding: 2px 8px; border-radius: 999px; background: var(--no-bg); color: var(--no-line); font-size: 11.5px; font-weight: 800; }
+.ae-h b { grid-column: 1; font-size: 14.5px; line-height: 1.4; overflow-wrap: anywhere; }
+.ae-h small { grid-column: 1; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.ae-chev { grid-column: 2; grid-row: 1 / 4; align-self: center; color: var(--muted); transition: transform .2s; }
+.ae-it.open .ae-chev { transform: rotate(180deg); }
+.ae-d { padding: 0 16px 14px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.ae-d p { margin: 0; }
+.ae-d pre { margin: 6px 0 0; padding: 10px; border-radius: 12px; background: var(--soft); font-size: 11.5px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 220px; overflow: auto; }
+/* bosh sahifa: ma'lumot kelguncha joy band (sakramasin) */
+.hm-skel { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
+.hm-skel i { display: block; height: 150px; border-radius: 22px; background: var(--soft); animation: hmpulse 1.4s ease-in-out infinite; }
+.hm-skel i:nth-child(2) { height: 600px; }
+.hm-skel i:nth-child(3) { height: 380px; }
+.td-skel { height: 600px; background: var(--soft); box-shadow: none; animation: hmpulse 1.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .td-skel { animation: none; } }
+@keyframes hmpulse { 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .hm-skel i { animation: none; } }
+
+.story.st-ph { background: var(--line); }
+.story.st-ph .in { background: var(--soft); }

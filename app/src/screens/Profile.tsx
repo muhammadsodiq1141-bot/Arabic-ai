@@ -261,12 +261,12 @@ export function IdCardScreen() {
   const copy = async () => {
     try { await navigator.clipboard.writeText(login); toast("Login nusxalandi"); } catch { toast("Nusxalab bo'lmadi — qo'lda yozib oling"); }
   };
-  const send = () => tg.openLink(`https://t.me/share/url?url=${encodeURIComponent(BOT_LINK)}&text=${encodeURIComponent(`Mening Mezon loginim: ${login} (${name})`)}`);
+  const send = () => tg.openLink(`https://t.me/share/url?url=${encodeURIComponent(BOT_LINK)}&text=${encodeURIComponent(`Mening Miyzan loginim: ${login} (${name})`)}`);
   return (
     <main className="screen">
       <ScreenHeader title="Guvohnoma" ar="بِطَاقَةُ الطَّالِبِ" />
       <section className="idc" aria-label="O'quvchi guvohnomasi">
-        <div className="idc-top"><Logo size={44} /><span>Mezon · o'quvchi guvohnomasi</span></div>
+        <div className="idc-top"><Logo size={44} /><span>Miyzan · o'quvchi guvohnomasi</span></div>
         <b className="idc-n">{name}</b>
         <dl>
           <div><dt>Login</dt><dd className="idc-login">{login || "—"}</dd></div>

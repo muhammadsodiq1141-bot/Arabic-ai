@@ -7,7 +7,7 @@
 import { Fragment, useEffect, useReducer, useRef } from "react";
 import { Mic, Play, RotateCcw, SkipForward, X } from "lucide-react";
 import { fmtT, kLag, kPaint, mediaUrl, multLevel, shEnd, shKey, shMore, shPicks, SHSP, shRate, shToday, type Mult, type ShItem } from "../lib/mult";
-import { isLite } from "../lib/lite";
+import { isLite, onWifi } from "../lib/lite";
 import { gain, store } from "../lib/store";
 import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
@@ -277,7 +277,7 @@ export function ShadowScreen({ items, mode, daily }: { items: ShItem[]; mode: Mo
         ))}
       </div>
       <div className={`mplayer ${st.mode === "card" ? "small" : ""} ${lite ? "lite" : ""}`}>
-        <video ref={vid} src={mediaUrl(m, lite)} poster={lite ? m.thumb : undefined} playsInline preload="auto"
+        <video ref={vid} src={mediaUrl(m, lite)} poster={lite ? m.thumb : undefined} playsInline preload={onWifi() === true ? "auto" : "metadata"}
           onLoadedMetadata={(e) => { if (S.current.phase === "idle") { const y = cur(); if (y) e.currentTarget.currentTime = y.c.s; } }} />
       </div>
 

@@ -114,7 +114,8 @@ export function TodayCard({ bookId }: { bookId: string }) {
     loadKb(k).then((x) => a && setKb(x)).catch(() => a && setKb(null));
     return () => { a = false; };
   }, [bookId, uN]);
-  if (!book || !plan || kb === undefined) return null;
+  // 1-paket (D4): ma'lumot kelguncha karta joyi band — pastdagi kartalar sakramaydi
+  if (!book || !plan || kb === undefined) return <div className="card td-skel" aria-hidden />; // boshqa teg — React keyin yangi karta yaratadi (siljish emas)
   const D = lessonsOf(bookId), t = dayNum();
   const today = strandToday(), week = strandWeek();
   const rule = plan.rule ? rulesIn(book, plan.rule[0])[plan.rule[1]] : null;

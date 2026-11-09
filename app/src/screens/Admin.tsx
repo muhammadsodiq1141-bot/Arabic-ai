@@ -1,7 +1,7 @@
 // Bosh admin paneli: umumiy raqamlar (adminOverview), kirish so'rovlari, ustozlik so'rovlari va ustozlar (adminTeachers, adminSetTeacher),
 // foydalanuvchilar ro'yxati (adminUsers), guruhlar (bosilsa — guruh paneli), kitob audiosini yuklash (kitobPut, kitobCount).
 import { useEffect, useMemo, useState } from "react";
-import { Check, ChevronRight, FileAudio, GraduationCap, Search, UserCheck, Users, X } from "lucide-react";
+import { Bug, Check, ChevronRight, FileAudio, GraduationCap, Search, UserCheck, Users, X } from "lucide-react";
 import { api } from "../lib/api";
 import { weekId } from "../lib/progress";
 import { tg } from "../lib/tg";
@@ -58,6 +58,10 @@ export function AdminScreen() {
       </button>
       <button type="button" className="rowbtn" onClick={() => go("ausers")}>
         <Users size={24} aria-hidden /><span><b>Foydalanuvchilar</b><small>Ilovaga kirganlar · qidiruv va filtr</small></span><ChevronRight size={20} aria-hidden />
+      </button>
+      {/* 1-paket: o'quvchilar telefonida chiqqan xatolar (server 14-versiya) */}
+      <button type="button" className="rowbtn" onClick={() => go("aerrors")}>
+        <Bug size={24} aria-hidden /><span><b>Ilova xatolari</b><small>O'quvchilar telefonida chiqqan nosozliklar</small></span><ChevronRight size={20} aria-hidden />
       </button>
 
       {lv.length > 0 && (

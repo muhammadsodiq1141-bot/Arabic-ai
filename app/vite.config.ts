@@ -33,10 +33,31 @@ function ildizVideo(): Plugin {
   };
 }
 
+// 1-paket: bosh sahifa uchun multfilmlarning rasmsiz yengil ro'yxati (MULT_DATA ~63 KB → bir necha yuz bayt).
+// MULT_DATA.json dan yig'ishda avtomatik yasaladi — yangi multfilm qo'shilganda alohida yangilash shart emas.
+function multIndex(): Plugin {
+  const make = () => {
+    const d = JSON.parse(fs.readFileSync(path.resolve(__dirname, "public/data/MULT_DATA.json"), "utf8")) as { id: string; level: string; title: string; titleAr?: string; dur?: number }[];
+    return JSON.stringify(d.map((m) => ({ id: m.id, level: m.level, title: m.title, titleAr: m.titleAr, dur: m.dur })));
+  };
+  return {
+    name: "mult-index",
+    configureServer(s) {
+      s.middlewares.use((req, res, next) => {
+        if (!String(req.url || "").split("?")[0].endsWith("/data/MULT_INDEX.json")) return next();
+        res.setHeader("Content-Type", "application/json"); res.end(make());
+      });
+    },
+    generateBundle() { this.emitFile({ type: "asset", fileName: "data/MULT_INDEX.json", source: make() }); },
+  };
+}
+
 // Yangi ilova /v2/ papkasiga yig'iladi (GitHub Pages: .../Arabic-ai/v2/), eski ilova ildizda qoladi.
 export default defineConfig({
-  plugins: [react(), ildizVideo()],
+  plugins: [react(), ildizVideo(), multIndex()],
   base: "./",
+  // 1-paket: ilova versiyasi (xato jurnalida qaysi yig'ishda chiqqani ko'rinsin)
+  define: { __APP_VER__: JSON.stringify(new Date().toISOString().slice(0, 16).replace("T", " ")) },
   build: { outDir: "../v2", emptyOutDir: true, target: "es2020", sourcemap: false },
   server: { host: "127.0.0.1", port: 5173 },
   preview: { host: "127.0.0.1", port: 4173 },

@@ -13,6 +13,7 @@ export type KbItem = {
   ok?: string | boolean; alt?: string[]; opts?: string[]; pool?: string[]; letters?: string[]; extra?: string;
   words?: (string | number)[][] | string[]; pairs?: string[][]; cols?: string[]; lines?: string[][] | string[];
   norm?: number; // o'qish normativi, soniya (Madina matnlari)
+  ans?: string[]; // 18-partiya: kitobdagi namuna javob(lar) — erkin javob yuborilgach ko'rinadi
   l?: string; f?: number; ltr?: string; rows?: string[][]; // A0: harf, shakl (0 yakka … 3 oxirida), hisoblanadigan harf, zina
 };
 export type KbStep = { k: string; t: string; ar?: string; d?: string; rule?: { h: string; p: string[] }; items: KbItem[] };
@@ -23,8 +24,11 @@ export const isAr = (s: unknown) => /[؀-ۿ]/.test(String(s ?? ""));
 
 export const kbFile = (key: string) => `kb/${key.replace(":", "-")}`;
 export const loadKb = (key: string) => loadData<KbLesson>(kbFile(key));
-/** Kitobda shu vahda uchun mashqlar bormi: A1 (a1:1…12), Madina 1 (md1:1…16), Madina 2 (md2:1…26) */
-const KB_UNITS: Record<string, number> = { a1: 12, md1: 16, md2: 26 };
+/** Kitobda shu vahda uchun mashqlar bormi: A1 (a1:1…12), Madina 1 (md1:1…16), Madina 2 (md2:1…26).
+ *  18-partiya: Manhaj A2 (12), B1 (10), B2 (10) — kitob .md fayllaridan (_mahalliy/manba/md2kb.py). C1 — keyin (manba faqat PDF). */
+const KB_UNITS: Record<string, number> = { a1: 12, a2: 12, b1: 10, b2: 10, md1: 16, md2: 26 };
+/** erkin javob majburiy emas (o'quvchi o'tkazib yuborishi mumkin): Madina va 18-partiya kitoblari */
+export const freeOptional = (lessonKey: string) => /^(md|a2|b1|b2|c1)/.test(lessonKey);
 export const kbKeyOf = (bookId: string, unit: number) => (unit >= 1 && unit <= (KB_UNITS[bookId] || 0) ? `${bookId}:${unit}` : null);
 /** Qadam faqat o'qishdan iborat (Madina matnlari) — vahdada "O'qish" bo'limida ko'rsatiladi */
 export const isReadStep = (st: KbStep) => st.items.length > 0 && st.items.every((x) => x.type === "read");

@@ -10,6 +10,8 @@ type WebApp = {
   expand(): void;
   isVersionAtLeast?(v: string): boolean;
   disableVerticalSwipes?(): void;
+  enableVerticalSwipes?(): void;
+  setBottomBarColor?(c: string): void;
   setHeaderColor?(c: string): void;
   setBackgroundColor?(c: string): void;
   openTelegramLink?(url: string): void;
@@ -50,7 +52,13 @@ export const tg = {
     const w = W();
     try {
       if (w?.isVersionAtLeast?.("6.1")) { w.setHeaderColor?.(bg); w.setBackgroundColor?.(bg); }
+      if (w?.isVersionAtLeast?.("7.10")) w.setBottomBarColor?.(bg); // 1-paket D12: Android pastki paneli ham mavzu rangida
     } catch { /* eski Telegram */ }
+  },
+  /** 1-paket D11: barmoq bilan chizish yoki o'yin paytida ilova pastga surilib yopilmasin (ekrandan chiqishda qaytariladi) */
+  swipes(on: boolean) {
+    const w = W();
+    try { if (w?.isVersionAtLeast?.("7.7")) { if (on) w.enableVerticalSwipes?.(); else w.disableVerticalSwipes?.(); } } catch { /* */ }
   },
   onTheme(cb: () => void) { W()?.onEvent?.("themeChanged", cb); },
   /** Telegram'ning o'z «Orqaga» tugmasi (6.1+): ichki ekranda ko'rinadi, bosilsa — brauzer tarixi orqaga */
@@ -84,5 +92,5 @@ export function initTelegram() {
   const w = W();
   if (!w) return;
   try { w.ready(); w.expand(); } catch { /* */ }
-  try { if (w.isVersionAtLeast?.("7.7")) w.disableVerticalSwipes?.(); } catch { /* */ }
+  // 1-paket D11: pastga surib yopish butun ilovada o'chirilmaydi — faqat barmoq bilan chizish va o'yin ekranida (tg.swipes)
 }

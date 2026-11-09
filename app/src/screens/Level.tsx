@@ -98,7 +98,7 @@ export function CertScreen({ cert, per }: { cert: Cert; per?: Per }) {
   const nm = me?.full_name || me?.name || "O'quvchi";
   const an = useMyArName(nm); // o'quvchi «Ismingiz arabchada»da tuzatgan ism, bo'lmasa avtomatik
   const lvl = cert.level === "A0" ? "Boshlang'ich" : cert.level;
-  const share = () => tg.openLink(`https://t.me/share/url?url=${encodeURIComponent(BOT_LINK)}&text=${encodeURIComponent(`Mezon daraja testi: arab tilim — ${lvl} (${cert.score} ball). Sen ham sinab ko'r!`)}`);
+  const share = () => tg.openLink(`https://t.me/share/url?url=${encodeURIComponent(BOT_LINK)}&text=${encodeURIComponent(`Miyzan daraja testi: arab tilim — ${lvl} (${cert.score} ball). Sen ham sinab ko'r!`)}`);
   return (
     <main className="screen">
       <ScreenHeader title="Sertifikat" />
@@ -109,7 +109,7 @@ export function CertScreen({ cert, per }: { cert: Cert; per?: Per }) {
         <span className="cert-k">Arab tili darajasi</span>
         <div className={`cert-l ${cert.level === "A0" ? "long" : ""}`}>{lvl}</div>
         <span>{cert.score} ball · {cert.date}</span>
-        <small>Mezon · @{BOT_USER}</small>
+        <small>Miyzan · @{BOT_USER}</small>
       </section>
       {per && (
         <section className="card lt-per">

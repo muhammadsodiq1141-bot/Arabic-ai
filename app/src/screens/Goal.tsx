@@ -144,7 +144,7 @@ export function GoalScreen({ redo, confOnly }: { redo?: boolean; confOnly?: bool
         <small className="muted">«Bugun» kartasidagi «Bu hafta — 4 yo'l» shu rejaga solishtiriladi.</small>
       </section>
 
-      {g.why === "talk" && <p className="gl-note">Mezon adabiy arab tilini (fusha) o'rgatadi. Kundalik lahjalar boshqacha, lekin fusha arab dunyosining hamma joyida tushuniladi va lahjani keyin tez o'rganishga yordam beradi.</p>}
+      {g.why === "talk" && <p className="gl-note">Miyzan adabiy arab tilini (fusha) o'rgatadi. Kundalik lahjalar boshqacha, lekin fusha arab dunyosining hamma joyida tushuniladi va lahjani keyin tez o'rganishga yordam beradi.</p>}
 
       <button type="button" className="card gl-start" onClick={() => { tg.haptic(); start[2](); }}>
         <span className="gl-ot"><small>Nimadan boshlash</small><b>{start[0]}</b><small>{start[1]}</small></span>

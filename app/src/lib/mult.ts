@@ -32,7 +32,9 @@ export const mDone = () => store.get<Record<string, number>>("f.mdone", {});
 /** 17-partiya (M11): ko'rilgan (ochilgan) multfilmlar — yangi qism bosh sahifada «Yangi multfilm» bo'lib chiqadi */
 export const mSeen = () => store.get<string[]>("f.mseen", []);
 export function setMSeen(id: string) { const S = mSeen(); if (!S.includes(id)) store.set("f.mseen", [...S, id]); }
-export const mFresh = (ms: Mult[]) => ms.filter((m) => !mSeen().includes(m.id) && mDone()[m.id] === undefined);
+export const mFresh = <T extends { id: string }>(ms: T[]) => ms.filter((m) => !mSeen().includes(m.id) && mDone()[m.id] === undefined);
+/** 1-paket: bosh sahifa uchun yengil ro'yxat (rasmsiz) — yig'ishda vite.config.ts yasaydi */
+export type MultIdx = { id: string; level: string; title: string; titleAr?: string; dur?: number };
 export function setMDone(id: string, pct: number) { const D = mDone(); D[id] = Math.max(D[id] || 0, pct); store.set("f.mdone", D); }
 export const mSpeed = () => store.get<number>("f.mspeed", 1);
 export const shRate = () => store.get<number>("f.shrate", 1);

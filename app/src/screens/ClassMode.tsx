@@ -16,7 +16,7 @@ import { useRBook } from "./Rules";
 import { bookOfLevel } from "./Unit";
 
 type Tool = "t432" | "roles" | "dict";
-const BOOKS: [string, string][] = [["a1", "Manhaj A1"], ["md1", "Madina 1"], ["md2", "Madina 2"]];
+const BOOKS: [string, string][] = [["a1", "Manhaj A1"], ["a2", "Manhaj A2"], ["b1", "Manhaj B1"], ["b2", "Manhaj B2"], ["md1", "Madina 1"], ["md2", "Madina 2"]];
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;
 
 function beep() {

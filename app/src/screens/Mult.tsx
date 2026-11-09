@@ -3,8 +3,9 @@
 import { Fragment, useEffect, useRef, useState, type MouseEvent } from "react";
 import { AudioLines, Check, ChevronRight, Clapperboard, Mic, Minus, Pause, Play, Plus, Repeat, RotateCcw, SkipBack, SkipForward, Volume2 } from "lucide-react";
 import { say } from "../lib/audio";
-import { kLag, kPaint, lastAt, loadMults, mDone, MLV, mSpeed, setKLag, setMDone, shOk, SPEEDS, TYL, VLAB, mediaUrl, setMSeen, vocFor, fmtT, type Mult, type MVoc } from "../lib/mult";
-import { isLite, setLite } from "../lib/lite";
+import { loadData } from "../lib/data";
+import { kLag, kPaint, lastAt, loadMults, mDone, MLV, mSpeed, setKLag, setMDone, shOk, SPEEDS, TYL, VLAB, mediaUrl, setMSeen, vocFor, fmtT, type Mult, type MultIdx, type MVoc } from "../lib/mult";
+import { isLite, onWifi, setLite } from "../lib/lite";
 import { normAr } from "../lib/practice";
 import { gain, store } from "../lib/store";
 import { tg } from "../lib/tg";
@@ -19,6 +20,13 @@ type Tab = "video" | "vocab" | "quiz";
 // ekranlar orasida eslab qolinadi (testdan yoki so'zdan qaytganda o'sha bo'lim ochiladi)
 const TABS: Record<string, Tab> = {};
 let LVL: string | null = null;
+
+/** 1-paket: bosh sahifa uchun yengil ro'yxat (MULT_INDEX, rasmsiz) */
+export function useMultIndex() {
+  const [ms, setMs] = useState<MultIdx[] | null>(null);
+  useEffect(() => { let on = true; void loadData<MultIdx[]>("MULT_INDEX").then((x) => on && setMs(x)).catch(() => on && setMs([])); return () => { on = false; }; }, []);
+  return ms;
+}
 
 export function useMults() {
   const [ms, setMs] = useState<Mult[] | null>(null);
@@ -205,7 +213,7 @@ function MultVideo({ m }: { m: Mult }) {
     <>
       <div className="mstick">
         <div className={`mplayer ${lite ? "lite" : ""}`}>
-          <video ref={v} src={mediaUrl(m, lite)} poster={lite ? m.thumb : undefined} playsInline controls={!lite} preload={lite ? "metadata" : "auto"}
+          <video ref={v} src={mediaUrl(m, lite)} poster={lite ? m.thumb : undefined} playsInline controls={!lite} preload={lite || onWifi() !== true ? "metadata" : "auto"}
             onLoadedMetadata={(e) => { e.currentTarget.playbackRate = mSpeed(); }}
             onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)}
             onEnded={() => { setPlaying(false); if (mDone()[m.id] === undefined) toast("Zo'r! Endi lug'at va testni ko'ring"); }}
@@ -220,7 +228,7 @@ function MultVideo({ m }: { m: Mult }) {
           <button type="button" onClick={() => ctl("again")} aria-label="Gapni qayta"><RotateCcw size={20} aria-hidden /><span>Qayta</span></button>
           <button type="button" className="mbig" onClick={() => ctl("play")} aria-label={playing ? "Pauza" : "Ijro"}>{playing ? <Pause size={26} aria-hidden /> : <Play size={26} aria-hidden />}</button>
           <button type="button" onClick={() => ctl("next")} aria-label="Keyingi gap"><SkipForward size={20} aria-hidden /><span>Keyingi</span></button>
-          <button type="button" className={loop ? "on" : ""} aria-pressed={loop} onClick={() => ctl("loop")} aria-label="Gapni takrorlab turish"><Repeat size={20} aria-hidden /><span>Aylana</span></button>
+          <button type="button" className={loop ? "on" : ""} aria-pressed={loop} onClick={() => ctl("loop")} aria-label="Aylana — gapni takrorlab turish"><Repeat size={20} aria-hidden /><span>Aylana</span></button>
         </div>
         <div className="seg small mspeed" role="group" aria-label="Tezlik">
           {SPEEDS.map((s) => <button key={s} type="button" className={s === sp ? "on" : ""} aria-pressed={s === sp} onClick={() => speed(s)}>{s}x</button>)}

@@ -39,8 +39,8 @@ export function loadArFonts(ar = "", lat = ""): Promise<void> {
   const t = SAMPLE + ar;
   const all = cssP.then(() => Promise.all([
     ...AR_STYLES.map((s) => document.fonts.load(`700 64px ${s.family}`, t)),
-    document.fonts.load("800 40px Manrope", `Mezon ${lat}`),
-    document.fonts.load("700 40px Manrope", `Mezon ${lat}`),
+    document.fonts.load("800 40px Manrope", `Miyzan ${lat}`),
+    document.fonts.load("700 40px Manrope", `Miyzan ${lat}`),
   ])).then(() => undefined, () => undefined);
   return Promise.race([all, wait(8000)]);
 }
@@ -66,7 +66,7 @@ export function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.closePath();
 }
 
-// Mezon belgisi (ui/kit Logo bilan bir xil chizma, 120×120 o'lchamda)
+// Miyzan belgisi (ui/kit Logo bilan bir xil chizma, 120×120 o'lchamda)
 export function drawLogo(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: number, p: Pal) {
   ctx.save();
   ctx.translate(cx - size / 2, cy - size / 2);
@@ -198,7 +198,7 @@ export async function drawArName(ar: string, lat: string, style: number, units?:
 
   ctx.globalAlpha = 0.6;
   ctx.font = "700 28px Manrope, sans-serif";
-  ctx.fillText(`Mezon · @${BOT_USER}`, W / 2, H - M - 82);
+  ctx.fillText(`Miyzan · @${BOT_USER}`, W / 2, H - M - 82);
   ctx.globalAlpha = 1;
   return c;
 }
@@ -307,7 +307,7 @@ export function ArNameScreen() {
         {shown ? <Ar className={`an-big an-f${style}`}>{shown}</Ar> : <span className="an-empty">Ismingizni yozing</span>}
         <i className="an-bar" aria-hidden />
         <b className="an-lat">{lat || "—"}</b>
-        <small>Mezon · @{BOT_USER}</small>
+        <small>Miyzan · @{BOT_USER}</small>
       </section>
 
       <section className="card form an-form">

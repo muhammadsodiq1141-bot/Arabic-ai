@@ -5,10 +5,9 @@
 // 7-partiya: profil (books, account, idcard), admin (admin, ateachers, ausers), guruh havolasi g_KOD.
 import { SpeakScreen } from "./Speak";
 import { DictScreen } from "./Dict";
-import { ClassModeScreen } from "./ClassMode";
-import { GoalScreen } from "./Goal";
-import { InviteScreen } from "./Invite";
-import { useEffect, useLayoutEffect } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect } from "react";
+import { setErrScreen } from "../lib/errlog";
+import { ErrorBoundary } from "../ui/ErrorBoundary";
 import { strandRoute } from "../lib/strand";
 import { api } from "../lib/api";
 import type { DayWord } from "../lib/data";
@@ -22,20 +21,14 @@ import { BottomNav } from "../ui/kit";
 import { useReactions } from "../ui/Reaction";
 import { toast } from "../ui/Toast";
 import { A0Grow, A0Home, A0Lesson, A0Map, HwSend } from "./A0";
-import { AdminScreen, AdminTeachersScreen, AdminUsersScreen } from "./Admin";
-import { AdminRequests } from "./AdminRequests";
 import { ArNameScreen } from "./ArName";
 import { BooksScreen } from "./Books";
-import { CityScreen } from "./City";
 import { CardsScreen, WordTestScreen } from "./Drill";
-import { DuelScreen } from "./Duel";
-import { GameScreen } from "./Games";
 import { Home } from "./Home";
 import { KbScreen } from "./Kitob";
-import { LeagueScreen } from "./League";
 import { LessonScreen, type Plan } from "./Lesson";
 import { DrillScreen, MemScreen } from "./Madina";
-import { CertScreen, LevelTestScreen, type Cert } from "./Level";
+import type { Cert } from "./Level";
 import { Marks } from "./Marks";
 import { ShareScreen } from "./Motiv";
 import { MultScreen, MultsScreen, MultVocScreen } from "./Mult";
@@ -46,13 +39,31 @@ import { ErrorsScreen, KnownWordsScreen, NightScreen } from "./Review";
 import { SavedScreen } from "./Saved";
 import { RuleDetail, RulePractice, RulesHub } from "./Rules";
 import { ShadowScreen } from "./Shadow";
-import { TeacherScreen } from "./Teacher";
-import { TeacherHwNewScreen, TeacherHwScreen } from "./TeacherHw";
-import { TeacherSubsScreen } from "./TeacherSubs";
 import { DayWordScreen, SoonScreen } from "./Small";
 import { TestScreen, TheoryScreen } from "./Theory";
 import { Lessons, RoundScreen, UnitScreen } from "./Unit";
 import { WordScreen, WordsScreen } from "./WordCard";
+
+// 1-paket: kam ishlatiladigan ekranlar alohida bo'lak bo'lib, kerak bo'lganda yuklanadi (birinchi ochilish yengillashadi).
+// O'quv ekranlari (dars, mashq, diktant, multfilm) asosiy kodda qoladi — kam trafik rejimida internetsiz ham ochilsin.
+const AdminScreen = lazy(() => import("./Admin").then((m) => ({ default: m.AdminScreen })));
+const AdminTeachersScreen = lazy(() => import("./Admin").then((m) => ({ default: m.AdminTeachersScreen })));
+const AdminUsersScreen = lazy(() => import("./Admin").then((m) => ({ default: m.AdminUsersScreen })));
+const AdminRequests = lazy(() => import("./AdminRequests").then((m) => ({ default: m.AdminRequests })));
+const AdminErrorsScreen = lazy(() => import("./AdminErrors").then((m) => ({ default: m.AdminErrorsScreen })));
+const TeacherScreen = lazy(() => import("./Teacher").then((m) => ({ default: m.TeacherScreen })));
+const TeacherHwScreen = lazy(() => import("./TeacherHw").then((m) => ({ default: m.TeacherHwScreen })));
+const TeacherHwNewScreen = lazy(() => import("./TeacherHw").then((m) => ({ default: m.TeacherHwNewScreen })));
+const TeacherSubsScreen = lazy(() => import("./TeacherSubs").then((m) => ({ default: m.TeacherSubsScreen })));
+const ClassModeScreen = lazy(() => import("./ClassMode").then((m) => ({ default: m.ClassModeScreen })));
+const LeagueScreen = lazy(() => import("./League").then((m) => ({ default: m.LeagueScreen })));
+const DuelScreen = lazy(() => import("./Duel").then((m) => ({ default: m.DuelScreen })));
+const LevelTestScreen = lazy(() => import("./Level").then((m) => ({ default: m.LevelTestScreen })));
+const CertScreen = lazy(() => import("./Level").then((m) => ({ default: m.CertScreen })));
+const CityScreen = lazy(() => import("./City").then((m) => ({ default: m.CityScreen })));
+const InviteScreen = lazy(() => import("./Invite").then((m) => ({ default: m.InviteScreen })));
+const GameScreen = lazy(() => import("./Games").then((m) => ({ default: m.GameScreen })));
+const GoalScreen = lazy(() => import("./Goal").then((m) => ({ default: m.GoalScreen })));
 
 /** Bot havolasidan kelganda (?go=... yoki start_param): d_KOD — bellashuv, g_KOD — guruhga qo'shilish.
  *  f.handled — eski ilova bilan umumiy; f.gjoin — tasdiq kutilayotganda saqlangan guruh kodi (endi qo'shiladi). */
@@ -77,7 +88,18 @@ function useStartParam() {
 
 const GUARDED = new Set(["round", "kb", "lesson", "qs", "rprac", "game", "cards", "wtest", "test", "darslik", "dict"]);
 
+/** 1-paket: har ekran xato himoyasi ichida (oq ekran o'rniga xabar), ekran nomi xato jurnaliga */
 export function Main() {
+  const { tab, route } = useNav();
+  setErrScreen(route.view === tab ? tab : route.view);
+  return (
+    <ErrorBoundary resetKey={`${tab}:${route.view}`}>
+      <Suspense fallback={<main className="screen"><p className="muted pad">Yuklanmoqda…</p></main>}><Screens /></Suspense>
+    </ErrorBoundary>
+  );
+}
+
+function Screens() {
   const { tab, route } = useNav();
   useStartParam();
   useReactions(); // reaksiya stikerlari overlay'i (har qanday ekran ustida) va bir martalik «Xush kebsiz!»
@@ -90,6 +112,7 @@ export function Main() {
   useLayoutEffect(() => { strandRoute(route.view, (route.params || {}).game); }, [route]);
   const p = route.params || {};
   if (route.view === "adminRequests") return <AdminRequests />;
+  if (route.view === "aerrors") return <AdminErrorsScreen />; // 1-paket
   if (route.view === "admin") return <AdminScreen />;
   if (route.view === "ateachers") return <AdminTeachersScreen />;
   if (route.view === "ausers") return <AdminUsersScreen />;
