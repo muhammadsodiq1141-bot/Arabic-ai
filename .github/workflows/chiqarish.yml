@@ -1,0 +1,43 @@
+# Hammaga chiqarish (10.11.2026): app/CHIQARISH fayli o'zgarsa — ilovani o'quvchilar ochadigan v2/ papkasiga yig'adi.
+# Odatiy tartib: o'zgarish avval v2-sinov/ da tekshiriladi (v2.yml), so'ng CHIQARISH yangilanadi.
+name: v2 chiqarish
+
+on:
+  push:
+    branches: [main]
+    paths: ["app/CHIQARISH"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v2-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: O'rnatish
+        working-directory: app
+        run: npm ci --no-audit --no-fund
+      - name: Yig'ish
+        working-directory: app
+        run: npm run build
+      - name: v2/ ni saqlash
+        run: |
+          if git diff --quiet -- v2 && [ -z "$(git ls-files --others --exclude-standard v2)" ]; then
+            echo "v2/ o'zgarmadi"; exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add v2
+          git commit -m "v2: hammaga chiqarish (${GITHUB_SHA::7})"
+          for i in 1 2 3; do git pull --rebase && git push && exit 0; sleep 5; done; exit 1

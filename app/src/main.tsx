@@ -14,3 +14,11 @@ createRoot(document.getElementById("root")!).render(
     <App />
   </StrictMode>,
 );
+
+// 10.11.2026: sinov nusxasi (v2-sinov/, VITE_KANAL=sinov bilan yig'iladi) — burchakda «SINOV» belgisi, o'quvchilar nusxasida yo'q
+if (import.meta.env.VITE_KANAL === "sinov") {
+  const b = document.createElement("div");
+  b.className = "beta-pill"; b.textContent = "SINOV"; b.setAttribute("aria-hidden", "true");
+  document.body.appendChild(b);
+  document.title = "SINOV · " + document.title;
+}

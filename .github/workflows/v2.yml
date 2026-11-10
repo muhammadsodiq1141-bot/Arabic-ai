@@ -1,18 +1,18 @@
-# Yangi ilova (app/) o'zgarsa — avtomatik yig'ib, natijani v2/ papkasiga yozadi.
-# Shunda telefondan (GitHub sayti yoki Claude Code) kiritilgan o'zgarish ham /v2/ sahifasiga o'zi chiqadi.
-name: v2 yig'ish
+# Sinov nusxasi (10.11.2026): app/ o'zgarsa — avtomatik yig'ib, natijani v2-sinov/ papkasiga yozadi (o'quvchilar ko'rmaydi).
+# Admin uni botdagi /sinov buyrug'i bilan ochadi. Hammaga chiqarish — chiqarish.yml (app/CHIQARISH fayli o'zgarganda v2/ ga yig'adi).
+name: v2-sinov yig'ish
 
 on:
   push:
     branches: [main]
-    paths: ["app/**"]
+    paths: ["app/**", "!app/CHIQARISH"]
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: v2-build
+  group: v2-sinov-build
   cancel-in-progress: true
 
 jobs:
@@ -28,16 +28,16 @@ jobs:
       - name: O'rnatish
         working-directory: app
         run: npm ci --no-audit --no-fund
-      - name: Yig'ish
+      - name: Yig'ish (sinov)
         working-directory: app
-        run: npm run build
-      - name: v2/ ni saqlash
+        run: npx tsc -b && VITE_KANAL=sinov npx vite build --outDir ../v2-sinov --emptyOutDir
+      - name: v2-sinov/ ni saqlash
         run: |
-          if git diff --quiet -- v2 && [ -z "$(git ls-files --others --exclude-standard v2)" ]; then
-            echo "v2/ o'zgarmadi"; exit 0
+          if git diff --quiet -- v2-sinov && [ -z "$(git ls-files --others --exclude-standard v2-sinov)" ]; then
+            echo "v2-sinov/ o'zgarmadi"; exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add v2
-          git commit -m "v2: avtomatik yig'ish (${GITHUB_SHA::7})"
-          git push
+          git add v2-sinov
+          git commit -m "v2-sinov: avtomatik yig'ish (${GITHUB_SHA::7})"
+          for i in 1 2 3; do git pull --rebase && git push && exit 0; sleep 5; done; exit 1
