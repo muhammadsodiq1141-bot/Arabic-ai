@@ -196,7 +196,7 @@ export function AdminShopScreen() {
           {d === null && <div className="lg-skel" aria-label="Yuklanmoqda">{[0, 1].map((k) => <span key={k} />)}</div>}
           {d === "err" && <p className="err">Mahsulotlar yuklanmadi (supabase-17-versiya.sql bajarilganmi?).</p>}
           {!edit && <button type="button" className="rowbtn xadd" onClick={() => setEdit(toDraft())}><Plus size={22} aria-hidden /><span><b>Mahsulot qo'shish</b><small>Rasm, nom, narx, soni</small></span></button>}
-          {edit && <ItemForm d={edit} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); void load(); }} />}
+          {edit && <ItemForm key={edit.id ?? "new"} d={edit} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); void load(); }} />}
           <ul className="sh-admin">
             {d && d !== "err" && d.map((x) => (
               <li key={x.id} className={x.visible ? "" : "hid"}>
@@ -230,7 +230,8 @@ function ItemForm({ d: d0, onClose, onSaved }: { d: Draft; onClose: () => void; 
     if (num(d.price) < 1) { toast("Narxni yozing"); return; }
     setBusy("Saqlanmoqda…");
     try {
-      await api("shopSave", { item: { id: d.id, title: d.title.trim(), descr: d.descr.trim(), price: num(d.price), stock: num(d.stock), variants: d.variants.split(/[,;]/).map((s) => s.trim()).filter(Boolean),
+      const stockChanged = !d.id || num(d.stock) !== num(d0.stock); // tahrirda soni faqat o'zgartirilsa yuboriladi
+      await api("shopSave", { item: { id: d.id, title: d.title.trim(), descr: d.descr.trim(), price: num(d.price), stock: stockChanged ? num(d.stock) : undefined, stock0: num(d0.stock), variants: d.variants.split(/[,;]/).map((s) => s.trim()).filter(Boolean),
         per_limit: num(d.per_limit) || null, img: d.img, visible: d.visible, sort: num(d.sort) } });
       tg.haptic("success"); toast(d.id ? "Mahsulot yangilandi" : "Mahsulot qo'shildi"); onSaved();
     } catch (e) { toast(e instanceof Error ? e.message : "Saqlanmadi"); }

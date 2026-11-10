@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Coins, Undo2, Users } from "lucide-react";
 import { api } from "../lib/api";
+import { ccResend, ccSend } from "../lib/classq";
 import { fmtCoins } from "../lib/coins";
 import { tg } from "../lib/tg";
 import { Empty, ScreenHeader } from "../ui/kit";
@@ -40,8 +41,8 @@ export function ClassCoinsScreen({ code: code0 }: { code?: string }) {
 
   const send = useCallback(async (p: Pend) => {
     try {
-      const r = await api<{ given: Record<string, number>; capped: string[]; total: number; today: Record<string, number> }>("classCoins",
-        { code: codeRef.current, amount: p.amount, why: p.why, kids: p.kids, batch: p.batch });
+      // navbat orqali: telefonda saqlanadi, tasdiqlangach o'chadi; uzilsa — keyingi ochilishda qayta yuboriladi
+      const r = await ccSend({ code: codeRef.current, amount: p.amount, why: p.why, kids: p.kids, batch: p.batch });
       setD((x) => (x && x !== "err" ? { ...x, total: r.total, members: x.members.map((m) => ({ ...m, today: r.today?.[m.kid] ?? m.today })) } : x));
       if (r.capped?.length) {
         const g = Object.values(r.given || {});
@@ -49,8 +50,9 @@ export function ClassCoinsScreen({ code: code0 }: { code?: string }) {
         toast(full + part === 0 ? "Bugungi limit tugadi — tanga yozilmadi"
           : [full ? `${full} ta o'quvchiga +${p.amount}` : "", part ? `${part} tasiga limitgacha` : "", none ? `${none} tasida bugungi limit tugadi` : ""].filter(Boolean).join(" · "));
       }
-    } catch (e) { toast(e instanceof Error ? e.message : "Tanga yuborilmadi. Internetni tekshiring."); }
+    } catch (e) { toast(e instanceof Error ? `${e.message} — internet tiklanganda qayta yuboriladi` : "Tanga yuborilmadi — internet tiklanganda qayta yuboriladi"); }
   }, []);
+  useEffect(() => { ccResend(); }, []);
   // kutayotganini darhol yuborish (yangi berish, ekrandan chiqish, ilovani yopish)
   const flush = useCallback(() => {
     const p = pendRef.current;
@@ -84,7 +86,7 @@ export function ClassCoinsScreen({ code: code0 }: { code?: string }) {
     pendRef.current = p; setPend(p); setNow(Date.now()); setSel(new Set());
     tg.haptic("success");
   };
-  const undo = () => { pendRef.current = null; setPend(null); toast("Bekor qilindi — tanga yozilmadi"); };
+  const undo = () => { if (!pendRef.current) return; pendRef.current = null; setPend(null); toast("Bekor qilindi — tanga yozilmadi"); }; // kech bosilsa (yuborilgan) — hech narsa
   const pendNames = pend ? pend.kids.map((k) => short(list.find((m) => m.kid === k)?.name || "")).filter(Boolean) : [];
 
   return (

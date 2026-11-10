@@ -2,7 +2,7 @@
 // guruh reytingi (leaderboard), kun so'zi (DAY_WORDS). Hali tayyor bo'lmagan bo'limlar bitta sokin "Tez orada" ro'yxatida (bosilmaydi).
 import { loadCoins, newCoinMsgs, REF_INVITER } from "../lib/coins";
 import { useEffect, useRef, useState } from "react";
-import { ArrowUpRight, Gift, GraduationCap, Headphones, MessageCircle, Search, Star, Target, TrendingUp, Trophy } from "lucide-react";
+import { ArrowUpRight, GraduationCap, Headphones, MessageCircle, Search, Star, Target, TrendingUp, Trophy } from "lucide-react";
 import { a0Data, a0HwState, type Hw as A0Hw } from "../lib/a0";
 import { api } from "../lib/api";
 import { img, loadData, type BookIndex, type DayWord } from "../lib/data";
@@ -213,7 +213,6 @@ export function Home() {
       <ul className="soonlist" aria-label="Tez orada qo'shiladigan bo'limlar">
         <li><Headphones size={20} aria-hidden /><span><b>Kutubxona</b><small>Podkast va video darslar</small></span></li>
         <li><Search size={20} aria-hidden /><span><b>Lug'at-tarjimon</b><small>So'zni qidirib topish</small></span></li>
-        <li><Gift size={20} aria-hidden /><span><b>Tanga va do'kon</b><small>Darslar uchun sovg'alar</small></span></li>
         <li><MessageCircle size={20} aria-hidden /><span><b>Xabarlar</b><small>Ustoz va guruh bilan chat</small></span></li>
       </ul>
     </main>

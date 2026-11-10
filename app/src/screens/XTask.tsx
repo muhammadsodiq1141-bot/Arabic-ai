@@ -37,8 +37,9 @@ export function HtmlView({ html, title, onClose, onResult }: { html: string; tit
   useEffect(() => {
     const on = (e: MessageEvent) => {
       if (e.source !== fr.current?.contentWindow) return;
-      const d = e.data as { miyzan?: string; w?: number };
-      if (d?.miyzan === "olcham" && Number.isFinite(d.w)) setPw(Number(d.w));
+      const d = e.data as { miyzan?: string; w?: number; vw?: number };
+      // o'lcham faqat iframe ekran enida bo'lganda olinadi (kengaytirilgan holatdagi o'lchov hisobga olinmaydi)
+      if (d?.miyzan === "olcham" && Number.isFinite(d.w) && Math.abs(Number(d.vw) - (box.current?.clientWidth || 0)) < 3) setPw(Number(d.w));
       const r = readResult(e.data);
       if (r && onResult) { onResult(r); tg.haptic("success"); }
     };

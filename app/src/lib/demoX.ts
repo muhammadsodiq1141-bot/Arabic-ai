@@ -19,6 +19,8 @@ const WIDE = `<!doctype html><html><head><meta charset="utf-8"><style>body{margi
 <body><div class="a4"><h1>A4 tarqatma — 4-vahda</h1><p>Bu sahifa 794 px kenglikda (A4). Telefonda eniga moslab kichraytiriladi; «Asl o'lcham» tugmasi bilan kattalashtirish mumkin.</p>
 <p style="font-size:40px;text-align:center;font-family:serif">بَيْتٌ · مَدْرَسَةٌ · كِتَابٌ</p></div></body></html>`;
 
+// &xw=2 — eni ekranga bog'langan (100vw + body margin) sahifa: o'lchov cheksiz o'smasligi sinovi
+const VW = `<!doctype html><html><head><meta charset="utf-8"></head><body><div style="width:100vw;background:#e3f2e2;padding:20px 0;font:18px system-ui">100vw sahifa — eni o'smasligi kerak</div></body></html>`;
 let sent: { text: string; at: string; result: unknown } | null = null;
 
 const TASK = (wide: boolean) => ({
@@ -38,7 +40,7 @@ export function xDemo(action: string, p: Record<string, unknown>, teacher: boole
     ] };
     return { ok: true, items: [{ ...TASK(wide), teacher: false, mine: sent ? { grade: null, comment: null, created_at: sent.at } : null }] };
   }
-  if (action === "xGet") return { ok: true, role: teacher ? "teacher" : "student", url: "data:text/html;charset=utf-8," + encodeURIComponent(wide ? WIDE : QUIZ),
+  if (action === "xGet") return { ok: true, role: teacher ? "teacher" : "student", url: "data:text/html;charset=utf-8," + encodeURIComponent(q.get("xw") === "2" ? VW : wide ? WIDE : QUIZ),
     task: TASK(wide), mine: sent ? { id: 1, text: sent.text, grade: null, comment: null, created_at: sent.at, photos: 0, audio: false, result: sent.result } : null };
   if (action === "xSubmit") { (window as unknown as { __xs?: unknown }).__xs = p; sent = { text: String(p.text || ""), at: new Date().toISOString(), result: p.result ?? null }; return { ok: true, late: false }; }
   if (action === "xStatus") return { ok: true, rows: [

@@ -24,7 +24,7 @@ function unlock(a: HTMLAudioElement) {
 // kitob audiosi bor so'zlar (sha1 kalitlari, kitob omborining ildizida) — vahda sahifasi ochilmagan bo'lsa ham topilsin
 let KBSET: Promise<Set<string>> | null = null;
 const kbHas = (hk: string) => {
-  if (!KBSET) KBSET = loadData<string[]>("KB_AUDIO").then((a) => new Set(a)).catch(() => new Set<string>());
+  if (!KBSET) KBSET = loadData<string[]>("KB_AUDIO").then((a) => new Set(a)).catch(() => { KBSET = null; return new Set<string>(); }); // yuklanmasa — keyingi safar qayta
   return KBSET.then((s) => s.has(hk));
 };
 let failAt = 0;
@@ -70,10 +70,13 @@ function device(t: string, my: number) {
   try {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(t);
-    const v = speechSynthesis.getVoices().find((x) => x.lang.toLowerCase().startsWith("ar"));
-    // ko'p Android telefonlarda arabcha ovoz yo'q — unda gapirmaydi; jim qolmasdan aytamiz
-    if (!v) { noVoice(); return; }
-    u.voice = v;
+    const all = speechSynthesis.getVoices();
+    const v = all.find((x) => x.lang.toLowerCase().startsWith("ar"));
+    // ko'p Android telefonlarda arabcha ovoz yo'q — unda gapirmaydi; jim qolmasdan aytamiz.
+    // Ro'yxat bo'sh bo'lsa (ovozlar hali yuklanmagan) — baribir urinamiz; 1.5 s ichida boshlanmasa, xabar.
+    if (!v && all.length) { noVoice(); return; }
+    if (v) u.voice = v;
+    else { const h = setTimeout(noVoice, 1500); u.onstart = () => clearTimeout(h); u.onerror = () => { clearTimeout(h); noVoice(); }; }
     u.lang = v?.lang || "ar-SA";
     u.rate = 0.8;
     speechSynthesis.speak(u);

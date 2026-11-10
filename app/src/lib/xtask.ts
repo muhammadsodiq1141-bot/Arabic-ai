@@ -55,8 +55,8 @@ export async function shrinkPhoto(file: File, max = 1600, q = 0.8): Promise<Blob
 // Material ichida: window.miyzanNatija(8, 10) yoki parent.postMessage({ miyzan: "natija", ball: 8, jami: 10 }, "*").
 const BRIDGE = '<script>(function(){var P=function(m){try{parent.postMessage(m,"*")}catch(e){}};'
   + 'window.miyzanNatija=function(b,j){P({miyzan:"natija",ball:+b,jami:+j})};'
-  + 'var S=function(){var d=document.documentElement,b=document.body;P({miyzan:"olcham",w:Math.max(d.scrollWidth,b?b.scrollWidth:0)})};'
-  + 'addEventListener("load",function(){S();setTimeout(S,700)});addEventListener("resize",S)})();</script>';
+  + 'var S=function(){var d=document.documentElement,b=document.body;P({miyzan:"olcham",w:Math.max(d.scrollWidth,b?b.scrollWidth:0),vw:innerWidth})};'
+  + 'addEventListener("load",function(){S();setTimeout(S,700)})})();</script>';
 export function wrapHtml(src: string) {
   for (const re of [/<head[^>]*>/i, /<html[^>]*>/i, /<!doctype[^>]*>/i]) {
     const m = src.match(re);

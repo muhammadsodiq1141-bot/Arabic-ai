@@ -12,7 +12,8 @@ import { xCoins } from "../lib/xtask";
 type Sub = { id: number; lesson: string; step: string; item: number; text: string; created_at: string; grade: number | null; comment: string | null; audio: boolean; name: string; login: string;
   pics?: string[]; result?: { ball: number; jami: number } | null; xt?: { title: string; coins5: number; due: string; late: boolean } }; // 3-paket 3-qism: qo'shimcha vazifa
 /** «Tushunmadim» xabari: mashq bandi 300 dan katta (uy va qo'shimcha vazifada item = vazifa raqami) */
-const isDunno = (x: Sub) => x.item >= 300 && x.step !== "hw" && x.step !== "x";
+// yakka gapirish (900) va diktant (950) serverda 500 bo'lib saqlanadi — ular baholanadigan javob
+const isDunno = (x: Sub) => x.item >= 300 && x.item < 500 && !["hw", "x", "dict", "speak"].includes(x.step);
 type Tab = "wait" | "done" | "dunno";
 
 const ago = (iso: string) => {
@@ -71,7 +72,7 @@ export function TeacherSubsScreen({ code }: { code: string }) {
           text={tab === "dunno" ? "O'quvchi mashqni tushunmay o'tkazib yuborsa, shu yerda ko'rinadi." : "O'quvchilar yangi javob yuborganda shu yerda paydo bo'ladi."} />
       )}
       <ul className="ts-list">
-        {shown.map((x) => <SubCard key={x.id} x={x} title={x.xt ? `Qo'shimcha vazifa · ${x.xt.title}` : titles[`${x.lesson}|${x.step}`] || x.lesson} onGraded={graded}
+        {shown.map((x) => <SubCard key={x.id} x={x} title={x.xt ? `Qo'shimcha vazifa · ${x.xt.title}` : x.step === "speak" ? `Yakka gapirish · ${x.lesson.replace(/^speak:/, "")}` : x.step === "dict" ? "Diktant" : titles[`${x.lesson}|${x.step}`] || x.lesson} onGraded={graded}
           cg={x.step === "hw" ? cg : x.xt ? { 5: xCoins(x.xt.coins5, 5), 4: xCoins(x.xt.coins5, 4), 3: xCoins(x.xt.coins5, 3) } : null} />)}
       </ul>
     </main>

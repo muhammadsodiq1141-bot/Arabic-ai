@@ -14,6 +14,7 @@ import { useArm } from "../ui/arm";
 import { useLets } from "./KbA0";
 import { Avatar, Empty, ScreenHeader } from "../ui/kit";
 import { toast } from "../ui/Toast";
+import { ccResend } from "../lib/classq";
 
 export type Sum = {
   streak?: number; xpw?: number; xpt?: number; days?: number[]; book?: string; books?: Record<string, [number, number]>;
@@ -64,7 +65,7 @@ export function TeacherScreen({ fixed }: { fixed?: { code: string; title: string
   const [open, setOpen] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
 
-  useEffect(() => { loadData<BookIndex>("books/index").then(setBooks).catch(() => {}); }, []);
+  useEffect(() => { loadData<BookIndex>("books/index").then(setBooks).catch(() => {}); ccResend(); }, []);
   useEffect(() => {
     if (!cur) return;
     let alive = true;
@@ -72,7 +73,7 @@ export function TeacherScreen({ fixed }: { fixed?: { code: string; title: string
     api<{ members: Member[] }>("groupMembers", { code: cur.code, week: weekId() })
       .then((r) => alive && setMembers(r.members || [])).catch(() => alive && setMembers("err"));
     api<{ items: { grade: number | null; item: number; step: string }[] }>("subList", { code: cur.code })
-      .then((r) => alive && setPending((r.items || []).filter((x) => x.grade === null && (x.item < 300 || x.step === "hw" || x.step === "x")).length)).catch(() => alive && setPending(0));
+      .then((r) => alive && setPending((r.items || []).filter((x) => x.grade === null && !(x.item >= 300 && x.item < 500 && !["hw", "x", "dict", "speak"].includes(x.step))).length)).catch(() => alive && setPending(0));
     api<{ items: { group_code: string; teacher?: boolean }[] }>("hwList")
       .then((r) => alive && setHwN((r.items || []).filter((h) => h.teacher && h.group_code === cur.code).length)).catch(() => alive && setHwN(0));
     setCc(null);
