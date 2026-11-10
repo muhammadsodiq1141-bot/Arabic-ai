@@ -57,6 +57,8 @@ const TeacherHwNewScreen = lazy(() => import("./TeacherHw").then((m) => ({ defau
 const TeacherSubsScreen = lazy(() => import("./TeacherSubs").then((m) => ({ default: m.TeacherSubsScreen })));
 const ClassModeScreen = lazy(() => import("./ClassMode").then((m) => ({ default: m.ClassModeScreen })));
 const ClassCoinsScreen = lazy(() => import("./ClassCoins").then((m) => ({ default: m.ClassCoinsScreen }))); // 3-paket 2-qism
+const XTaskScreen = lazy(() => import("./XTask").then((m) => ({ default: m.XTaskScreen }))); // 3-paket 3-qism
+const TeacherXNewScreen = lazy(() => import("./XTask").then((m) => ({ default: m.TeacherXNewScreen })));
 const AdminCoinsScreen = lazy(() => import("./Admin").then((m) => ({ default: m.AdminCoinsScreen })));
 const LeagueScreen = lazy(() => import("./League").then((m) => ({ default: m.LeagueScreen })));
 const DuelScreen = lazy(() => import("./Duel").then((m) => ({ default: m.DuelScreen })));
@@ -130,6 +132,8 @@ function Screens() {
   if (route.view === "class") return <ClassModeScreen />;
   if (route.view === "tcoins") return <ClassCoinsScreen key={String(p.code || "")} code={p.code ? String(p.code) : undefined} />;
   if (route.view === "acoins") return <AdminCoinsScreen />;
+  if (route.view === "xtask") return <XTaskScreen key={String(p.id)} id={Number(p.id)} />;
+  if (route.view === "txnew") return <TeacherXNewScreen code={String(p.code || "")} />;
   if (route.view === "dict") return <DictScreen key={String(p.n || "")} bookId={String(p.book || store.get("a1.book", "a1"))} unitN={Number(p.unit) || 1} mode={p.mode ? String(p.mode) : undefined} code={p.code ? String(p.code) : undefined} seed={Number(p.n) || Date.now()} />;
   // A0 · Alifbo: n — dars, l — harf, id — vazifa
   if (route.view === "city") return <CityScreen />;

@@ -1,14 +1,18 @@
 // Ustoz: tekshiriladigan javoblar — erkin javoblar (matn yoki ovoz) va A0 vazifalari. Baho 1–5 + izoh (server "subGrade";
 // o'quvchiga Telegram'da xabar boradi). "Tushunmadim" xabarlari (item ≥ 300) alohida bo'limda, baho qo'yilmaydi.
 import { useEffect, useRef, useState } from "react";
-import { HelpCircle, Pause, Play, Send } from "lucide-react";
+import { Clock, HelpCircle, Pause, Play, Send, X } from "lucide-react";
 import { api } from "../lib/api";
 import { isAr, loadKb } from "../lib/kb";
 import { tg } from "../lib/tg";
 import { Ar, Empty, ScreenHeader } from "../ui/kit";
 import { toast } from "../ui/Toast";
+import { xCoins } from "../lib/xtask";
 
-type Sub = { id: number; lesson: string; step: string; item: number; text: string; created_at: string; grade: number | null; comment: string | null; audio: boolean; name: string; login: string };
+type Sub = { id: number; lesson: string; step: string; item: number; text: string; created_at: string; grade: number | null; comment: string | null; audio: boolean; name: string; login: string;
+  pics?: string[]; result?: { ball: number; jami: number } | null; xt?: { title: string; coins5: number; due: string; late: boolean } }; // 3-paket 3-qism: qo'shimcha vazifa
+/** «Tushunmadim» xabari: mashq bandi 300 dan katta (uy va qo'shimcha vazifada item = vazifa raqami) */
+const isDunno = (x: Sub) => x.item >= 300 && x.step !== "hw" && x.step !== "x";
 type Tab = "wait" | "done" | "dunno";
 
 const ago = (iso: string) => {
@@ -45,9 +49,9 @@ export function TeacherSubsScreen({ code }: { code: string }) {
   }, [items]);
 
   const list = items && items !== "err" ? items : [];
-  const wait = list.filter((x) => x.item < 300 && x.grade === null);
-  const done = list.filter((x) => x.item < 300 && x.grade !== null);
-  const dunno = list.filter((x) => x.item >= 300);
+  const wait = list.filter((x) => !isDunno(x) && x.grade === null);
+  const done = list.filter((x) => !isDunno(x) && x.grade !== null);
+  const dunno = list.filter(isDunno);
   const shown = tab === "wait" ? wait : tab === "done" ? done : dunno;
   const graded = (id: number, grade: number, comment: string) => setItems((l) => (l && l !== "err" ? l.map((x) => (x.id === id ? { ...x, grade, comment } : x)) : l));
 
@@ -67,19 +71,21 @@ export function TeacherSubsScreen({ code }: { code: string }) {
           text={tab === "dunno" ? "O'quvchi mashqni tushunmay o'tkazib yuborsa, shu yerda ko'rinadi." : "O'quvchilar yangi javob yuborganda shu yerda paydo bo'ladi."} />
       )}
       <ul className="ts-list">
-        {shown.map((x) => <SubCard key={x.id} x={x} title={titles[`${x.lesson}|${x.step}`] || x.lesson} onGraded={graded} cg={x.step === "hw" ? cg : null} />)}
+        {shown.map((x) => <SubCard key={x.id} x={x} title={x.xt ? `Qo'shimcha vazifa · ${x.xt.title}` : titles[`${x.lesson}|${x.step}`] || x.lesson} onGraded={graded}
+          cg={x.step === "hw" ? cg : x.xt ? { 5: xCoins(x.xt.coins5, 5), 4: xCoins(x.xt.coins5, 4), 3: xCoins(x.xt.coins5, 3) } : null} />)}
       </ul>
     </main>
   );
 }
 
 function SubCard({ x, title, onGraded, cg }: { x: Sub; title: string; onGraded: (id: number, g: number, c: string) => void; cg: Record<string, number> | null }) {
-  const dunno = x.item >= 300;
+  const dunno = isDunno(x);
+  const [big, setBig] = useState<string | null>(null);
   const [grade, setGrade] = useState<number | null>(x.grade);
   const [comment, setComment] = useState(x.comment || "");
   const [edit, setEdit] = useState(x.grade === null);
   const [busy, setBusy] = useState(false);
-  const voiceOnly = /^🎙/.test(x.text);
+  const voiceOnly = /^(🎙|📷|🧩)/.test(x.text); // avtomatik yozuv (matnsiz javob) — ko'rsatilmaydi
   const save = async () => {
     if (!grade) { toast("Avval bahoni tanlang (1–5)"); return; }
     setBusy(true);
@@ -94,8 +100,18 @@ function SubCard({ x, title, onGraded, cg }: { x: Sub; title: string; onGraded: 
     <li className={`ts-card ${dunno ? "dunno" : ""}`}>
       <div className="ts-hd"><b>{x.name}</b><small>{x.login} · {ago(x.created_at)}</small></div>
       <span className="ts-lesson">{dunno ? <><HelpCircle size={14} aria-hidden /> Tushunmadim · </> : null}{title}</span>
+      {x.xt?.late && <span className="ts-late"><Clock size={13} aria-hidden />Muddatdan keyin topshirildi</span>}
+      {x.result && <span className="ts-res">Material testi: {x.result.ball} / {x.result.jami}</span>}
       {!voiceOnly && (isAr(x.text) && !dunno ? <Ar className="ts-text">{x.text}</Ar> : <p className="ts-plain">{x.text}</p>)}
       {x.audio && <Voice id={x.id} />}
+      {!!x.pics?.length && (
+        <div className="ts-pics">{x.pics.map((u, i) => <button key={u} type="button" aria-label={`${i + 1}-surat — kattalashtirish`} onClick={() => setBig(u)}><img src={u} alt="" loading="lazy" /></button>)}</div>
+      )}
+      {big && (
+        <div className="ts-big" role="dialog" aria-modal="true" aria-label="Daftar surati" onClick={() => setBig(null)}>
+          <img src={big} alt="Daftar surati" /><button type="button" className="xv-x" onClick={() => setBig(null)}><X size={18} aria-hidden />Yopish</button>
+        </div>
+      )}
       {!dunno && (edit ? (
         <div className="ts-grade">
           <div className="ts-stars" role="radiogroup" aria-label="Baho">
@@ -103,7 +119,7 @@ function SubCard({ x, title, onGraded, cg }: { x: Sub; title: string; onGraded: 
               <button key={g} type="button" role="radio" aria-checked={grade === g} className={grade === g ? "on" : ""} onClick={() => setGrade(g)}>{g}</button>
             ))}
           </div>
-          {cg && <small className="ts-coins">Uy vazifasi: {[5, 4, 3].map((g) => `${g} → ${cg[String(g)] ?? 0}`).join(" · ")} tanga{grade && cg[String(grade)] ? ` — tanlangan: +${cg[String(grade)]}` : ""}</small>}
+          {cg && <small className="ts-coins">{x.xt ? "Qo'shimcha vazifa" : "Uy vazifasi"}: {[5, 4, 3].map((g) => `${g} → ${cg[String(g)] ?? 0}`).join(" · ")} tanga{grade && cg[String(grade)] ? ` — tanlangan: +${cg[String(grade)]}` : ""}</small>}
           <input className="ts-cmt" value={comment} maxLength={300} onChange={(e) => setComment(e.target.value)} placeholder="Izoh (ixtiyoriy): masalan, «harakatlarga e'tibor bering»" />
           <button type="button" className="btn primary wide" disabled={busy || !grade} onClick={() => void save()}><Send size={18} aria-hidden />{busy ? "Yuborilmoqda…" : "Bahoni yuborish"}</button>
         </div>

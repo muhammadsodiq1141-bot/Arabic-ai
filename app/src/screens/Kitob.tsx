@@ -665,7 +665,7 @@ function Free({ it, sent, onSent, sub }: { it: KbItem; sent: "srv" | "local" | n
 }
 
 /** Ovozli javob: bosib yozish, qayta bosib to'xtatish (2 daqiqagacha), tinglab ko'rish, qayta yozish */
-export function VoiceRec({ value, onChange, disabled, label = "Ovoz bilan javob berish" }: { value: { blob: Blob; mime: string } | null; onChange: (v: { blob: Blob; mime: string } | null) => void; disabled?: boolean; label?: string }) {
+export function VoiceRec({ value, onChange, disabled, label = "Ovoz bilan javob berish", max = 120 }: { value: { blob: Blob; mime: string } | null; onChange: (v: { blob: Blob; mime: string } | null) => void; disabled?: boolean; label?: string; max?: number }) {
   const can = typeof MediaRecorder !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
   const [rec, setRec] = useState(false);
   const [sec, setSec] = useState(0);
@@ -689,7 +689,7 @@ export function VoiceRec({ value, onChange, disabled, label = "Ovoz bilan javob 
       r.ondataavailable = (e) => ch.push(e.data);
       r.onstop = () => { s.getTracks().forEach((t) => t.stop()); const mime = r.mimeType || m || "audio/webm"; onChange({ blob: new Blob(ch, { type: mime }), mime }); };
       r.start(); mr.current = r; setRec(true); setSec(0); tg.haptic("medium");
-      tick.current = window.setInterval(() => { const s2 = Math.round((Date.now() - t0) / 1000); setSec(s2); if (s2 >= 120) stop(); }, 500);
+      tick.current = window.setInterval(() => { const s2 = Math.round((Date.now() - t0) / 1000); setSec(s2); if (s2 >= max) stop(); }, 500);
     } catch { setErr("Mikrofonga ruxsat berilmadi."); }
   };
   const fmt = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;

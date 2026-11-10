@@ -1,6 +1,7 @@
 // Sinov rejimi: faqat shu kompyuterda (localhost) va manzilda ?demo=... bo'lsa ishlaydi. Serverga umuman murojaat qilmaydi,
 // hamma ma'lumot soxta. Haqiqiy saytda (github.io) yoqilmaydi.
 import { DEMO } from "./demoFlag";
+import { xDemo, xDemoSub } from "./demoX"; // 3-paket 3-qism
 export { DEMO };
 const q = new URLSearchParams(location.search);
 
@@ -26,6 +27,7 @@ export async function demoApi(action: string, p: Record<string, unknown>): Promi
       myGroups: [{ code: "K7QX2M", title: "A1-ertalab" }, { code: "P4WZ8N", title: "A2-kechki" }],
     };
   }
+  if (action.startsWith("x") && /^x[A-Z]/.test(action)) { const x = xDemo(action, p, teacher || admin, q); if (x) return x; }
   if (teacher || (admin && ["groupMembers", "subList", "hwList", "hwStatus", "groupKick", "groupDelete", "classToday", "classCoins"].includes(action))) { const t = teacherDemo(action, p); if (t) return t; }
   const pr = profileDemo(action, p, admin); if (pr) return pr;
   if (action === "me") {
@@ -131,6 +133,7 @@ function teacherDemo(action: string, p: Record<string, unknown>): Record<string,
   }
   if (action === "groupMembers") return { ok: true, members: p.code === "P4WZ8N" ? MEM.slice(0, 2).map((m) => ({ ...m, level: "A2" })) : MEM };
   if (action === "subList") return { ok: true, items: [
+    xDemoSub(),
     { id: 34, lesson: "a1:4", step: "hw", item: 7, text: "📘 Uy vazifasi: Kasblar va ishlar · o'rtacha 86% · 5/5 qadam · Hammasini bajardim, 3-savol qiyin bo'ldi.", created_at: iso(15), grade: null, comment: null, audio: false, name: "Aziz Karimov", login: "MJ-48213" },
     { id: 31, lesson: "a1:4", step: "suhbat", item: 5, text: "أَنَا طَالِبٌ فِي الْجَامِعَةِ. أَعْمَلُ مِنَ الصَّبَاحِ حَتَّى الْمَسَاءِ.", created_at: iso(35), grade: null, comment: null, audio: false, name: "Aziz Karimov", login: "MJ-48213" },
     { id: 32, lesson: "a1:4", step: "yozish", item: 10, text: "🎙 Ovozli javob", created_at: iso(120), grade: null, comment: null, audio: true, name: "Madina Yusupova", login: "MJ-48877" },

@@ -28,6 +28,7 @@ import { TodayCard } from "./Lesson";
 import { TasksCard } from "./Motiv";
 import { HelpButton, IntroOverlay, setCoachBlocked, useCoach } from "./Onboard";
 import { ensureWeek, introDone, WeekCard } from "./Week";
+import { XHomeCard } from "./XHome";
 
 type Hw = { id: number; book: string; unit: number; title: string; due: string; mine: { done?: boolean } | null; teacher?: boolean };
 type HwCard = { book: string; title: string; unitAr: string; unitN: number; pct: number; due: string; next: string } | null | "none" | "nogroup" | "err";
@@ -154,6 +155,8 @@ export function Home() {
           <span>{rank === "none" ? "Yulduzcha to'plang" : rank !== null && rank.scope === "all" ? "Butun markazda" : "Guruhingizda"}</span>
         </button>
       </div>
+      {/* 3-paket 3-qism: ustoz bergan qo'shimcha vazifa (topshirilmagani bo'lsa) — panjaradan keyin, to'liq enda */}
+      {me?.group && <XHomeCard />}
 
       {sum && !me?.group && !goalOf() && !store.get("f.goalHide", 0) && (
         <section className="card gl-card" aria-label="Shaxsiy reja">

@@ -71,8 +71,8 @@ export function TeacherScreen({ fixed }: { fixed?: { code: string; title: string
     setMembers(null); setPending(null);
     api<{ members: Member[] }>("groupMembers", { code: cur.code, week: weekId() })
       .then((r) => alive && setMembers(r.members || [])).catch(() => alive && setMembers("err"));
-    api<{ items: { grade: number | null; item: number }[] }>("subList", { code: cur.code })
-      .then((r) => alive && setPending((r.items || []).filter((x) => x.grade === null && x.item < 300).length)).catch(() => alive && setPending(0));
+    api<{ items: { grade: number | null; item: number; step: string }[] }>("subList", { code: cur.code })
+      .then((r) => alive && setPending((r.items || []).filter((x) => x.grade === null && (x.item < 300 || x.step === "hw" || x.step === "x")).length)).catch(() => alive && setPending(0));
     api<{ items: { group_code: string; teacher?: boolean }[] }>("hwList")
       .then((r) => alive && setHwN((r.items || []).filter((h) => h.teacher && h.group_code === cur.code).length)).catch(() => alive && setHwN(0));
     setCc(null);

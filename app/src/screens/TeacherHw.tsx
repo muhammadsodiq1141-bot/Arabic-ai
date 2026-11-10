@@ -1,7 +1,7 @@
 // Ustoz: uy vazifalari — berilganlar ro'yxati (necha o'quvchi bajardi), "Kim bajardi?" (server "hwStatus"), o'chirish (ikki bosqich),
 // yangi vazifa berish ("hwCreate": guruh, kitob, vahda, muddat, izoh). A0 kursi ham tanlanadi (eski ilovadagi kabi).
 import { useEffect, useState } from "react";
-import { Check, ChevronDown, ClipboardList, Plus, Trash2 } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, ClipboardList, FileCode2, Plus, Trash2 } from "lucide-react";
 import { api } from "../lib/api";
 import { dayKey } from "../lib/progress";
 import { loadData, type BookIndex } from "../lib/data";
@@ -12,6 +12,8 @@ import { useNav } from "../state/nav";
 import { Empty, ScreenHeader } from "../ui/kit";
 import { toast } from "../ui/Toast";
 import { useTeacherGroup } from "./Teacher";
+import { XTeacherCard } from "./XTask";
+import type { XTask } from "../lib/xtask";
 
 type Hw = { id: number; group_code: string; book: string; unit: number; title: string; due: string; teacher?: boolean; stats?: { total: number; done: number } };
 type Row = { n: string; lg: string; done: boolean; progress: { words?: number; test?: number; rules?: number; grade?: number; avg?: number; auto?: boolean } | null };
@@ -29,6 +31,12 @@ export function TeacherHwScreen({ code }: { code: string }) {
   const [names, setNames] = useState<Record<string, string>>({});
   const [books, setBooks] = useState<BookIndex>([]);
   const [open, setOpen] = useState<number | null>(null);
+  const [xs, setXs] = useState<XTask[] | null>(null); // 3-paket 3-qism: qo'shimcha vazifalar
+  useEffect(() => {
+    let alive = true;
+    api<{ items: XTask[] }>("xList").then((r) => alive && setXs((r.items || []).filter((x) => x.teacher && x.group_code === code))).catch(() => alive && setXs([]));
+    return () => { alive = false; };
+  }, [code]);
 
   useEffect(() => {
     let alive = true;
@@ -53,13 +61,24 @@ export function TeacherHwScreen({ code }: { code: string }) {
       <ScreenHeader title="Uy vazifalari" ar="الْوَاجِبَاتُ" actions={<button type="button" className="ibtn" aria-label="Yangi vazifa" onClick={() => go("thwnew", { code })}><Plus size={22} aria-hidden /></button>} />
       {items === null && <div className="lg-skel" aria-label="Yuklanmoqda">{[0, 1].map((k) => <span key={k} />)}</div>}
       {items === "err" && <Empty icon={<ClipboardList size={28} />} title="Vazifalar yuklanmadi" text="Internetni tekshirib, ekranni qayta oching." />}
-      {items && items !== "err" && !list.length && (
+      {items && items !== "err" && !list.length && xs !== null && !xs.length && (
         <div className="empty">
           <span className="empty-ico" aria-hidden><ClipboardList size={28} /></span>
           <h2>Hali vazifa berilmagan</h2>
           <p>Vahdani tanlab, muddatini belgilang — o'quvchilar bosh sahifada ko'radi.</p>
           <button type="button" className="btn primary mk-go" onClick={() => go("thwnew", { code })}><Plus size={18} aria-hidden />Vazifa berish</button>
         </div>
+      )}
+      {/* 3-paket 3-qism: ustoz o'zi tuzgan vazifa (HTML material, matn/ovoz/surat javob, tanga) */}
+      <button type="button" className="rowbtn xadd" onClick={() => go("txnew", { code })}>
+        <FileCode2 size={22} aria-hidden /><span><b>Qo'shimcha vazifa berish</b><small>O'zingiz tuzgan topshiriq · HTML material yuklash mumkin</small></span><ChevronRight size={20} aria-hidden />
+      </button>
+      {!!xs?.length && (
+        <>
+          <h2 className="t-h">Qo'shimcha vazifalar<small>{xs.length} ta</small></h2>
+          <ul className="th-list">{xs.map((x) => <XTeacherCard key={x.id} x={x} onDeleted={() => setXs((l) => (l || []).filter((y) => y.id !== x.id))} />)}</ul>
+          {list.length > 0 && <h2 className="t-h">Kitob vazifalari</h2>}
+        </>
       )}
       <ul className="th-list">
         {list.map((h) => (

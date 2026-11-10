@@ -22,7 +22,8 @@ export function usePrivacy() {
       e.preventDefault();
     };
     document.addEventListener("visibilitychange", hide);
-    window.addEventListener("blur", () => document.documentElement.classList.add("obscured"));
+    // 3-paket 3-qism: fokus ilova ichidagi HTML materialga (iframe) o'tsa — bu ilovadan chiqish emas, yashirmaymiz
+    window.addEventListener("blur", () => setTimeout(() => { if (document.activeElement?.tagName !== "IFRAME") document.documentElement.classList.add("obscured"); }, 0));
     window.addEventListener("focus", () => document.documentElement.classList.remove("obscured"));
     for (const ev of ["copy", "cut", "contextmenu", "dragstart", "selectstart"]) document.addEventListener(ev, block);
     return () => {
