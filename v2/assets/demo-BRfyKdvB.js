@@ -1,4 +1,4 @@
-import{aV as b}from"./index-BRVPpyJT.js";const z=e=>new Date(Date.now()-e*6e4).toISOString(),N=e=>{const t=new Date;return t.setDate(t.getDate()+e),t.toISOString().slice(0,10)},I=`<!doctype html><html lang="uz"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+import{aV as b}from"./index-DKkgOYEk.js";const z=e=>new Date(Date.now()-e*6e4).toISOString(),N=e=>{const t=new Date;return t.setDate(t.getDate()+e),t.toISOString().slice(0,10)},I=`<!doctype html><html lang="uz"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>body{margin:0;font-family:system-ui,sans-serif;background:radial-gradient(circle at 30% 0,#D7F1D2,#E3F2E2 45%,#EAF4EA);color:#0D3A1A;padding:18px}
 h1{font-size:20px;margin:0 0 4px}.tb{width:60px;height:6px;border-radius:3px;background:#2EB82E;margin-bottom:14px}
 .q{background:#fff;border:1px solid #CFE3CC;border-radius:14px;padding:12px;margin-bottom:12px}.ar{font-size:30px;text-align:center;font-family:'Noto Naskh Arabic',serif}
