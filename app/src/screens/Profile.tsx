@@ -2,7 +2,7 @@
 // ustozlik so'rovi, ustoz va admin panellariga kirish, ko'rinish. Server amallari eski ilova bilan umumiy.
 import { goalOf } from "../lib/goal";
 import { useEffect, useState } from "react";
-import { BookOpen, ChevronRight, Coins, Copy, GraduationCap, IdCard, KeyRound, LogOut, Moon, MoonStar, Send, ShieldCheck, Sun, SunMoon, Target, UserPen, Users, Gauge } from "lucide-react";
+import { BookOpen, ChevronRight, Coins, Copy, MessageSquareHeart, GraduationCap, IdCard, KeyRound, LogOut, Moon, MoonStar, Send, ShieldCheck, Sun, SunMoon, Target, UserPen, Users, Gauge } from "lucide-react";
 import { isLite, setLite, slowNet } from "../lib/lite";
 import { api } from "../lib/api";
 import { BOT_LINK } from "../lib/config";
@@ -71,6 +71,10 @@ export function Profile() {
         <Coins size={24} aria-hidden /><span><b>Tangalarim</b><small>Qoldiq va tarix · qayerdan keladi</small></span><ChevronRight size={20} aria-hidden />
       </button>
       <FreezeCard />
+      {/* 10.11.2026: tashakkur va takliflar — muallifga xabar */}
+      <button type="button" className="rowbtn" onClick={() => go("fb")}>
+        <MessageSquareHeart size={24} aria-hidden /><span><b>Tashakkur va takliflar</b><small>Fikringizni ilova muallifiga yozing</small></span><ChevronRight size={20} aria-hidden />
+      </button>
 
       <h2 className="t-h">Guruh</h2>
       <GroupCard />

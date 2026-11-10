@@ -1,7 +1,7 @@
 // Bosh admin paneli: umumiy raqamlar (adminOverview), kirish so'rovlari, ustozlik so'rovlari va ustozlar (adminTeachers, adminSetTeacher),
 // foydalanuvchilar ro'yxati (adminUsers), guruhlar (bosilsa — guruh paneli), kitob audiosini yuklash (kitobPut, kitobCount).
 import { useEffect, useMemo, useState } from "react";
-import { Bug, Check, ChevronRight, Coins, FileAudio, Gift, GraduationCap, Search, UserCheck, Users, X } from "lucide-react";
+import { Bug, Check, ChevronRight, Coins, FileAudio, Gift, MessageSquareHeart, GraduationCap, Search, UserCheck, Users, X } from "lucide-react";
 import { api } from "../lib/api";
 import { weekId } from "../lib/progress";
 import { tg } from "../lib/tg";
@@ -28,11 +28,13 @@ export function AdminScreen() {
   const [o, setO] = useState<Overview | null | "err">(null);
   const [req, setReq] = useState<number | null>(null);
   const [treq, setTreq] = useState<number | null>(null);
+  const [fb, setFb] = useState<number | null>(null); // javob kutayotgan xabarlar
   const [q, setQ] = useState("");
   useEffect(() => {
     api<Overview>("adminOverview", { week: weekId() }).then(setO).catch(() => setO("err"));
     api<{ items: unknown[] }>("adminRequests", { status: "pending" }).then((r) => setReq(r.items.length)).catch(() => setReq(null));
     api<{ requests: unknown[] }>("adminTeachers").then((r) => setTreq(r.requests.length)).catch(() => setTreq(null));
+    api<{ fresh: number }>("fbList", { count: 1 }).then((r) => setFb(r.fresh || 0)).catch(() => setFb(null));
   }, []);
   const t = o && o !== "err" ? o.totals : null;
   const groups = o && o !== "err" ? o.groups.filter((g) => !q.trim() || `${g.title} ${g.teacher} ${g.code}`.toLowerCase().includes(q.trim().toLowerCase())) : [];
@@ -58,6 +60,11 @@ export function AdminScreen() {
       </button>
       <button type="button" className="rowbtn" onClick={() => go("ausers")}>
         <Users size={24} aria-hidden /><span><b>Foydalanuvchilar</b><small>Ilovaga kirganlar · qidiruv va filtr</small></span><ChevronRight size={20} aria-hidden />
+      </button>
+      {/* 10.11.2026: o'quvchilardan tashakkur, taklif va shikoyatlar */}
+      <button type="button" className={`rowbtn ${fb ? "t-subs has" : ""}`} onClick={() => go("afb")}>
+        <MessageSquareHeart size={24} aria-hidden /><span><b>Xabarlar</b><small>{fb ? `${fb} ta xabar javob kutmoqda` : "Tashakkur, taklif va shikoyatlar"}</small></span>
+        {!!fb && <em className="t-badge">{fb}</em>}<ChevronRight size={20} aria-hidden />
       </button>
       {/* 3-paket 4-qism: tanga do'koni — mahsulotlar va buyurtmalar */}
       <button type="button" className="rowbtn" onClick={() => go("ashop")}>

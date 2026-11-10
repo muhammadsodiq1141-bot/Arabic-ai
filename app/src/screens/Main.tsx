@@ -62,6 +62,8 @@ const TeacherXNewScreen = lazy(() => import("./XTask").then((m) => ({ default: m
 const ShopScreen = lazy(() => import("./Shop").then((m) => ({ default: m.ShopScreen }))); // 3-paket 4-qism
 const AdminShopScreen = lazy(() => import("./Shop").then((m) => ({ default: m.AdminShopScreen })));
 const TeacherShopScreen = lazy(() => import("./Shop").then((m) => ({ default: m.TeacherShopScreen })));
+const FeedbackScreen = lazy(() => import("./Feedback").then((m) => ({ default: m.FeedbackScreen }))); // tashakkur va takliflar
+const AdminFeedbackScreen = lazy(() => import("./Feedback").then((m) => ({ default: m.AdminFeedbackScreen })));
 const AdminCoinsScreen = lazy(() => import("./Admin").then((m) => ({ default: m.AdminCoinsScreen })));
 const LeagueScreen = lazy(() => import("./League").then((m) => ({ default: m.LeagueScreen })));
 const DuelScreen = lazy(() => import("./Duel").then((m) => ({ default: m.DuelScreen })));
@@ -135,6 +137,8 @@ function Screens() {
   if (route.view === "class") return <ClassModeScreen />;
   if (route.view === "tcoins") return <ClassCoinsScreen key={String(p.code || "")} code={p.code ? String(p.code) : undefined} />;
   if (route.view === "acoins") return <AdminCoinsScreen />;
+  if (route.view === "fb") return <FeedbackScreen />;
+  if (route.view === "afb") return <AdminFeedbackScreen />;
   if (route.view === "shop") return <ShopScreen />;
   if (route.view === "ashop") return <AdminShopScreen />;
   if (route.view === "tshop") return <TeacherShopScreen />;

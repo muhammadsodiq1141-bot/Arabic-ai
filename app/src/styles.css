@@ -2402,3 +2402,39 @@ html.obscured .app { filter: blur(22px); }
 
 /* sinov nusxasi belgisi (faqat v2-sinov/) */
 .beta-pill { position: fixed; top: calc(6px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 500; pointer-events: none; padding: 2px 10px; border-radius: 8px; background: #A33A28; color: #fff; font: 800 11px Manrope, sans-serif; letter-spacing: .12em; opacity: .9; }
+
+/* ===== Tashakkur va takliflar (Feedback) ===== */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.fb-kinds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.fb-kinds button { height: 46px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--card); font-weight: 800; font-size: 14px; color: var(--ink); }
+.fb-kinds button.on { background: var(--hero); color: var(--hero-ink); border-color: var(--accent); }
+.fb-compose { display: flex; flex-direction: column; gap: 4px; background: var(--card); border: 1.5px solid var(--edge); border-radius: 16px; padding: 12px 14px; cursor: text; }
+.fb-compose:focus-within { border-color: var(--focus); box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus) 30%, transparent); }
+.fb-pre { font-weight: 800; font-size: 15px; color: var(--accent); }
+.fb-compose textarea { border: 0; outline: 0; background: transparent; resize: vertical; min-height: 96px; padding: 0; font: 500 16px Manrope, sans-serif; color: var(--ink); }
+.fb-prev { margin: 10px 0 0; padding: 10px 12px; border-radius: 14px; background: var(--soft); font-size: 13.5px; color: var(--muted); line-height: 1.45; }
+.fb-prev b { color: var(--ink); font-weight: 700; }
+.fb-note { font-size: 12.5px; margin: 10px 0 14px; }
+.fb-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.fb-msg { background: var(--card); border-radius: 18px; box-shadow: var(--shadow); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.fb-msg p { margin: 0; font-size: 14.5px; line-height: 1.5; white-space: pre-wrap; }
+.fb-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.fb-top small { font-size: 12px; color: var(--muted); }
+.fb-chip { font-size: 11.5px; font-weight: 800; padding: 3px 9px; border-radius: 8px; }
+.fb-chip.thanks { background: var(--ok-bg); color: var(--ok-line); }
+.fb-chip.idea { background: color-mix(in srgb, var(--gold) 32%, var(--card)); color: var(--accent); }
+.fb-chip.complaint { background: var(--no-bg); color: var(--no-line); }
+.fb-reply { border-left: 3px solid var(--ok-line); background: var(--bg); border-radius: 0 12px 12px 0; padding: 8px 10px; font-size: 14px; line-height: 1.45; display: flex; flex-direction: column; gap: 2px; }
+.fb-reply b { font-size: 12px; color: var(--ok-line); }
+.fb-reply.wait { border-left-color: var(--line); color: var(--muted); font-size: 13px; }
+.fb-reply.wait b { color: var(--muted); }
+.fb-reply .kb-link { align-self: flex-start; }
+.fb-who { display: flex; flex-direction: column; font-weight: 800; font-size: 14.5px; line-height: 1.3; }
+.fb-who small { font-weight: 600; font-size: 12.5px; color: var(--muted); }
+.fb-quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.fb-quick button { min-height: 36px; padding: 0 10px; border-radius: 11px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); font-weight: 700; font-size: 12.5px; text-align: left; }
+.fb-ans { width: 100%; border-radius: 14px; border: 1.5px solid var(--edge); background: var(--bg); color: var(--ink); padding: 10px 12px; font: 500 15px Manrope, sans-serif; resize: vertical; }
+.fb-name { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; margin-bottom: 4px; padding: 10px 12px; border-radius: 14px; border: 1.5px dashed var(--line); background: var(--card); color: var(--ink); font-size: 13.5px; text-align: left; }
+.fb-name.edit { border-style: solid; }
+.fb-name.edit input { flex: 1; min-width: 0; height: 44px; border-radius: 12px; border: 1.5px solid var(--edge); background: var(--bg); color: var(--ink); padding: 0 12px; font: 600 15px Manrope, sans-serif; }
+.fb-name.edit .btn { height: 44px; }
