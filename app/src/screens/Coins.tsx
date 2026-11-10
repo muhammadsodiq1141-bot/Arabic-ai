@@ -1,6 +1,8 @@
 // 3-paket (1-qism): «Tangalarim» — qoldiq va tarix (serverdagi hisob). Tanga qayerdan keladi va nimaga sarflanadi.
-import { Coins as CoinsIc, Minus, Plus } from "lucide-react";
+import { ChevronRight, Coins as CoinsIc, Gift, Minus, Plus, Target } from "lucide-react";
 import { COIN_KIND, fmtCoins, useCoins } from "../lib/coins";
+import { getGoal } from "../lib/shop";
+import { useNav } from "../state/nav";
 import { Empty, ScreenHeader } from "../ui/kit";
 
 const OY = ["yan", "fev", "mar", "apr", "may", "iyn", "iyl", "avg", "sen", "okt", "noy", "dek"];
@@ -8,7 +10,9 @@ const when = (s: string) => { const d = new Date(s); return `${d.getDate()}-${OY
 
 export function CoinsScreen() {
   const { s, bal } = useCoins();
+  const { go } = useNav();
   const G = s?.grade;
+  const goal = getGoal(); // 3-paket 4-qism: do'kondagi maqsad
   return (
     <main className="screen">
       <ScreenHeader title="Tangalarim" ar="نُقُودِي" />
@@ -17,6 +21,16 @@ export function CoinsScreen() {
         <b>{fmtCoins(bal)}</b>
         <span>tanga</span>
       </section>
+      {goal && (
+        <button type="button" className="card cn-goal" onClick={() => go("shop")}>
+          <span className="cn-gt"><Target size={18} aria-hidden /><b>Maqsad: {goal.title}</b><em>{Math.min(100, Math.floor((bal / goal.price) * 100))}%</em></span>
+          <span className="sh-bar" aria-hidden><i style={{ width: `${Math.min(100, (bal / goal.price) * 100)}%` }} /></span>
+          <small>{bal >= goal.price ? "Tanga yetdi — do'konda oling" : `yana ${fmtCoins(goal.price - bal)} tanga kerak`}</small>
+        </button>
+      )}
+      <button type="button" className="rowbtn" onClick={() => go("shop")}>
+        <Gift size={24} aria-hidden /><span><b>Do'kon</b><small>Tangaga markaz sovg'alari: futbolka, kitob, daftar</small></span><ChevronRight size={20} aria-hidden />
+      </button>
       <section className="card cn-how">
         <b>Tanga qayerdan keladi</b>
         <ul>
@@ -25,7 +39,7 @@ export function CoinsScreen() {
           <li><span>Darsda faol bo'lsangiz</span><small>ustoz beradi</small></li>
           <li><span>Do'stni taklif qilish</span><small>har bir do'st uchun</small></li>
         </ul>
-        <small className="muted">Kunlik vazifalar endi yulduzcha beradi. Tanga muzlatish va keyinchalik do'kon uchun sarflanadi.</small>
+        <small className="muted">Kunlik vazifalar endi yulduzcha beradi. Tanga seriya muzlatish va do'kon uchun sarflanadi.</small>
       </section>
       {!s ? <p className="muted pad">Yuklanmoqda…</p> : !s.ready ? (
         <Empty icon={<CoinsIc size={28} />} title="Tanga tez orada ishga tushadi" text="Ustoz baholari va vazifalar uchun tanga shu yerda ko'rinadi." />

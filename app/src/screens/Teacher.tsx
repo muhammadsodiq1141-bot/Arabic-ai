@@ -2,7 +2,7 @@
 // tekshiriladigan javoblar soni, uy vazifalari, taklif havolasi, o'quvchini guruhdan chiqarish (ikki marta bosib tasdiqlanadi).
 // 7-partiya: admin istalgan guruhni ochadi (fixed), guruhni o'chirish (groupDelete), yana guruh ochish.
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronRight, ClipboardList, Coins, Flame, Link2, MessageSquareText, Plus, Presentation, Trash2, UserMinus, Users, Gauge } from "lucide-react";
+import { ChevronDown, ChevronRight, ClipboardList, Coins, Flame, Gift, Link2, MessageSquareText, Plus, Presentation, Trash2, UserMinus, Users, Gauge } from "lucide-react";
 import { api } from "../lib/api";
 import { BOT_LINK } from "../lib/config";
 import { loadData, type BookIndex } from "../lib/data";
@@ -122,6 +122,10 @@ export function TeacherScreen({ fixed }: { fixed?: { code: string; title: string
         <Coins size={24} aria-hidden />
         <span><b>Darsda tanga</b><small>{cc ? `Bugun berildi: ${cc.total.toLocaleString("ru-RU")} / ${cc.day.toLocaleString("ru-RU")}` : "O'quvchilarni rag'batlantirish: +50 / +100 / +200"}</small></span>
         <ChevronRight size={20} aria-hidden />
+      </button>
+      {/* 3-paket 4-qism: o'quvchilar do'kondan olgan sovg'alarni topshirish */}
+      <button type="button" className="rowbtn" onClick={() => go("tshop")}>
+        <Gift size={24} aria-hidden /><span><b>Do'kon buyurtmalari</b><small>Sovg'ani berib, «Topshirildi» deb belgilang</small></span><ChevronRight size={20} aria-hidden />
       </button>
       {/* 17-partiya (U7): darsda telefon yoki proyektorda — 4/3/2, rol kartalari, ustoz diktanti */}
       <button type="button" className="rowbtn" onClick={() => go("class")}>

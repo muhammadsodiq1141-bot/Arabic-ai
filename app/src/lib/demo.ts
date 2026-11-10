@@ -2,6 +2,7 @@
 // hamma ma'lumot soxta. Haqiqiy saytda (github.io) yoqilmaydi.
 import { DEMO } from "./demoFlag";
 import { xDemo, xDemoSub } from "./demoX"; // 3-paket 3-qism
+import { shopDemo } from "./demoShop"; // 3-paket 4-qism
 export { DEMO };
 const q = new URLSearchParams(location.search);
 
@@ -27,6 +28,7 @@ export async function demoApi(action: string, p: Record<string, unknown>): Promi
       myGroups: [{ code: "K7QX2M", title: "A1-ertalab" }, { code: "P4WZ8N", title: "A2-kechki" }],
     };
   }
+  if (action.startsWith("shop")) { const r = shopDemo(action, p, admin); if (r) return r; }
   if (action.startsWith("x") && /^x[A-Z]/.test(action)) { const x = xDemo(action, p, teacher || admin, q); if (x) return x; }
   if (teacher || (admin && ["groupMembers", "subList", "hwList", "hwStatus", "groupKick", "groupDelete", "classToday", "classCoins"].includes(action))) { const t = teacherDemo(action, p); if (t) return t; }
   const pr = profileDemo(action, p, admin); if (pr) return pr;
