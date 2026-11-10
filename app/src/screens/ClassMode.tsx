@@ -4,12 +4,13 @@
 // 3) Ustoz diktanti: kod (A1-3-27) — o'quvchilar Mashq → Diktant'da shu kodni kiritadi; gaplar proyektorda yashirin turadi.
 // Server o'zgarmaydi; matnlar kitobdagidek (lib/texts.ts).
 import { useEffect, useRef, useState } from "react";
-import { Eye, EyeOff, Pause, Play, RefreshCw, RotateCcw, SkipForward, Timer, Users, Volume2 } from "lucide-react";
+import { ChevronRight, Coins, Eye, EyeOff, Pause, Play, RefreshCw, RotateCcw, SkipForward, Timer, Users, Volume2 } from "lucide-react";
 import { preloadKitob, say } from "../lib/audio";
 import { kbKeyOf } from "../lib/kb";
 import { store } from "../lib/store";
 import { dictCode, dictPicks, unitTexts, type Line, type UnitTexts } from "../lib/texts";
 import { tg } from "../lib/tg";
+import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
 import { Ar, ScreenHeader } from "../ui/kit";
 import { useRBook } from "./Rules";
@@ -33,6 +34,7 @@ function beep() {
 
 export function ClassModeScreen() {
   const { me } = useSession();
+  const { go } = useNav();
   const [tool, setTool] = useState<Tool>(() => store.get<Tool>("f.cm.tool", "t432"));
   const [bookId, setBook] = useState(() => store.get("f.cm.book", kbKeyOf(store.get("a1.book", bookOfLevel(me?.level)), 1) ? store.get("a1.book", "a1") : "a1"));
   const book = useRBook(bookId);
@@ -44,6 +46,12 @@ export function ClassModeScreen() {
   return (
     <main className="screen cm">
       <ScreenHeader title="Sinf rejimi" ar="وَضْعُ الْفَصْلِ" />
+      {/* 3-paket 2-qism: darsda tanga — Ustoz panelidagi bilan bir xil ekran (tanlangan guruh) */}
+      {!!me?.myGroups?.length && (
+        <button type="button" className="rowbtn" onClick={() => go("tcoins")}>
+          <Coins size={22} aria-hidden /><span><b>Darsda tanga</b><small>+50 / +100 / +200 — o'quvchilarni rag'batlantirish</small></span><ChevronRight size={20} aria-hidden />
+        </button>
+      )}
       <div className="cm-pick">
         <select value={bookId} aria-label="Kitob" onChange={(e) => { setBook(e.target.value); store.set("f.cm.book", e.target.value); setUnit(1); store.set("f.cm.unit", 1); }}>
           {BOOKS.map(([id, t]) => <option key={id} value={id}>{t}</option>)}

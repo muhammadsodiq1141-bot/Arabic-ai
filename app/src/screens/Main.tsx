@@ -56,6 +56,8 @@ const TeacherHwScreen = lazy(() => import("./TeacherHw").then((m) => ({ default:
 const TeacherHwNewScreen = lazy(() => import("./TeacherHw").then((m) => ({ default: m.TeacherHwNewScreen })));
 const TeacherSubsScreen = lazy(() => import("./TeacherSubs").then((m) => ({ default: m.TeacherSubsScreen })));
 const ClassModeScreen = lazy(() => import("./ClassMode").then((m) => ({ default: m.ClassModeScreen })));
+const ClassCoinsScreen = lazy(() => import("./ClassCoins").then((m) => ({ default: m.ClassCoinsScreen }))); // 3-paket 2-qism
+const AdminCoinsScreen = lazy(() => import("./Admin").then((m) => ({ default: m.AdminCoinsScreen })));
 const LeagueScreen = lazy(() => import("./League").then((m) => ({ default: m.LeagueScreen })));
 const DuelScreen = lazy(() => import("./Duel").then((m) => ({ default: m.DuelScreen })));
 const LevelTestScreen = lazy(() => import("./Level").then((m) => ({ default: m.LevelTestScreen })));
@@ -126,6 +128,8 @@ function Screens() {
   if (route.view === "share") return <ShareScreen />;
   // 17-partiya: sinf rejimi (U7, ustoz) va diktant (K7 o'zi / U7 ustoz kodi bilan)
   if (route.view === "class") return <ClassModeScreen />;
+  if (route.view === "tcoins") return <ClassCoinsScreen key={String(p.code || "")} code={p.code ? String(p.code) : undefined} />;
+  if (route.view === "acoins") return <AdminCoinsScreen />;
   if (route.view === "dict") return <DictScreen key={String(p.n || "")} bookId={String(p.book || store.get("a1.book", "a1"))} unitN={Number(p.unit) || 1} mode={p.mode ? String(p.mode) : undefined} code={p.code ? String(p.code) : undefined} seed={Number(p.n) || Date.now()} />;
   // A0 · Alifbo: n — dars, l — harf, id — vazifa
   if (route.view === "city") return <CityScreen />;

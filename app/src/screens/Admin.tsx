@@ -1,7 +1,7 @@
 // Bosh admin paneli: umumiy raqamlar (adminOverview), kirish so'rovlari, ustozlik so'rovlari va ustozlar (adminTeachers, adminSetTeacher),
 // foydalanuvchilar ro'yxati (adminUsers), guruhlar (bosilsa — guruh paneli), kitob audiosini yuklash (kitobPut, kitobCount).
 import { useEffect, useMemo, useState } from "react";
-import { Bug, Check, ChevronRight, FileAudio, GraduationCap, Search, UserCheck, Users, X } from "lucide-react";
+import { Bug, Check, ChevronRight, Coins, FileAudio, GraduationCap, Search, UserCheck, Users, X } from "lucide-react";
 import { api } from "../lib/api";
 import { weekId } from "../lib/progress";
 import { tg } from "../lib/tg";
@@ -59,6 +59,10 @@ export function AdminScreen() {
       <button type="button" className="rowbtn" onClick={() => go("ausers")}>
         <Users size={24} aria-hidden /><span><b>Foydalanuvchilar</b><small>Ilovaga kirganlar · qidiruv va filtr</small></span><ChevronRight size={20} aria-hidden />
       </button>
+      {/* 3-paket: tanga qoidalari — baho jadvali, muzlatish narxi, darsda tanga limitlari (server adminCoinRules) */}
+      <button type="button" className="rowbtn" onClick={() => go("acoins")}>
+        <Coins size={24} aria-hidden /><span><b>Tanga qoidalari</b><small>Baho uchun tanga, muzlatish narxi, darsda tanga limiti</small></span><ChevronRight size={20} aria-hidden />
+      </button>
       {/* 1-paket: o'quvchilar telefonida chiqqan xatolar (server 14-versiya) */}
       <button type="button" className="rowbtn" onClick={() => go("aerrors")}>
         <Bug size={24} aria-hidden /><span><b>Ilova xatolari</b><small>O'quvchilar telefonida chiqqan nosozliklar</small></span><ChevronRight size={20} aria-hidden />
@@ -90,6 +94,53 @@ export function AdminScreen() {
 
       <h2 className="t-h">Kitob audiosi</h2>
       <AudioUpload />
+    </main>
+  );
+}
+
+// ===== 3-paket: tanga qoidalari (adminCoinRules) =====
+type CRules = { grade?: Record<string, number>; freeze?: number; class?: { per: number; day: number } };
+const AC_FIELDS: [string, string, string][] = [
+  ["g5", "5 baho", "Uy vazifasi, qo'shimcha vazifa"], ["g4", "4 baho", ""], ["g3", "3 baho", ""], ["g2", "2 baho", ""], ["g1", "1 baho", ""],
+  ["freeze", "Seriya muzlatish narxi", "O'quvchi tangasidan yechiladi"],
+  ["per", "Darsda: bitta o'quvchiga kuniga", "Ortig'i yozilmaydi"], ["day", "Darsda: bitta guruhga kuniga jami", "Ustoz bergan barcha tanga"],
+];
+export function AdminCoinsScreen() {
+  const [v, setV] = useState<Record<string, string> | null | "err">(null);
+  const [busy, setBusy] = useState(false);
+  const fill = (r: CRules) => setV({
+    g5: String(r.grade?.["5"] ?? 0), g4: String(r.grade?.["4"] ?? 0), g3: String(r.grade?.["3"] ?? 0), g2: String(r.grade?.["2"] ?? 0), g1: String(r.grade?.["1"] ?? 0),
+    freeze: String(r.freeze ?? 500), per: String(r.class?.per ?? 500), day: String(r.class?.day ?? 5000),
+  });
+  useEffect(() => { api<{ rules: CRules }>("adminCoinRules").then((r) => fill(r.rules || {})).catch(() => setV("err")); }, []);
+  const save = async () => {
+    if (!v || v === "err") return;
+    const n = (k: string) => Math.max(0, Math.round(Number(v[k].replace(/\s/g, "")) || 0));
+    setBusy(true);
+    try {
+      const r = await api<{ rules: CRules }>("adminCoinRules", { set: {
+        grade: { 5: n("g5"), 4: n("g4"), 3: n("g3"), 2: n("g2"), 1: n("g1") }, freeze: n("freeze"), class: { per: n("per"), day: n("day") },
+      } });
+      fill(r.rules || {}); toast("Saqlandi — 1 daqiqa ichida hammaga amal qiladi"); tg.haptic("success");
+    } catch (e) { toast(e instanceof Error ? e.message : "Saqlanmadi"); }
+    setBusy(false);
+  };
+  return (
+    <main className="screen">
+      <ScreenHeader title="Tanga qoidalari" ar="قَوَاعِدُ النُّقُودِ" />
+      {v === "err" && <p className="err">Sozlamalar yuklanmadi. Internetni tekshiring.</p>}
+      {v === null && <div className="lg-skel" aria-label="Yuklanmoqda">{[0, 1, 2].map((k) => <span key={k} />)}</div>}
+      {v && v !== "err" && (
+        <section className="card">
+          {AC_FIELDS.map(([k, l, h]) => (
+            <label key={k} className="ac-row" htmlFor={`ac-${k}`}>
+              <span><b>{l}</b>{h && <small>{h}</small>}</span>
+              <input id={`ac-${k}`} inputMode="numeric" value={v[k]} onChange={(e) => setV({ ...v, [k]: e.target.value.replace(/[^\d\s]/g, "") })} />
+            </label>
+          ))}
+          <button type="button" className="btn primary wide" disabled={busy} onClick={() => void save()}>{busy ? "Saqlanmoqda…" : "Saqlash"}</button>
+        </section>
+      )}
     </main>
   );
 }

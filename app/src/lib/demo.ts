@@ -6,6 +6,7 @@ const q = new URLSearchParams(location.search);
 
 let autoGraded = false; // 3-paket: hwAutoGrade sinovi
 let demoSpent = 0; // 3-paket: muzlatish uchun sarflangan tanga (sinov)
+const demoClass: Record<string, number> = { k1: 150, k3: 200 }; // 3-paket 2-qism: bugun darsda berilgan (sinov)
 let demoRef = 2; // ?rd=1 — mukofoti olinmagan do'stlar (refClaim kamaytiradi)
 const people = [
   { sid: "tg101", name: "Aziz Karimov", tgName: "Aziz", user: "aziz_k", level: "A1", group: { code: "K7QX2M", title: "A1-ertalab", teacher: "Domla" }, at: new Date(Date.now() - 5 * 6e4).toISOString(), seen: null },
@@ -25,7 +26,7 @@ export async function demoApi(action: string, p: Record<string, unknown>): Promi
       myGroups: [{ code: "K7QX2M", title: "A1-ertalab" }, { code: "P4WZ8N", title: "A2-kechki" }],
     };
   }
-  if (teacher || (admin && ["groupMembers", "subList", "hwList", "hwStatus", "groupKick", "groupDelete"].includes(action))) { const t = teacherDemo(action, p); if (t) return t; }
+  if (teacher || (admin && ["groupMembers", "subList", "hwList", "hwStatus", "groupKick", "groupDelete", "classToday", "classCoins"].includes(action))) { const t = teacherDemo(action, p); if (t) return t; }
   const pr = profileDemo(action, p, admin); if (pr) return pr;
   if (action === "me") {
     if (DEMO === "new") return { ok: true, id: "tg101", name: "Aziz", full_name: null, login: null, level: null, group: null, admin: false, access: "pending" };
@@ -78,7 +79,7 @@ export async function demoApi(action: string, p: Record<string, unknown>): Promi
     return { ok: true, ready: true, bal: items.reduce((t, x) => t + x.amount, 0) - demoSpent, items, freeze: 500, grade: { 5: 1000, 4: 600, 3: 300, 2: 0, 1: 0 } };
   }
   if (action === "freezeBuy") { demoSpent += 500; return { ok: true, bal: 1920 - demoSpent, price: 500 }; }
-  if (action === "adminCoinRules") return { ok: true, rules: { grade: { 5: 1000, 4: 600, 3: 300, 2: 0, 1: 0 }, freeze: 500, ref: { inviter: 500, friend: 250 }, migrateCap: 300 } };
+  if (action === "adminCoinRules") return { ok: true, rules: { grade: { 5: 1000, 4: 600, 3: 300, 2: 0, 1: 0 }, freeze: 500, ref: { inviter: 500, friend: 250 }, migrateCap: 300, class: { per: 500, day: 5000 }, ...((p.set as object) || {}) } };
   if (action === "adminRequests") return { ok: true, status: p.status || "pending", items: p.status === "rejected" ? people.slice(3) : people.slice(0, 3) };
   if (action === "adminApprove") return { ok: true, n: Array.isArray(p.sids) ? p.sids.length : 1 };
   if (action === "logErr") return { ok: true, n: Array.isArray(p.errs) ? p.errs.length : 0 }; // 1-paket
@@ -112,6 +113,22 @@ const MEM: Record<string, unknown>[] = [
   { name: "Otabek", full_name: "Otabek Umarov", login: "MJ-49360", level: "A1", username: "", last_seen: null, kid: "k6", xp: 0, sum: null },
 ];
 function teacherDemo(action: string, p: Record<string, unknown>): Record<string, unknown> | null {
+  // 3-paket 2-qism: darsda tanga (?demo=teacher; limit sinovi: per 500, guruhga 1 000)
+  if (action === "classToday" || action === "classCoins") {
+    const L = { per: 500, day: 1000 };
+    const mem = (p.code === "P4WZ8N" ? MEM.slice(0, 2) : MEM) as { kid: string; full_name: string }[];
+    const tot = () => Object.values(demoClass).reduce((a, b) => a + b, 0);
+    if (action === "classToday") return p.brief ? { ok: true, total: tot(), ...L } : { ok: true, ...L, total: tot(), amounts: [50, 100, 200], why: ["Faol", "To'g'ri javob", "Yordam berdi", "Yaxshi o'qidi"], members: mem.map((m) => ({ kid: m.kid, name: m.full_name, today: demoClass[m.kid] || 0 })) };
+    const amount = Number(p.amount), given: Record<string, number> = {}, capped: string[] = [];
+    let left = L.day - tot();
+    for (const k of (p.kids as string[]) || []) {
+      const c = Math.min(amount, Math.max(0, L.per - (demoClass[k] || 0)), left);
+      if (c < amount) capped.push(k);
+      if (c > 0) { demoClass[k] = (demoClass[k] || 0) + c; given[k] = c; left -= c; }
+    }
+    (window as unknown as { __cc?: unknown[] }).__cc = [...((window as unknown as { __cc?: unknown[] }).__cc || []), { amount, why: p.why, kids: p.kids, batch: p.batch }];
+    return { ok: true, given, capped, total: tot(), ...L, today: Object.fromEntries(mem.map((m) => [m.kid, demoClass[m.kid] || 0])) };
+  }
   if (action === "groupMembers") return { ok: true, members: p.code === "P4WZ8N" ? MEM.slice(0, 2).map((m) => ({ ...m, level: "A2" })) : MEM };
   if (action === "subList") return { ok: true, items: [
     { id: 34, lesson: "a1:4", step: "hw", item: 7, text: "📘 Uy vazifasi: Kasblar va ishlar · o'rtacha 86% · 5/5 qadam · Hammasini bajardim, 3-savol qiyin bo'ldi.", created_at: iso(15), grade: null, comment: null, audio: false, name: "Aziz Karimov", login: "MJ-48213" },

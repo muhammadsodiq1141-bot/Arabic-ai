@@ -2,7 +2,7 @@
 // tekshiriladigan javoblar soni, uy vazifalari, taklif havolasi, o'quvchini guruhdan chiqarish (ikki marta bosib tasdiqlanadi).
 // 7-partiya: admin istalgan guruhni ochadi (fixed), guruhni o'chirish (groupDelete), yana guruh ochish.
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronRight, ClipboardList, Flame, Link2, MessageSquareText, Plus, Presentation, Trash2, UserMinus, Users, Gauge } from "lucide-react";
+import { ChevronDown, ChevronRight, ClipboardList, Coins, Flame, Link2, MessageSquareText, Plus, Presentation, Trash2, UserMinus, Users, Gauge } from "lucide-react";
 import { api } from "../lib/api";
 import { BOT_LINK } from "../lib/config";
 import { loadData, type BookIndex } from "../lib/data";
@@ -59,6 +59,7 @@ export function TeacherScreen({ fixed }: { fixed?: { code: string; title: string
   const [members, setMembers] = useState<Member[] | null | "err">(null);
   const [pending, setPending] = useState<number | null>(null);
   const [hwN, setHwN] = useState<number | null>(null);
+  const [cc, setCc] = useState<{ total: number; day: number } | null>(null); // 3-paket 2-qism: bugun darsda berilgan tanga
   const [books, setBooks] = useState<BookIndex>([]);
   const [open, setOpen] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0);
@@ -74,6 +75,8 @@ export function TeacherScreen({ fixed }: { fixed?: { code: string; title: string
       .then((r) => alive && setPending((r.items || []).filter((x) => x.grade === null && x.item < 300).length)).catch(() => alive && setPending(0));
     api<{ items: { group_code: string; teacher?: boolean }[] }>("hwList")
       .then((r) => alive && setHwN((r.items || []).filter((h) => h.teacher && h.group_code === cur.code).length)).catch(() => alive && setHwN(0));
+    setCc(null);
+    api<{ total: number; day: number }>("classToday", { code: cur.code, brief: true }).then((r) => alive && setCc(r)).catch(() => {});
     return () => { alive = false; };
   }, [cur, nonce]);
 
@@ -112,6 +115,12 @@ export function TeacherScreen({ fixed }: { fixed?: { code: string; title: string
       <button type="button" className="rowbtn" onClick={() => go("thw", { code: cur.code })}>
         <ClipboardList size={24} aria-hidden />
         <span><b>Uy vazifalari</b><small>{hwN === null ? "Yuklanmoqda…" : hwN ? `${hwN} ta vazifa · kim bajardi` : "Hali vazifa berilmagan"}</small></span>
+        <ChevronRight size={20} aria-hidden />
+      </button>
+      {/* 3-paket 2-qism: darsda tanga (+50/+100/+200, 10 s bekor qilish) */}
+      <button type="button" className="rowbtn" onClick={() => go("tcoins", { code: cur.code })}>
+        <Coins size={24} aria-hidden />
+        <span><b>Darsda tanga</b><small>{cc ? `Bugun berildi: ${cc.total.toLocaleString("ru-RU")} / ${cc.day.toLocaleString("ru-RU")}` : "O'quvchilarni rag'batlantirish: +50 / +100 / +200"}</small></span>
         <ChevronRight size={20} aria-hidden />
       </button>
       {/* 17-partiya (U7): darsda telefon yoki proyektorda — 4/3/2, rol kartalari, ustoz diktanti */}
