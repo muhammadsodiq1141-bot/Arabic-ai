@@ -16,7 +16,9 @@ export const STRANDS: { k: Strand; t: string; ar: string }[] = [
 const VIEW: Record<string, Strand> = {
   round: "f", lesson: "f", rprac: "f", rule: "f", rules: "f", theory: "f", test: "f", wtest: "f", cards: "f", errors: "f", known: "f",
   game: "f", qs: "f", mem: "f", darslik: "f", duel: "f", kb: "f", a0: "f", a0d: "f", a0map: "f", words: "f", word: "f", leveltest: "f",
-  mult: "i", mvoc: "f", shadow: "o", speak: "o", dict: "f", // 17-partiya: diktant — Nation bo'yicha til shakli yo'li night: "r", hwsend: "o", // shadowing — ovoz chiqarib gapirish (taqlid; Nation: talaffuz va ravonlik)
+  mult: "i", mvoc: "f", shadow: "o", speak: "o", dict: "f", // 17-partiya: diktant — Nation bo'yicha til shakli yo'li; shadowing — ovoz chiqarib gapirish
+  night: "r", hwsend: "o",
+  mtext: "i", // 11.11.2026 (17b): matn bilan ishlash — ekranning o'zi qadamga qarab aniqlashtiradi (o'qish tezligi → r, aytish → o)
 };
 const MAX = 10 * 60; // bitta bo'lakda 10 daqiqadan ortig'i yozilmaydi (ekran ochiq qolib ketgan bo'lishi mumkin)
 let cur: Strand | null = null;

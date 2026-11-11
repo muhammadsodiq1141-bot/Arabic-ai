@@ -94,7 +94,10 @@ export async function demoApi(action: string, p: Record<string, unknown>): Promi
     { kind: "api", msg: "kitobAudio: 502", screen: "kb", n: 3, people: 2, last: new Date(Date.now() - 864e5).toISOString(), ver: "2026-11-09 10:20", ua: "tg:ios 7.10 · iPhone OS 16_5" },
     { kind: "chunk", msg: "Failed to fetch dynamically imported module", screen: "teacher", n: 1, people: 1, last: new Date(Date.now() - 2 * 864e5).toISOString(), ver: "2026-11-07 06:00", ua: "tg:android 7.2 · Android 9" },
   ] };
-  if (action === "kitobAudio") return { ok: true, urls: {} }; // kitob audiosi yo'q — ovoz tts omboridan yoki telefondan
+  if (action === "kitobAudio") { // kitob audiosi yo'q — ovoz tts omboridan yoki telefondan; sinovda window.__demoKbUrl — har 4-gapdan biri «ovozsiz»
+    const u = (window as unknown as { __demoKbUrl?: string }).__demoKbUrl;
+    return { ok: true, urls: u ? Object.fromEntries(((p.keys as string[]) || []).filter((_, i) => i % 4 !== 1).map((k) => [k, u])) : {} };
+  }
   if (action === "tts") throw new Error("demo: server ovozi yo'q"); // telefonning o'z ovoziga o'tadi
   if (action === "subSend") return { ok: true, id: 1 };
   if (action.startsWith("duel")) return duelDemo(action, p);

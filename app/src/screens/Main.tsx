@@ -67,6 +67,7 @@ const AdminFeedbackScreen = lazy(() => import("./Feedback").then((m) => ({ defau
 const TeacherReportScreen = lazy(() => import("./Report").then((m) => ({ default: m.TeacherReportScreen }))); // U1
 const TeacherStrandsScreen = lazy(() => import("./Report").then((m) => ({ default: m.TeacherStrandsScreen }))); // U4
 const VocabScreen = lazy(() => import("./Vocab").then((m) => ({ default: m.VocabScreen }))); // M3
+const TextWorkScreen = lazy(() => import("./TextWork").then((m) => ({ default: m.TextWorkScreen }))); // 17b
 const AdminCoinsScreen = lazy(() => import("./Admin").then((m) => ({ default: m.AdminCoinsScreen })));
 const LeagueScreen = lazy(() => import("./League").then((m) => ({ default: m.LeagueScreen })));
 const DuelScreen = lazy(() => import("./Duel").then((m) => ({ default: m.DuelScreen })));
@@ -174,6 +175,7 @@ function Screens() {
   // uy vazifasi: book — kitob ID (a1, md1 ...), unit — vahda raqami, n — round raqami
   const book = String(p.book || "a1"), unit = Number(p.unit) || 1;
   if (route.view === "unit") return <UnitScreen key={`${book}:${unit}`} bookId={book} unitN={unit} />;
+  if (route.view === "mtext") return <TextWorkScreen key={`${book}:${unit}`} bookId={book} unitN={unit} m={String(p.m || "chain")} gi={Number(p.g) || 0} />; // 17b
   if (route.view === "speak") return <SpeakScreen key={`${book}:${unit}:${String(p.n || "")}`} bookId={book} unitN={unit} />; // 16-partiya
   if (route.view === "round") return <RoundScreen key={`${book}:${unit}:${p.n}`} bookId={book} unitN={unit} n={Number(p.n) || 1} />;
   if (route.view === "theory") return <TheoryScreen bookId={book} unitN={unit} />;

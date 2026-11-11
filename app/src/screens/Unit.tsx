@@ -4,7 +4,7 @@
 // 13-partiya (A8): qat'iy tartib (lib/order.ts) — roundlar ketma-ket, mashqlar 1-qism → nazariya → test → mashqlar 2-qism;
 // «Bilaman — sinab ko'raman» (so'z testi 90%+); guruhsiz o'quvchida keyingi vahda joriysining majburiy qismi tugagach ochiladi.
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Bookmark, Check, ChevronDown, ChevronRight, ChevronUp, CloudDownload, GraduationCap, KeyRound, Library, List, Lock, Ruler } from "lucide-react";
+import { ArrowRight, Bookmark, BookOpenText, Check, ChevronDown, ChevronRight, ChevronUp, CloudDownload, GraduationCap, KeyRound, Library, List, Lock, Ruler } from "lucide-react";
 import { isLite, offOf, onWifi, saveUnit, type OffUnit } from "../lib/lite";
 import { preloadKitob } from "../lib/audio";
 import { loadData } from "../lib/data";
@@ -15,6 +15,7 @@ import { hwProgress, localRaw, type Book } from "../lib/progress";
 import { itemsOf } from "../lib/practice";
 import { report } from "../lib/report";
 import { knownOf, store, syncNow } from "../lib/store";
+import { twGet } from "../lib/textwork";
 import { tg } from "../lib/tg";
 import { loadWords, type Word } from "../lib/words";
 import { useNav } from "../state/nav";
@@ -195,6 +196,21 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
       </button>
     );
   };
+  // 11.11.2026 (17b): «Matn bilan ishlash» — vahda matni bilan zanjir (Tingla → O'qi ×3 → Ayt); birinchi mashq blokining boshida (A0 dan tashqari)
+  const twRow = (first?: number) => {
+    if (bookId === "a0" || first === undefined) return null;
+    const on = g.stepOpen(first), why = g.stepWhy(first), T = twGet(bookId, unitN);
+    const n = (T.l > 0 ? 1 : 0) + (T.r.length >= 3 ? 1 : 0) + (T.s ? 1 : 0), pct = Math.round((n / 3) * 100);
+    return (
+      <button key="tw" type="button" className={`vp-row kbc twc ${on ? "" : "lock"}`} aria-disabled={!on} aria-label={on ? undefined : `Matn bilan ishlash — ${why}`}
+        onClick={() => (on ? go("mtext", { book: bookId, unit: unitN }) : lockMsg(why))}>
+        <span className="vp-ic">{on ? <BookOpenText size={22} aria-hidden /> : <Lock size={15} aria-hidden />}</span>
+        <span className="vp-rt"><b>Matn bilan ishlash</b><small>{on ? (n === 3 ? "Bajarildi · qayta o'qib tezlikni oshiring" : "Tingla → 3 marta o'qi → o'zing ayt") : why}</small></span>
+        {on && <span className="vp-p">{pct}%</span>}
+        <span className="vp-bar"><i style={{ width: `${pct}%` }} /></span>
+      </button>
+    );
+  };
   const celeKey = `f.cele.${bookId}.${unitN}`;
   const assigned = store.get<HwItem[]>("f.hw", []).some((h) => !h.teacher && h.book === bookId && h.unit === unitN);
   const isNext = (kind: string, k?: number) => next.kind === kind && (k === undefined || next.params.n === k || next.params.si === k);
@@ -271,7 +287,7 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
                 {open === "ex1" ? <ChevronUp size={18} className="vp-go" aria-hidden /> : <ChevronDown size={18} className="vp-go" aria-hidden />}
               </button>
               <small className="vp-sub">{g.vocDone ? `${preIdx.length} topshiriq · nazariyadan oldin` : "Lug'at tugagach ochiladi"}</small>
-              {open === "ex1" && <div className="vp-rows">{preIdx.map((si) => stepRow(kb.steps[si], si, md && isReadStep(kb.steps[si])))}</div>}
+              {open === "ex1" && <div className="vp-rows">{twRow(preIdx[0])}{preIdx.map((si) => stepRow(kb.steps[si], si, md && isReadStep(kb.steps[si])))}</div>}
             </div>
           </li>
         )}
@@ -324,7 +340,7 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
                 {open === "ex" ? <ChevronUp size={18} className="vp-go" aria-hidden /> : <ChevronDown size={18} className="vp-go" aria-hidden />}
               </button>
               <small className="vp-sub">{!kb ? "Yuklanmoqda…" : !g.testDone && g.hasRules ? "Grammatik testdan keyin ochiladi" : `${exIdx.length} topshiriq · ${exIdx.filter((i) => kbB[i] !== undefined).length}/${exIdx.length} bajarildi · ketma-ket ochiladi`}</small>
-              {open === "ex" && kb && <div className="vp-rows">{exIdx.map((si) => stepRow(kb.steps[si], si, false))}</div>}
+              {open === "ex" && kb && <div className="vp-rows">{!preIdx.length && twRow(exIdx[0])}{exIdx.map((si) => stepRow(kb.steps[si], si, false))}</div>}
             </div>
           </li>
         )}

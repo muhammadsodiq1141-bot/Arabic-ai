@@ -2547,3 +2547,58 @@ html.obscured .app { filter: blur(22px); }
 .vs-chart div small { font-size: 10.5px; color: var(--muted); font-weight: 600; padding-bottom: 4px; }
 .vs-miss { display: flex; flex-wrap: wrap; gap: 6px; }
 .vs-miss button { min-height: 44px; padding: 2px 12px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); font-size: 20px; }
+
+/* ===== 11.11.2026 (17b): Matn bilan ishlash ===== */
+.tw .pf-note { margin-bottom: 12px; }
+.tw-goal { background: var(--hero); color: var(--hero-ink); border-radius: 22px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+.tw-goal b { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--gold); }
+.tw-goal span { font-size: 16px; font-weight: 700; line-height: 1.4; }
+.tw-chain { list-style: none; margin: 0 0 14px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.tw-chain button { width: 100%; min-height: 64px; display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 18px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); text-align: left; }
+.tw-chain li.now button { border-color: var(--accent); box-shadow: var(--shadow); }
+.tw-chain i { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 800; font-size: 14px; background: var(--soft); color: var(--ink); }
+.tw-chain li.now i { background: var(--gold); color: #2A2418; }
+.tw-chain li.dn i { background: var(--good); color: var(--good-ink); }
+.tw-chain span { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tw-chain b { font-size: 15.5px; }
+.tw-chain small { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.tw-chain svg { flex: none; color: var(--muted); }
+.rowbtn.tw-own > svg { flex: none; }
+.tw-text { background: var(--card); border-radius: 22px; box-shadow: var(--shadow); padding: 16px 16px 10px; margin-bottom: 14px; font-family: "Noto Naskh Arabic", serif; font-weight: 700; font-size: 23px; line-height: 2; }
+.tw-text.big { font-size: 25px; }
+.tw-text.run { box-shadow: 0 0 0 2px var(--gold), var(--shadow); }
+.tw-text p { margin: 0 0 6px; padding: 2px 6px; border-radius: 12px; }
+.tw-text p.cur { background: color-mix(in srgb, var(--gold) 16%, var(--card)); }
+.chips .ar { font-size: 17px; line-height: 1; }
+.tw-sp { font-size: .62em; color: var(--accent); margin-left: 6px; font-weight: 800; }
+.tw-w { font: inherit; color: inherit; background: none; border: 0; padding: 0 1px; border-radius: 6px; cursor: pointer; }
+.tw-w.dn { color: var(--accent); }
+.tw-w.hit { background: var(--gold); color: #2A2418; }
+.tw-na { display: block; font-family: Manrope, system-ui, sans-serif; font-size: 11.5px; font-weight: 600; color: var(--muted); text-align: right; line-height: 1.4; }
+.tw-ctrl { position: sticky; bottom: calc(10px + env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 10px; background: var(--card); border-radius: 20px; box-shadow: var(--shadow); padding: 8px 12px; margin-bottom: 12px; }
+.tw-ctrl > small { margin-left: auto; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tw-play { width: 52px; height: 52px; border-radius: 50%; border: 0; background: var(--hero); color: var(--hero-ink); display: grid; place-items: center; flex: none; }
+.tw-play:disabled { opacity: .4; }
+.seg.tw-spd { margin: 0; flex: none; }
+.seg.tw-spd button { min-width: 56px; padding: 0 8px; font-variant-numeric: tabular-nums; }
+.tw-pop { position: fixed; left: 12px; right: 12px; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 30; display: flex; align-items: center; gap: 10px; background: var(--hero); color: var(--hero-ink); border-radius: 20px; padding: 10px 10px 10px 12px; box-shadow: 0 12px 30px -10px rgba(0, 0, 0, .5); }
+.tw-pspk { width: 44px; height: 44px; border-radius: 50%; border: 0; background: color-mix(in srgb, var(--hero-ink) 14%, transparent); color: var(--hero-ink); display: grid; place-items: center; flex: none; }
+.tw-par { font-size: 24px; color: var(--gold); }
+.tw-puz { flex: 1; min-width: 0; font-size: 14px; font-weight: 700; }
+.tw-psv { min-height: 44px; padding: 0 12px; border-radius: 12px; border: 0; background: var(--gold); color: #2A2418; font-weight: 800; font-size: 13px; flex: none; }
+.tw-psv.on { background: var(--good); color: var(--good-ink); display: inline-flex; align-items: center; gap: 4px; }
+.tw-pop .ibtn { background: transparent; color: var(--hero-ink); }
+.tw-timer { position: sticky; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 5; display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding: 8px; border-radius: 22px; background: var(--card); box-shadow: var(--shadow); }
+.tw-timer .btn { margin: 0; }
+.tw-timer b { font-size: 30px; font-variant-numeric: tabular-nums; min-width: 84px; }
+.tw-res { text-align: center; font-size: 15px; margin: 0 0 12px; }
+.tw-res b { font-size: 34px; color: var(--accent); font-variant-numeric: tabular-nums; }
+.tw-bars > b { font-size: 14.5px; display: block; margin-bottom: 8px; }
+.tw-chart { display: flex; align-items: flex-end; gap: 12px; min-height: 100px; border-bottom: 1.5px solid var(--line); }
+.tw-chart div { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.tw-chart div i { width: 100%; max-width: 44px; border-radius: 8px 8px 0 0; background: color-mix(in srgb, var(--gold) 55%, var(--card)); }
+.tw-chart div.now i { background: var(--gold); }
+.tw-chart div small { font-size: 10.5px; color: var(--muted); font-weight: 600; padding-bottom: 4px; }
+.tw-up { display: block; margin-top: 10px; font-size: 13.5px; font-weight: 800; color: var(--accent); }
+.tw-skip { margin-top: 8px; }
+.vp-row.twc .vp-ic { color: var(--accent); }

@@ -13,7 +13,7 @@ type Sub = { id: number; lesson: string; step: string; item: number; text: strin
   pics?: string[]; result?: { ball: number; jami: number } | null; xt?: { title: string; coins5: number; due: string; late: boolean } }; // 3-paket 3-qism: qo'shimcha vazifa
 /** «Tushunmadim» xabari: mashq bandi 300 dan katta (uy va qo'shimcha vazifada item = vazifa raqami) */
 // yakka gapirish (900) va diktant (950) serverda 500 bo'lib saqlanadi — ular baholanadigan javob
-const isDunno = (x: Sub) => x.item >= 300 && x.item < 500 && !["hw", "x", "dict", "speak"].includes(x.step);
+const isDunno = (x: Sub) => x.item >= 300 && x.item < 500 && !["hw", "x", "dict", "speak", "read"].includes(x.step);
 type Tab = "wait" | "done" | "dunno";
 
 const ago = (iso: string) => {
@@ -72,7 +72,7 @@ export function TeacherSubsScreen({ code }: { code: string }) {
           text={tab === "dunno" ? "O'quvchi mashqni tushunmay o'tkazib yuborsa, shu yerda ko'rinadi." : "O'quvchilar yangi javob yuborganda shu yerda paydo bo'ladi."} />
       )}
       <ul className="ts-list">
-        {shown.map((x) => <SubCard key={x.id} x={x} title={x.xt ? `Qo'shimcha vazifa · ${x.xt.title}` : x.step === "speak" ? `Yakka gapirish · ${x.lesson.replace(/^speak:/, "")}` : x.step === "dict" ? "Diktant" : titles[`${x.lesson}|${x.step}`] || x.lesson} onGraded={graded}
+        {shown.map((x) => <SubCard key={x.id} x={x} title={x.xt ? `Qo'shimcha vazifa · ${x.xt.title}` : x.step === "speak" ? `Yakka gapirish · ${x.lesson.replace(/^speak:/, "")}` : x.step === "dict" ? "Diktant" : x.step === "read" ? `${x.item === 1 ? "O'z gaplari" : "Matnni o'qish"} · ${x.lesson.replace(/^read:/, "").replace(":", " · ")}-vahda` : titles[`${x.lesson}|${x.step}`] || x.lesson} onGraded={graded}
           cg={x.step === "hw" ? cg : x.xt ? { 5: xCoins(x.xt.coins5, 5), 4: xCoins(x.xt.coins5, 4), 3: xCoins(x.xt.coins5, 3) } : null} />)}
       </ul>
     </main>
