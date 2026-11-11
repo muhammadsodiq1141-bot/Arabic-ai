@@ -107,11 +107,11 @@ const day = (n: number) => { const x = new Date(); x.setDate(x.getDate() + n); r
 const sum = (o: Record<string, unknown>) => ({ v: 1, at: iso(30), book: "a1", mlt: 0, sh: 0, ...o });
 const MEM: Record<string, unknown>[] = [
   { name: "Aziz", full_name: "Aziz Karimov", login: "MJ-48213", level: "A1", username: "aziz_k", last_seen: iso(20), kid: "k1", xp: 95,
-    sum: sum({ streak: 4, xpw: 95, xpt: 40, days: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 5, 2, 3], books: { a1: [42, 302] }, test: 70, kb: { "a1:4": [2, 10, 92] } }) },
+    sum: sum({ streak: 4, xpw: 95, xpt: 40, days: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 5, 2, 3], books: { a1: [42, 302] }, test: 70, kb: { "a1:4": [2, 10, 92] }, ut: { 3: 80, 4: 70 }, uk: { 3: 18, 4: 9 }, sm: { i: 600, o: 0, f: 2400, r: 300 }, er: [["مَكْتَبٌ", 3, "a1"], ["مَكْتَبَةٌ", 2, "a1"], ["حَقِيبَةٌ", 1, "a1"]] }) },
   { name: "Madina", full_name: "Madina Yusupova", login: "MJ-48877", level: "A1", username: "madina_y", last_seen: iso(200), kid: "k2", xp: 160,
-    sum: sum({ streak: 9, xpw: 160, xpt: 25, days: [1, 2, 1, 3, 2, 0, 1, 2, 3, 2, 4, 2, 3, 1], books: { a1: [118, 302] }, test: 88, kb: { "a1:3": [10, 10, 95], "a1:4": [6, 10, 81] }, lite: 1 }) }, // 17-partiya: kam trafik belgisi
+    sum: sum({ streak: 9, xpw: 160, xpt: 25, days: [1, 2, 1, 3, 2, 0, 1, 2, 3, 2, 4, 2, 3, 1], books: { a1: [118, 302] }, test: 88, kb: { "a1:3": [10, 10, 95], "a1:4": [6, 10, 81] }, lite: 1, ut: { 3: 95, 4: 88 }, uk: { 3: 18, 4: 15 }, sm: { i: 1500, o: 500, f: 2000, r: 100 }, er: [["مَكْتَبٌ", 2, "a1"], ["سَبُّورَةٌ", 1, "a1"]] }) }, // 17-partiya: kam trafik belgisi
   { name: "Dilnoza", full_name: "Dilnoza Rahmonova", login: "MJ-49002", level: "A1", username: "", last_seen: iso(60 * 26), kid: "k3", xp: 102,
-    sum: sum({ streak: 0, xpw: 102, xpt: 0, days: [0, 1, 1, 0, 2, 0, 0, 1, 0, 2, 3, 1, 0, 0], books: { a1: [77, 302] }, test: 64 }) },
+    sum: sum({ streak: 0, xpw: 102, xpt: 0, days: [0, 1, 1, 0, 2, 0, 0, 1, 0, 2, 3, 1, 0, 0], books: { a1: [77, 302] }, test: 64, ut: { 4: 64 }, uk: { 4: 6 }, sm: { i: 200, o: 900, f: 1300, r: 1100 }, er: [["مَكْتَبَةٌ", 4, "a1"], ["مَكْتَبٌ", 1, "a1"], ["حَقِيبَةٌ", 2, "a1"]] }) },
   { name: "Sardor", full_name: "Sardor Aliyev", login: "MJ-49110", level: "A1", username: "sardor_a", last_seen: iso(60 * 24 * 5), kid: "k4", xp: 0,
     sum: sum({ streak: 0, xpw: 0, xpt: 0, days: [1, 1, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], books: { a1: [20, 302] }, test: null }) },
   { name: "Nilufar", full_name: "Nilufar Saidova", login: "MJ-49231", level: "A0", username: "nilu", last_seen: iso(90), kid: "k5", xp: 65,
@@ -135,6 +135,7 @@ function teacherDemo(action: string, p: Record<string, unknown>): Record<string,
     (window as unknown as { __cc?: unknown[] }).__cc = [...((window as unknown as { __cc?: unknown[] }).__cc || []), { amount, why: p.why, kids: p.kids, batch: p.batch }];
     return { ok: true, given, capped, total: tot(), ...L, today: Object.fromEntries(mem.map((m) => [m.kid, demoClass[m.kid] || 0])) };
   }
+  if (action === "remind") { (window as unknown as { __rm?: unknown }).__rm = p; return { ok: true, sent: Array.isArray(p.kids) ? p.kids.length : 0 }; } // U1
   if (action === "groupMembers") return { ok: true, members: p.code === "P4WZ8N" ? MEM.slice(0, 2).map((m) => ({ ...m, level: "A2" })) : MEM };
   if (action === "subList") return { ok: true, items: [
     xDemoSub(),

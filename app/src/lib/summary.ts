@@ -1,10 +1,11 @@
 // O'quvchining qisqa hisoboti (_sum) — ustoz va admin panellari FAQAT shuni o'qiydi. Eski ilovadagi mySummary bilan aynan bir xil format:
-// {v:1, at, streak, xpw (hafta XP), xpt (BUGUNGI XP), days[14], book, books:{id:[yodlangan, jami]}, mlt, sh, test, ob?, kb?, a0?}
+// {v:1, at, streak, xpw (hafta XP), xpt (BUGUNGI XP), days[14], book, books:{id:[yodlangan, jami]}, mlt, sh, test, ob?, kb?, a0?, ut?, uk?, sm?, er?} (ut, uk, sm, er — 11.11.2026, ustoz «Dars oldidan» va «4 yo'l»)
 // Server sync'da _sum'ni shu bilan almashtiradi; yubormasak — o'chib ketadi va ustoz o'quvchi natijasini ko'rmaydi.
 import { loadData, type BookIndex } from "./data";
 import { loadKb } from "./kb";
 import { bkKey, dayKey, weekId } from "./progress";
 import { store } from "./store";
+import { strandWeek } from "./strand";
 
 const get = <T>(k: string, d: T) => store.get<T>(k, d);
 
@@ -61,8 +62,29 @@ export async function mySummary(): Promise<Record<string, unknown>> {
     out.sh = S.date === dayKey() ? (S.done || []).length : 0;
   } catch { /* */ }
   try {
-    const v = Object.values(get<Record<string, number>>(bkKey(book, "tests"), {}));
+    const T = get<Record<string, number>>(bkKey(book, "tests"), {});
+    const v = Object.values(T);
     out.test = v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : null;
+    if (v.length) out.ut = T; // 11.11.2026 (U1): joriy kitob vahda testlari {vahda: %}
+  } catch { /* */ }
+  // 11.11.2026 (U1, U4): ustozning «Dars oldidan» va «4 yo'l» ekranlari uchun
+  try {
+    const uk: Record<string, number> = {}; // joriy kitob: vahda → yodlangan so'zlar soni
+    const pre = bkKey(book, "known") + ".";
+    for (const k of localKeys(new RegExp("^" + pre.replace(/\./g, "\\.") + "\\d+$"))) {
+      const n = Object.keys(get<Record<string, unknown>>(k, {})).length;
+      if (n) uk[k.slice(pre.length)] = n;
+    }
+    if (Object.keys(uk).length) out.uk = uk;
+  } catch { /* */ }
+  try { // shu haftaning 4 yo'l vaqti (soniya): i — tinglash/o'qish, o — gapirish/yozish, f — til shakli, r — ravonlik
+    const w = strandWeek();
+    if (w.i + w.o + w.f + w.r > 0) out.sm = w;
+  } catch { /* */ }
+  try { // xatolar daftari: eng ko'p adashtirilgan 10 so'z [so'z, necha marta]
+    const E = get<Record<string, { n: number; ar: string; b: string }>>("f.err", {});
+    const top = Object.values(E).filter((e) => e.n > 0).sort((x, y) => y.n - x.n).slice(0, 10).map((e) => [e.ar, e.n, e.b]);
+    if (top.length) out.er = top;
   } catch { /* */ }
   // birinchi hafta yo'li (eski ilova)
   try {

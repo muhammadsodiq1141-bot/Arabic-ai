@@ -2,7 +2,7 @@
 // tekshiriladigan javoblar soni, uy vazifalari, taklif havolasi, o'quvchini guruhdan chiqarish (ikki marta bosib tasdiqlanadi).
 // 7-partiya: admin istalgan guruhni ochadi (fixed), guruhni o'chirish (groupDelete), yana guruh ochish.
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronRight, ClipboardList, Coins, Flame, Gift, Link2, MessageSquareText, Plus, Presentation, Trash2, UserMinus, Users, Gauge } from "lucide-react";
+import { ChevronDown, ChevronRight, ClipboardList, Coins, Flame, Gift, ListChecks, Link2, MessageSquareText, Plus, Presentation, Trash2, UserMinus, Users, Gauge } from "lucide-react";
 import { api } from "../lib/api";
 import { BOT_LINK } from "../lib/config";
 import { loadData, type BookIndex } from "../lib/data";
@@ -20,6 +20,8 @@ export type Sum = {
   streak?: number; xpw?: number; xpt?: number; days?: number[]; book?: string; books?: Record<string, [number, number]>;
   test?: number | null; kb?: Record<string, [number, number, number]>; a0?: { m: string; sp?: number | null; rv?: number }; ob?: { d: number; n: number };
   lite?: number; // 17-partiya (A6): kam trafik rejimi yoqilgan
+  // 11.11.2026 (U1, U4): joriy kitob vahda testlari, vahda yodlangan so'zlari, shu haftaning 4 yo'l vaqti (soniya), xatolar daftari
+  ut?: Record<string, number>; uk?: Record<string, number>; sm?: Record<"i" | "o" | "f" | "r", number>; er?: [string, number, string][];
 };
 export type Member = { name: string; full_name: string | null; login: string | null; level: string | null; username?: string; last_seen: string | null; kid: string; xp: number; sum: Sum | null };
 
@@ -108,6 +110,12 @@ export function TeacherScreen({ fixed }: { fixed?: { code: string; title: string
         <div><b>{members === null ? "…" : week}</b><span>hafta faol</span></div>
       </section>
 
+      {/* 11.11.2026 (U1, U4): dars oldidan hisobot va 4 yo'l */}
+      <button type="button" className="rowbtn rp-row" onClick={() => go("trep", { code: cur.code })}>
+        <ListChecks size={24} aria-hidden />
+        <span><b>Dars oldidan</b><small>Kim tayyor, qiyin so'zlar, kam qatnashganlar · 4 yo'l</small></span>
+        <ChevronRight size={20} aria-hidden />
+      </button>
       <button type="button" className={`rowbtn t-subs ${pending ? "has" : ""}`} onClick={() => go("tsubs", { code: cur.code })}>
         <MessageSquareText size={24} aria-hidden />
         <span><b>Tekshiriladigan javoblar</b><small>{pending === null ? "Yuklanmoqda…" : pending ? `${pending} ta javob baho kutmoqda` : "Hammasi baholangan"}</small></span>
