@@ -66,6 +66,7 @@ const FeedbackScreen = lazy(() => import("./Feedback").then((m) => ({ default: m
 const AdminFeedbackScreen = lazy(() => import("./Feedback").then((m) => ({ default: m.AdminFeedbackScreen })));
 const TeacherReportScreen = lazy(() => import("./Report").then((m) => ({ default: m.TeacherReportScreen }))); // U1
 const TeacherStrandsScreen = lazy(() => import("./Report").then((m) => ({ default: m.TeacherStrandsScreen }))); // U4
+const VocabScreen = lazy(() => import("./Vocab").then((m) => ({ default: m.VocabScreen }))); // M3
 const AdminCoinsScreen = lazy(() => import("./Admin").then((m) => ({ default: m.AdminCoinsScreen })));
 const LeagueScreen = lazy(() => import("./League").then((m) => ({ default: m.LeagueScreen })));
 const DuelScreen = lazy(() => import("./Duel").then((m) => ({ default: m.DuelScreen })));
@@ -139,6 +140,7 @@ function Screens() {
   if (route.view === "class") return <ClassModeScreen />;
   if (route.view === "tcoins") return <ClassCoinsScreen key={String(p.code || "")} code={p.code ? String(p.code) : undefined} />;
   if (route.view === "acoins") return <AdminCoinsScreen />;
+  if (route.view === "vst") return <VocabScreen />;
   if (route.view === "trep") return <TeacherReportScreen key={String(p.code || "")} code={String(p.code || "")} />;
   if (route.view === "t4") return <TeacherStrandsScreen key={String(p.code || "")} code={String(p.code || "")} />;
   if (route.view === "fb") return <FeedbackScreen />;

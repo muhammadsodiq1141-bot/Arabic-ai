@@ -22,6 +22,7 @@ export type Sum = {
   lite?: number; // 17-partiya (A6): kam trafik rejimi yoqilgan
   // 11.11.2026 (U1, U4): joriy kitob vahda testlari, vahda yodlangan so'zlari, shu haftaning 4 yo'l vaqti (soniya), xatolar daftari
   ut?: Record<string, number>; uk?: Record<string, number>; sm?: Record<"i" | "o" | "f" | "r", number>; er?: [string, number, string][];
+  vs?: [number, string]; // M3: so'z boyligi — oxirgi o'lchov [son, sana]
 };
 export type Member = { name: string; full_name: string | null; login: string | null; level: string | null; username?: string; last_seen: string | null; kid: string; xp: number; sum: Sum | null };
 
@@ -204,6 +205,7 @@ function MemberRow({ m, open, onToggle, bookName, onKick }: { m: Member; open: b
           <dl className="t-kv">
             <div><dt>Seriya</dt><dd><Flame size={14} aria-hidden />{s.streak ?? 0} kun</dd></div>
             <div><dt>So'z testlari</dt><dd>{s.test == null ? "—" : `${s.test}%`}</dd></div>
+            {s.vs && <div><dt>So'z boyligi</dt><dd>≈ {s.vs[0].toLocaleString("ru-RU")} so'z</dd></div>}
             <div><dt>Login</dt><dd>{m.login || "—"}</dd></div>
             <div><dt>Bugun</dt><dd>+{s.xpt ?? 0} yulduzcha</dd></div>
           </dl>

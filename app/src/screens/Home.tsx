@@ -29,6 +29,7 @@ import { TasksCard } from "./Motiv";
 import { HelpButton, IntroOverlay, setCoachBlocked, useCoach } from "./Onboard";
 import { ensureWeek, introDone, WeekCard } from "./Week";
 import { XHomeCard } from "./XHome";
+import { VocabHomeCard } from "./VocabCard";
 
 type Hw = { id: number; book: string; unit: number; title: string; due: string; mine: { done?: boolean } | null; teacher?: boolean };
 type HwCard = { book: string; title: string; unitAr: string; unitN: number; pct: number; due: string; next: string } | null | "none" | "nogroup" | "err";
@@ -157,6 +158,8 @@ export function Home() {
       </div>
       {/* 3-paket 3-qism: ustoz bergan qo'shimcha vazifa (topshirilmagani bo'lsa) — panjaradan keyin, to'liq enda */}
       {me?.group && <XHomeCard />}
+      {/* 11.11.2026 (M3): so'z boyligi — birinchi marta va har 30 kunda */}
+      {me?.level !== "A0" && <VocabHomeCard known={sum?.known || 0} />}
 
       {sum && !me?.group && !goalOf() && !store.get("f.goalHide", 0) && (
         <section className="card gl-card" aria-label="Shaxsiy reja">

@@ -16,6 +16,7 @@ import { knownOf, store } from "../lib/store";
 import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
 import { Ar, SectionTitle } from "../ui/kit";
+import { VocabCard } from "./VocabCard";
 import { bookOfLevel } from "./Unit";
 
 type Row = { n: number; uz: string; ar: string; voc: number; wt: number; gram: number | null; ex: number | null; done: boolean };
@@ -55,6 +56,7 @@ export function Marks() {
     <main className="screen marks">
       <SectionTitle ar="الدَّرَجَاتُ" uz="Baholar" />
       <Growth />
+      <VocabCard />
       {rows === null && <p className="muted pad">Yuklanmoqda…</p>}
       {rows?.length === 0 && (
         <div className="empty">

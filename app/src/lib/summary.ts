@@ -81,6 +81,10 @@ export async function mySummary(): Promise<Record<string, unknown>> {
     const w = strandWeek();
     if (w.i + w.o + w.f + w.r > 0) out.sm = w;
   } catch { /* */ }
+  try { // 11.11.2026 (M3): so'z boyligi — oxirgi o'lchov [son, sana]
+    const V = get<{ d: string; n: number }[]>("f.vst", []);
+    if (V.length) out.vs = [V[V.length - 1].n, V[V.length - 1].d];
+  } catch { /* */ }
   try { // xatolar daftari: eng ko'p adashtirilgan 10 so'z [so'z, necha marta]
     const E = get<Record<string, { n: number; ar: string; b: string }>>("f.err", {});
     const top = Object.values(E).filter((e) => e.n > 0).sort((x, y) => y.n - x.n).slice(0, 10).map((e) => [e.ar, e.n, e.b]);
