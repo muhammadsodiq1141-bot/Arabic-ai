@@ -60,7 +60,7 @@ export function useLex() {
 const P1 = ["", "و", "ف"], P2 = ["", "ب", "ل", "ك", "س"], P3 = ["", "ال"];
 const SUF = ["", "ه", "ها", "هم", "هما", "كم", "نا", "ني", "ي", "ك", "ات", "ون", "ين", "ان", "تان", "تين", "وا"];
 /** kesilgandan keyin 2 harfli o'zak faqat shu so'zlar uchun (فِيهِ، مِنْهُ، مَعَنَا، وَهُوَ، أَبِي…) — aks holda لَكُمْ → كَمْ kabi xato */
-const SHORT = new Set(["في", "من", "عن", "مع", "هو", "هي", "لا", "اب", "اخ", "يد", "فم", "اي", "ان"]);
+const SHORT = new Set(["في", "من", "عن", "مع", "هو", "هي", "لا", "اب", "اخ", "يد", "فم", "اي", "ان", "ام", "عم", "جد"]); // ام، عم، جد — أُمِّي، عَمِّي، جَدِّي (12.11)
 /** qidiruv nomzodlari va «narxi» (nechta qo'shimcha kesilgan) */
 function cands(t: string) {
   const out = new Map<string, number>();
@@ -127,6 +127,21 @@ function fit(tok: Seq, e: Seq) {
 }
 
 export function lookup(lex: Lex, token: string, ctx?: { b: string; u: number }): LexE | null {
+  return look(lex, token, ctx) || altLook(lex, token, ctx);
+}
+
+/** 12.11.2026: topilmasa — ikkinchi urinish. Lug'atda fe'llar «يَفْعَلُ / فَعَلَ» shaklida: أُرِيدُ / نُرِيدُ / تَقْلَقْ → يُرِيدُ / يَقْلَقُ
+ *  (old harfining harakati shaxsga qarab o'zgarmaydi); sifatning muannasi: جَمِيلَةٌ → جَمِيلٌ */
+function altLook(lex: Lex, token: string, ctx?: { b: string; u: number }): LexE | null {
+  const w = token.trim();
+  const m = /^((?:[وف]َ?)?)([أنت])(.{3,})$/.exec(w);
+  if (m) { const e = look(lex, m[1] + "ي" + m[3], ctx); if (e) return e; }
+  const f = w.replace(/ة[ً-ْ]*$/, "");
+  if (f !== w && nk(f).length >= 3) { const e = look(lex, f, ctx); if (e) return e; }
+  return null;
+}
+
+function look(lex: Lex, token: string, ctx?: { b: string; u: number }): LexE | null {
   const t = nk(token);
   if (t.length < 2) return null;
   const ts = seq(token);

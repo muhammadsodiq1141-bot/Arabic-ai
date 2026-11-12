@@ -15,7 +15,7 @@ import { hwProgress, localRaw, type Book } from "../lib/progress";
 import { itemsOf } from "../lib/practice";
 import { report } from "../lib/report";
 import { knownOf, store, syncNow } from "../lib/store";
-import { twGet } from "../lib/textwork";
+import { twGet, twSteps } from "../lib/textwork";
 import { tg } from "../lib/tg";
 import { loadWords, type Word } from "../lib/words";
 import { useNav } from "../state/nav";
@@ -200,7 +200,7 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
   const twRow = (first?: number) => {
     if (bookId === "a0" || first === undefined) return null;
     const on = g.stepOpen(first), why = g.stepWhy(first), T = twGet(bookId, unitN);
-    const n = (T.l > 0 ? 1 : 0) + (T.r.length >= 3 ? 1 : 0) + (T.s ? 1 : 0), pct = Math.round((n / 3) * 100);
+    const n = twSteps(T), pct = Math.round((n / 3) * 100);
     return (
       <button key="tw" type="button" className={`vp-row kbc twc ${on ? "" : "lock"}`} aria-disabled={!on} aria-label={on ? undefined : `Matn bilan ishlash — ${why}`}
         onClick={() => (on ? go("mtext", { book: bookId, unit: unitN }) : lockMsg(why))}>

@@ -11,7 +11,7 @@ import { say } from "../lib/audio";
 import { nextStep, pctOf } from "../lib/next";
 import { isReadStep, kbKeyOf, loadKb, type KbLesson } from "../lib/kb";
 import { STRANDS, strandToday, strandWeek, type Strand } from "../lib/strand";
-import { twGet } from "../lib/textwork";
+import { twGet, twSteps } from "../lib/textwork";
 import { goalOf, MIX } from "../lib/goal";
 import type { Book } from "../lib/progress";
 import { allItemsX, checkTyped, confusable, dayNum, errAdd, isDue, itemsOf, LATER_MS, picOf, SRS_INT, srsOf, usePics, type Item } from "../lib/practice";
@@ -129,7 +129,7 @@ export function TodayCard({ bookId }: { bookId: string }) {
   // 12.11.2026 (17b): lug'ati tugagan eng oxirgi vahdaning matni bilan ishlash tugamaguncha «Tinglash» qismi — «Matn bilan ishlash»
   // (joriy vahdaning lug'ati hali tugamagan — uning mashqlari qulf; shuning uchun oldingi, lug'ati tugagan vahda olinadi)
   const twU = bookId === "a0" ? undefined : [...book.units].reverse().find((u) => u.n <= plan.u.n && pctOf(u.words, knownOf(bookId, u.n)) >= 100 && !!kbKeyOf(bookId, u.n))?.n;
-  const tw = twU ? twGet(bookId, twU) : null, twN = tw ? (tw.l > 0 ? 1 : 0) + (tw.r.length >= 3 ? 1 : 0) + (tw.s ? 1 : 0) : 3;
+  const twN = twU ? twSteps(twGet(bookId, twU)) : 3;
   const twOn = !!twU && twN < 3;
   // 16-partiya: o'z gapi (ma'noli chiqarma) shadowing'dan oldin — vahda so'zlarining yarmidan ko'pi yodlangan, lekin shu vahdada hali gapirilmagan
   const spkU = pctOf(plan.u.words, knownOf(bookId, plan.u.n)) >= 50 && !spkAll()[`${bookId}:${plan.u.n}`];

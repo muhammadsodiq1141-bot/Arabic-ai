@@ -665,7 +665,7 @@ function Free({ it, sent, onSent, sub }: { it: KbItem; sent: "srv" | "local" | n
 }
 
 /** Ovozli javob: bosib yozish, qayta bosib to'xtatish (2 daqiqagacha), tinglab ko'rish, qayta yozish */
-export function VoiceRec({ value, onChange, disabled, label = "Ovoz bilan javob berish", max = 120 }: { value: { blob: Blob; mime: string } | null; onChange: (v: { blob: Blob; mime: string } | null) => void; disabled?: boolean; label?: string; max?: number }) {
+export function VoiceRec({ value, onChange, disabled, label = "Ovoz bilan javob berish", max = 120, priv = "Ovozingizni faqat ustozingiz eshitadi." }: { value: { blob: Blob; mime: string } | null; onChange: (v: { blob: Blob; mime: string } | null) => void; disabled?: boolean; label?: string; max?: number; priv?: string }) {
   const can = typeof MediaRecorder !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
   const [rec, setRec] = useState(false);
   const [sec, setSec] = useState(0);
@@ -706,7 +706,7 @@ export function VoiceRec({ value, onChange, disabled, label = "Ovoz bilan javob 
         </button>
       )}
       {err && <small className="err">{err}</small>}
-      <small className="kb-priv">Ovozingizni faqat ustozingiz eshitadi.</small>
+      <small className="kb-priv">{priv}</small>
     </div>
   );
 }
