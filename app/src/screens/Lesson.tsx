@@ -11,6 +11,7 @@ import { say } from "../lib/audio";
 import { nextStep, pctOf } from "../lib/next";
 import { isReadStep, kbKeyOf, loadKb, type KbLesson } from "../lib/kb";
 import { STRANDS, strandToday, strandWeek, type Strand } from "../lib/strand";
+import { twGet } from "../lib/textwork";
 import { goalOf, MIX } from "../lib/goal";
 import type { Book } from "../lib/progress";
 import { allItemsX, checkTyped, confusable, dayNum, errAdd, isDue, itemsOf, LATER_MS, picOf, SRS_INT, srsOf, usePics, type Item } from "../lib/practice";
@@ -125,6 +126,11 @@ export function TodayCard({ bookId }: { bookId: string }) {
   const nst = nx.kind === "kb" && kb ? kb.steps[Number(nx.params.si)] : null;
   const readNext = !!nst && (isReadStep(nst) || /^\s*O[ʻ'’`]?qish/i.test(nst.t));
   const sh = ms?.length ? shDaily(ms, me?.level) : null;
+  // 12.11.2026 (17b): lug'ati tugagan eng oxirgi vahdaning matni bilan ishlash tugamaguncha «Tinglash» qismi — «Matn bilan ishlash»
+  // (joriy vahdaning lug'ati hali tugamagan — uning mashqlari qulf; shuning uchun oldingi, lug'ati tugagan vahda olinadi)
+  const twU = bookId === "a0" ? undefined : [...book.units].reverse().find((u) => u.n <= plan.u.n && pctOf(u.words, knownOf(bookId, u.n)) >= 100 && !!kbKeyOf(bookId, u.n))?.n;
+  const tw = twU ? twGet(bookId, twU) : null, twN = tw ? (tw.l > 0 ? 1 : 0) + (tw.r.length >= 3 ? 1 : 0) + (tw.s ? 1 : 0) : 3;
+  const twOn = !!twU && twN < 3;
   // 16-partiya: o'z gapi (ma'noli chiqarma) shadowing'dan oldin — vahda so'zlarining yarmidan ko'pi yodlangan, lekin shu vahdada hali gapirilmagan
   const spkU = pctOf(plan.u.words, knownOf(bookId, plan.u.n)) >= 50 && !spkAll()[`${bookId}:${plan.u.n}`];
   // ravonlik: so'zlari to'liq yodlangan eng oxirgi vahda (tanish so'zlar tezlikda), bo'lmasa — joriy vahda
@@ -134,9 +140,9 @@ export function TodayCard({ bookId }: { bookId: string }) {
       d: empty ? "Bugun takrorlanadigan so'z yo'q" : [plan.due.length && `${plan.due.length} ta takror`, plan.news.length && `${plan.news.length} ta yangi so'z`, rule && "3 ta qoida savoli"].filter(Boolean).join(" · "),
       run: () => (empty ? toast("Bugun takrorlanadigan so'z yo'q — keyingi qismga o'ting") : go("lesson", { book: bookId, plan, n: Date.now() })) },
     { k: "i", tag: "Tinglash", done: today.i >= 120,
-      t: readNext ? "Kitob matnini tinglab o'qish" : "Multfilm tomosha qiling",
-      d: readNext ? `${plan.u.n}-vahda · ${nx.sub}` : "Arabcha subtitr va tarjima bilan · ~5 daqiqa",
-      run: () => (readNext ? go(nx.view, nx.params) : ms && !ms.length ? toast("Multfilmlar tez orada qo'shiladi") : go("mults")) },
+      t: twOn ? "Matn bilan ishlash" : readNext ? "Kitob matnini tinglab o'qish" : "Multfilm tomosha qiling",
+      d: twOn ? `${twU}-vahda · Tingla → 3 marta o'qi → Ayt · ${twN}/3` : readNext ? `${plan.u.n}-vahda · ${nx.sub}` : "Arabcha subtitr va tarjima bilan · ~5 daqiqa",
+      run: () => (twOn ? go("mtext", { book: bookId, unit: twU }) : readNext ? go(nx.view, nx.params) : ms && !ms.length ? toast("Multfilmlar tez orada qo'shiladi") : go("mults")) },
     spkU
       ? { k: "o", tag: "Gapirish", done: today.o >= 120, t: "O'zingiz gapiring",
           d: `«${plan.u.uz}» mavzusida · 60 → 45 → 30 soniya`, run: () => go("speak", { book: bookId, unit: plan.u.n, n: Date.now() }) }

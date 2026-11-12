@@ -24,6 +24,7 @@ const HAR = /[ً-ْٰـ]/g;
 const tokens = (ar: string) => clean(ar).split(/\s+/).filter(Boolean);
 const weight = (w: string) => Math.max(1, w.replace(HAR, "").replace(/[.,،؛؟!?:«»"()—–-]/g, "").length) + 1;
 type Group = { key: string; title: string; lines: Line[] };
+const READ = /^(oqish|qiroat|matn)/;
 type Mode = "chain" | "listen" | "read" | "say" | "own";
 
 // qadamlar — alohida yo'nalish (m): Telegram «orqaga» tugmasi zanjirga qaytaradi, ekrandan chiqib ketmaydi
@@ -44,8 +45,10 @@ export function TextWorkScreen({ bookId, unitN, m = "chain", gi: gp = 0 }: { boo
     unitTexts(bookId, unitN).then((t) => {
       if (!alive) return;
       if (!t || !t.lines.length) { setGroups("none"); return; }
+      // 12.11.2026: faqat o'qish matnlari (oqish/qiroat/matn qadamlari); savollar, misollar, iboralar, qoida misollari va mashqlar — tab emas
+      const own = t.lines.filter((l) => READ.test(l.step));
       const by = new Map<string, Group>();
-      for (const l of t.lines) { const k = l.title || l.step; if (!by.has(k)) by.set(k, { key: k, title: l.title, lines: [] }); by.get(k)!.lines.push(l); }
+      for (const l of own.length ? own : t.lines) { const k = l.title || l.step; if (!by.has(k)) by.set(k, { key: k, title: l.title, lines: [] }); by.get(k)!.lines.push(l); }
       setGroups([...by.values()]);
     });
     loadData<Book>(`books/${bookId}`).then((b) => alive && setTopic(b.units.find((u) => u.n === unitN)?.uz || "")).catch(() => {});
