@@ -39,6 +39,11 @@ export type Gate = {
   coreDone: boolean;
 };
 
+/** 12.11.2026: admin (ilova egasi) uchun hamma bo'lim ochiq — sinab ko'rish uchun; o'quvchilarda qulflar o'zgarmaydi. Main.tsx sessiyadan o'rnatadi */
+let ALL = false;
+export const setOpenAll = (v: boolean) => { ALL = v; };
+export const openAll = () => ALL;
+
 export function unitGate(book: Book, unit: number, kb: KbLesson | null): Gate {
   const u = book.units.find((x) => x.n === unit);
   const words = u?.words || [];
@@ -46,7 +51,7 @@ export function unitGate(book: Book, unit: number, kb: KbLesson | null): Gate {
   const chunk = (n: number) => words.slice((n - 1) * ROUND_N, n * ROUND_N);
   const tested = !!store.get(testOutKey(book.id, unit), 0);
   const vocDone = !words.length || pct(words, known) >= 100 || tested;
-  const roundOpen = (n: number) => n <= 1 || vocDone || pct(chunk(n - 1), known) >= 100 || pct(chunk(n), known) > 0;
+  const roundOpen = (n: number) => ALL || n <= 1 || vocDone || pct(chunk(n - 1), known) >= 100 || pct(chunk(n), known) > 0;
   const hasRules = rulesN(book, unit) > 0;
   const key = kbKeyOf(book.id, unit);
   const B = key ? kbBest(key) : {};
@@ -55,10 +60,10 @@ export function unitGate(book: Book, unit: number, kb: KbLesson | null): Gate {
   let preDone = true;
   for (let i = 0; i < split; i++) if (!tried(i)) { preDone = false; break; }
   const theorySeen = !!store.get(theoryKeyOf(book.id, unit), 0);
-  const theoryOpen = theorySeen || tested || (vocDone && preDone);
+  const theoryOpen = ALL || theorySeen || tested || (vocDone && preDone);
   const theoryWhy = !vocDone ? "Avval lug'at roundlarini tugating" : "Avval mashqlarning 1-qismini bajaring";
   const testDone = !hasRules || testTried(book, unit) || tested;
-  const stepOpen = (si: number) => tried(si) || tested || (vocDone && (si === 0 || tried(si - 1)) && (si < split || testDone));
+  const stepOpen = (si: number) => ALL || tried(si) || tested || (vocDone && (si === 0 || tried(si - 1)) && (si < split || testDone));
   const stepWhy = (si: number) => (!vocDone ? "Avval lug'atni tugating" : si >= split && !testDone ? "Avval grammatik testni ishlang" : `Avval ${si}-topshiriqni bajaring`);
   const allSteps = !kb || kb.steps.every((_, i) => tried(i));
   const coreDone = tested || (vocDone && testDone && allSteps);

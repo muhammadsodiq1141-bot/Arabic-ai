@@ -9,7 +9,7 @@ import { isLite, offOf, onWifi, saveUnit, type OffUnit } from "../lib/lite";
 import { preloadKitob } from "../lib/audio";
 import { loadData } from "../lib/data";
 import { GRADED, isReadStep, kbBest, kbKeyOf, loadKb, type KbLesson, type KbStep } from "../lib/kb";
-import { frontierOf, unitGate } from "../lib/order";
+import { frontierOf, openAll, unitGate } from "../lib/order";
 import { dueText, gramPct, nextStep, pctOf, ROUND, rulesOf, theoryKey } from "../lib/next";
 import { hwProgress, localRaw, type Book } from "../lib/progress";
 import { itemsOf } from "../lib/practice";
@@ -64,7 +64,7 @@ export function Lessons() {
     return () => { a = false; };
   }, [book, free, front]);
   const assignedU = new Set(store.get<HwItem[]>("f.hw", []).filter((h) => !h.teacher && h.book === bookId).map((h) => h.unit));
-  const unitOpen = (n: number) => !free || n <= front || assignedU.has(n) || (n === front + 1 && !!frontDone);
+  const unitOpen = (n: number) => openAll() || !free || n <= front || assignedU.has(n) || (n === front + 1 && !!frontDone);
   return (
     <main className="screen">
       <SectionTitle ar="الدُّرُوسُ" uz={book ? `Darslar · ${book.title}` : "Darslar"}
@@ -215,6 +215,7 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
   const assigned = store.get<HwItem[]>("f.hw", []).some((h) => !h.teacher && h.book === bookId && h.unit === unitN);
   const isNext = (kind: string, k?: number) => next.kind === kind && (k === undefined || next.params.n === k || next.params.si === k);
   const lockMsg = (m: string) => { tg.haptic("error"); toast(m); };
+  const testOn = seen || openAll(); // 12.11: admin uchun test ham ochiq
   let num = 0; // tik yo'ldagi bosqich tartib raqami (chizish tartibida)
   const N = (done: boolean, lock = false) => { num++; return <span className="vp-n" aria-hidden>{done ? <Check size={16} strokeWidth={3} /> : lock ? <Lock size={14} /> : num}</span>; };
 
@@ -279,14 +280,14 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
         </li>
 
         {kb && preIdx.length > 0 && (
-          <li className={`vp vp-pre ${preIdx.every((i) => kbB[i] !== undefined) ? "dn" : ""} ${next.kind === "kb" && preIdx.includes(Number(next.params.si)) ? "on" : ""} ${g.vocDone ? "" : "lk"}`}>
-            {N(preIdx.every((i) => kbB[i] !== undefined), !g.vocDone)}
+          <li className={`vp vp-pre ${preIdx.every((i) => kbB[i] !== undefined) ? "dn" : ""} ${next.kind === "kb" && preIdx.includes(Number(next.params.si)) ? "on" : ""} ${g.vocDone || openAll() ? "" : "lk"}`}>
+            {N(preIdx.every((i) => kbB[i] !== undefined), !(g.vocDone || openAll()))}
             <div className="vp-c">
               <button type="button" className="vp-hb v-ex v-pre" aria-expanded={open === "ex1"} onClick={() => setOpen(open === "ex1" ? null : "ex1")}>
                 <span className="vp-t"><b>{preRead ? "Asosiy matn" : "Mashqlar · 1-qism"}</b><Ar className="vp-ar">{preRead ? "النَّصُّ" : "التَّدْرِيبَاتُ"}</Ar></span><em className="vp-pct">{prePct}%</em>
                 {open === "ex1" ? <ChevronUp size={18} className="vp-go" aria-hidden /> : <ChevronDown size={18} className="vp-go" aria-hidden />}
               </button>
-              <small className="vp-sub">{g.vocDone ? `${preIdx.length} topshiriq · nazariyadan oldin` : "Lug'at tugagach ochiladi"}</small>
+              <small className="vp-sub">{g.vocDone || openAll() ? `${preIdx.length} topshiriq · nazariyadan oldin` : "Lug'at tugagach ochiladi"}</small>
               {open === "ex1" && <div className="vp-rows">{twRow(preIdx[0])}{preIdx.map((si) => stepRow(kb.steps[si], si, md && isReadStep(kb.steps[si])))}</div>}
             </div>
           </li>
@@ -306,13 +307,13 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
         )}
 
         {rules.length > 0 && (
-          <li className={`vp vp-test ${gram >= 80 ? "dn" : ""} ${next.kind === "test" ? "on" : ""} ${seen ? "" : "lk"}`}>
-            {N(gram >= 80, !seen)}
+          <li className={`vp vp-test ${gram >= 80 ? "dn" : ""} ${next.kind === "test" ? "on" : ""} ${testOn ? "" : "lk"}`}>
+            {N(gram >= 80, !testOn)}
             <button type="button" className={`vp-c vp-main ${isNext("test") ? "next" : ""}`}
-              onClick={() => (seen ? go("test", { book: bookId, unit: unitN }) : lockMsg("Test nazariyani o'qigach ochiladi"))}
-              aria-label={seen ? `Grammatik test, ${gram}%` : "Grammatik test — nazariyani o'qigach ochiladi"}>
-              <span className="vp-h"><span className="vp-t"><b>Grammatik test</b></span>{seen ? <em className="vp-pct">{gram}%</em> : <Lock size={16} className="vp-go" aria-hidden />}</span>
-              <small className="vp-sub">{nq} savol · {seen ? "80% va undan yuqori — o'zlashtirildi" : "Nazariyani o'qigach ochiladi"}</small>
+              onClick={() => (testOn ? go("test", { book: bookId, unit: unitN }) : lockMsg("Test nazariyani o'qigach ochiladi"))}
+              aria-label={testOn ? `Grammatik test, ${gram}%` : "Grammatik test — nazariyani o'qigach ochiladi"}>
+              <span className="vp-h"><span className="vp-t"><b>Grammatik test</b></span>{testOn ? <em className="vp-pct">{gram}%</em> : <Lock size={16} className="vp-go" aria-hidden />}</span>
+              <small className="vp-sub">{nq} savol · {testOn ? "80% va undan yuqori — o'zlashtirildi" : "Nazariyani o'qigach ochiladi"}</small>
             </button>
           </li>
         )}
@@ -346,12 +347,12 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
         )}
 
         {/* 16-partiya (M7): o'z gapi — lug'at tugagach; vahda yakunini to'smaydi */}
-        <li className={`vp vp-speak ${spoke ? "dn" : ""} ${g.vocDone ? "" : "lk"}`}>
-          {N(spoke > 0, !g.vocDone)}
+        <li className={`vp vp-speak ${spoke ? "dn" : ""} ${g.vocDone || openAll() ? "" : "lk"}`}>
+          {N(spoke > 0, !(g.vocDone || openAll()))}
           <button type="button" className="vp-c vp-main v-spk" aria-disabled={!g.vocDone}
-            onClick={() => (g.vocDone ? go("speak", { book: bookId, unit: unitN, n: Date.now() }) : lockMsg("Gapirish lug'at tugagach ochiladi"))}>
-            <span className="vp-h"><span className="vp-t"><b>Gapirish</b><Ar className="vp-ar">الْكَلَامُ</Ar></span>{g.vocDone ? <ChevronRight size={18} className="vp-go" aria-hidden /> : <Lock size={16} className="vp-go" aria-hidden />}</span>
-            <small className="vp-sub">{g.vocDone ? (spoke ? `${spoke} marta gapirildi · yana urinib ko'ring` : "Mavzu bo'yicha o'z gapingiz · 60 → 45 → 30 soniya") : "Lug'at tugagach ochiladi"}</small>
+            onClick={() => (g.vocDone || openAll() ? go("speak", { book: bookId, unit: unitN, n: Date.now() }) : lockMsg("Gapirish lug'at tugagach ochiladi"))}>
+            <span className="vp-h"><span className="vp-t"><b>Gapirish</b><Ar className="vp-ar">الْكَلَامُ</Ar></span>{g.vocDone || openAll() ? <ChevronRight size={18} className="vp-go" aria-hidden /> : <Lock size={16} className="vp-go" aria-hidden />}</span>
+            <small className="vp-sub">{g.vocDone || openAll() ? (spoke ? `${spoke} marta gapirildi · yana urinib ko'ring` : "Mavzu bo'yicha o'z gapingiz · 60 → 45 → 30 soniya") : "Lug'at tugagach ochiladi"}</small>
           </button>
         </li>
 

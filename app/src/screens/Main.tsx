@@ -14,6 +14,7 @@ import type { DayWord } from "../lib/data";
 import type { ShItem } from "../lib/mult";
 import { setReportMe } from "../lib/report";
 import { store } from "../lib/store";
+import { setOpenAll } from "../lib/order";
 import { startGo, tg } from "../lib/tg";
 import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
@@ -119,6 +120,7 @@ function Screens() {
   useStartParam();
   useReactions(); // reaksiya stikerlari overlay'i (har qanday ekran ustida) va bir martalik «Xush kebsiz!»
   const { me } = useSession();
+  setOpenAll(!!me?.admin); // 12.11.2026: admin uchun hamma bo'lim ochiq (render paytida — ichki ekranlar shu render'da qulfni tekshiradi)
   useEffect(() => { setReportMe(me); }, [me]); // Google jadval hisobotidagi ism va login
   // mashq o'rtasida ilova yopilsa javoblar yo'qoladi — Telegram yopishdan oldin so'raydi
   const guard = GUARDED.has(route.view);
