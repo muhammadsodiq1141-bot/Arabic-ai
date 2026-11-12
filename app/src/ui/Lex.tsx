@@ -37,6 +37,10 @@ export function CoverBar({ cov, onPre }: { cov: Cover; onPre: () => void }) {
 function AddBtn({ e }: { e: LexE }) {
   const [on, setOn] = useState(() => inSrs(e) || savedHas(e.ar));
   if (e.b === "core") return null;
+  // 12.11: qo'shimcha lug'at so'zi biror kitob vahdasiga bog'lanmagan — takrorlashga emas, faqat «Saqlanganlar»ga
+  if (e.b === "qosh") return savedHas(e.ar) || on
+    ? <button type="button" className="btn ghost" disabled><Check size={18} aria-hidden />Saqlangan</button>
+    : <button type="button" className="btn primary" onClick={() => { toggleSaved(e.ar, e.uz); setOn(true); tg.haptic("success"); toast("Saqlangan so'zlarga qo'shildi"); }}><Plus size={18} aria-hidden />Saqlash</button>;
   return on
     ? <button type="button" className="btn ghost" disabled><Check size={18} aria-hidden />Takrorlashda bor</button>
     : (

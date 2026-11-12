@@ -2583,6 +2583,8 @@ html.obscured .app { filter: blur(22px); }
 .seg.tw-spd button { min-width: 56px; padding: 0 8px; font-variant-numeric: tabular-nums; }
 .tw-pop { position: fixed; left: 12px; right: 12px; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 30; display: flex; flex-direction: column; gap: 8px; background: var(--hero); color: var(--hero-ink); border-radius: 20px; padding: 10px 10px 10px 12px; box-shadow: 0 12px 30px -10px rgba(0, 0, 0, .5); }
 .tw-prow { display: flex; align-items: center; gap: 10px; }
+.tw-pbase { font-size: 13px; opacity: .85; }
+.tw-pbase .ar { color: var(--gold); font-size: 18px; margin-left: 4px; }
 .tw-pline { display: flex; flex-direction: column; gap: 8px; padding-top: 8px; border-top: 1px solid color-mix(in srgb, var(--hero-ink) 18%, transparent); font-size: 13.5px; line-height: 1.45; }
 .tw-pline em { font-style: normal; font-weight: 800; color: var(--gold); }
 .tw-pline .btn { align-self: flex-start; min-height: 44px; color: var(--hero-ink); border-color: color-mix(in srgb, var(--hero-ink) 35%, transparent); background: transparent; display: inline-flex; align-items: center; gap: 6px; }

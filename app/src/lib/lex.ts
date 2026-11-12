@@ -20,7 +20,7 @@ export const RANK: Record<string, number> = { a1: 1, md1: 1, md2: 2, a2: 2, b1: 
 export const rankFor = (b?: string) => Math.max(RANK[b || ""] || 1, RANK[store.get<string>("a1.book", "a1")] || 1);
 const LVL: Record<string, string> = { a1: "A1", a2: "A2", b1: "B1", b2: "B2", c1: "C1", md1: "Madina 1", md2: "Madina 2" };
 const KIND = ["", "ibora", "matndagi so'z", "qo'shimcha so'z"];
-export const srcLabel = (e: LexE) => (e.b === "core" ? "Yordamchi so'z" : [`${LVL[e.b] || e.b} · ${e.u}-vahda`, KIND[e.k]].filter(Boolean).join(" · "));
+export const srcLabel = (e: LexE) => (e.b === "core" ? "Yordamchi so'z" : e.b === "qosh" ? "Qo'shimcha lug'at" : [`${LVL[e.b] || e.b} · ${e.u}-vahda`, KIND[e.k]].filter(Boolean).join(" · "));
 
 export type Lex = { idx: Map<string, LexE[]> };
 let LEX: Promise<Lex> | null = null;
@@ -60,7 +60,7 @@ export function useLex() {
 const P1 = ["", "و", "ف"], P2 = ["", "ب", "ل", "ك", "س"], P3 = ["", "ال"];
 const SUF = ["", "ه", "ها", "هم", "هما", "كم", "نا", "ني", "ي", "ك", "ات", "ون", "ين", "ان", "تان", "تين", "وا"];
 /** kesilgandan keyin 2 harfli o'zak faqat shu so'zlar uchun (فِيهِ، مِنْهُ، مَعَنَا، وَهُوَ، أَبِي…) — aks holda لَكُمْ → كَمْ kabi xato */
-const SHORT = new Set(["في", "من", "عن", "مع", "هو", "هي", "لا", "اب", "اخ", "يد", "فم", "اي", "ان", "ام", "عم", "جد"]); // ام، عم، جد — أُمِّي، عَمِّي، جَدِّي (12.11)
+const SHORT = new Set(["في", "من", "عن", "مع", "هو", "هي", "لا", "اب", "اخ", "يد", "فم", "اي", "ان", "ام", "عم", "جد", "قد", "لم", "لن", "كل"]); // 12.11: أُمِّي، عَمِّي، جَدِّي، وَقَدْ، وَلَمْ، وَلَنْ، وَكُلُّ (كم/ما qo'shilmadi: harakatsiz matnda لكم → كم, كما → ما bo'lib qolardi)
 /** qidiruv nomzodlari va «narxi» (nechta qo'shimcha kesilgan) */
 function cands(t: string) {
   const out = new Map<string, number>();
@@ -126,20 +126,74 @@ function fit(tok: Seq, e: Seq) {
   return { f: best, pen: best ? pen : 0 };
 }
 
-export function lookup(lex: Lex, token: string, ctx?: { b: string; u: number }): LexE | null {
-  return look(lex, token, ctx) || altLook(lex, token, ctx);
+/** 12.11.2026: juft yozuv (يَكْتُبُ / كَتَبَ) — harakat har shakl bilan alohida solishtiriladi (avval butun satr bilan solishtirilib, harakatli matnda hech topilmasdi) */
+const SEQ = new WeakMap<LexE, Seq[]>();
+function fitE(tok: Seq, e: LexE) {
+  let ss = SEQ.get(e);
+  if (!ss) { ss = e.ar.split(/\s*[/،,]\s*/).filter(Boolean).map(seq); SEQ.set(e, ss); }
+  let best = { f: 0, pen: 0 };
+  for (const s of ss) { const r = fit(tok, s); if (r.f > best.f || (r.f === best.f && r.pen < best.pen)) best = r; }
+  return best;
 }
 
-/** 12.11.2026: topilmasa — ikkinchi urinish. Lug'atda fe'llar «يَفْعَلُ / فَعَلَ» shaklida: أُرِيدُ / نُرِيدُ / تَقْلَقْ → يُرِيدُ / يَقْلَقُ
- *  (old harfining harakati shaxsga qarab o'zgarmaydi); sifatning muannasi: جَمِيلَةٌ → جَمِيلٌ */
-function altLook(lex: Lex, token: string, ctx?: { b: string; u: number }): LexE | null {
-  const w = token.trim();
-  const m = /^((?:[وف]َ?)?)([أنت])(.{3,})$/.exec(w);
-  if (m) { const e = look(lex, m[1] + "ي" + m[3], ctx); if (e) return e; }
-  const f = w.replace(/ة[ً-ْ]*$/, "");
-  if (f !== w && nk(f).length >= 3) { const e = look(lex, f, ctx); if (e) return e; }
-  return null;
+export function lookup(lex: Lex, token: string, ctx?: { b: string; u: number }): LexE | null {
+  const tk = token.replace(/[^ء-ْٰـ ]/g, " ").replace(/\s+/g, " ").trim(); // 12.11: «عَامًا.» — tinish belgisi tanvinli alif tekshiruviga halaqit bermasin
+  return look(lex, tk, ctx) || altLook(lex, tk, ctx);
 }
+
+/** 12.11.2026: topilmasa — ikkinchi urinish (faqat asos shakl lug'at so'ziga TO'LIQ mos kelsa; aks holda — «topilmadi»):
+ *  hozirgi/kelasi zamon fe'li (أُرِيدُ، سَأَذْهَبُ → يُرِيدُ، يَذْهَبُ), muannas sifat (جَمِيلَةٌ → جَمِيلٌ), muannas ko'plik (مُعَلِّمَاتٌ → مُعَلِّمَةٌ),
+ *  o'tgan zamon (ذَهَبْتُ → ذَهَبَ, faqat fe'l yozuvi), أَبُوكَ / أَخُوهُ, savol hamzasi (أَهَذَا → هَذَا).
+ *  Qattiq moslik sababi: oddiy qidiruv qo'shimcha kesib, boshqa so'z topib qo'yadi (سَعِيدَةٌ → عِيدٌ, الدِّينِيَّةِ → الدَّيْنُ). */
+const SUFS = new Set(SUF.filter(Boolean));
+/** lug'at yozuvining qismlari (يَكْتُبُ / كَتَبَ — har biri), «ال»siz */
+const parts = (e: LexE) => e.ar.split(/\s*[/،,]\s*/).map((p) => nk(p).replace(/^ال/, "")).filter((p) => p.length >= 2);
+/** x so'zi e yozuviga to'liq mosmi: faqat و/ف va «ال» old qo'shimchasi; tail — olmosh qo'shimchasiga ruxsat (fe'llar uchun) */
+function same(x: string, e: LexE, tail: boolean, min = 2) {
+  const n = nk(x), xs = [n, n.replace(/^[وف]/, ""), n.replace(/^[وف]?ال/, "")].filter((c) => c.length >= min);
+  return parts(e).some((p) => xs.some((c) => c === p || (tail && p.length >= 3 && c.startsWith(p) && SUFS.has(c.slice(p.length)))));
+}
+const isVerb = (e: LexE) => /\u064E$/.test(e.ar.trim()) || e.ar.includes("/") || parts(e).some((p) => p.startsWith("ي") && p.length >= 3);
+/** ة bilan boshqa ma'noli so'z bo'lib qoladiganlar: كِتَابَةٌ ≠ كِتَابٌ, طَرِيقَةٌ ≠ طَرِيقٌ, قُدْرَةٌ ≠ قِدْرٌ, عَامَّةٌ ≠ عَامٌ */
+const FEM_NO = new Set(["كتاب", "طريق", "قدر", "عام", "خال", "سار", "صف", "ام", "اي", "سلام"]);
+/** «أَ» bilan boshlanadigan, savol hamzasi bo'lmagan so'zlar */
+const Q_NO = new Set(["الا", "اما", "اذا", "ان", "انا", "او", "ام", "اي", "اين", "اذن", "اول", "اولا", "اهم", "اهل"]);
+
+function altLook(lex: Lex, token: string, ctx?: { b: string; u: number }, deep = true): LexE | null {
+  const w = token.replace(/[^\u0621-\u0652\u0670\u0640 ]/g, "").trim(); // tinish belgilari (كَثِيرَةً.) halaqit bermasin
+  const tryW = (x: string, ok: (e: LexE) => boolean) => {
+    if (!x || x === w || nk(x).length < 2) return null;
+    const e = look(lex, x, ctx);
+    return e && ok(e) ? e : null;
+  };
+  // hozirgi/kelasi zamon fe'li: أُرِيدُ / نُرِيدُ / تَقْلَقْ / سَأَذْهَبُ → يُرِيدُ / يَقْلَقُ / يَذْهَبُ (old harfining harakati shaxsga qarab o'zgarmaydi)
+  const m = /^((?:[\u0648\u0641]\u064E?)?)(?:\u0633\u064E?)?([\u0623\u0646\u062A])(.{3,})$/.exec(w);
+  let e = m ? tryW(m[1] + "\u064A" + m[3], (x) => isVerb(x) && same(m[1] + "\u064A" + m[3], x, true, 3)) : null;
+  // sifatning muannasi: جَمِيلَةٌ → جَمِيلٌ (faqat aynan shu so'z, qo'shimchasiz; fe'l emas)
+  if (!e) {
+    const f = w.replace(/\u0629[\u064B-\u0652]*$/, "");
+    const c = nk(f).replace(/^[وف]?(ال)?/, "");
+    if (f !== w && c.length >= 3 && !FEM_NO.has(c)) e = tryW(f, (x) => !isVerb(x) && same(f, x, false, 3));
+  }
+  // o'tgan zamon: ذَهَبْتُ / أَكَلْتُ / قُلْتَ / ذَهَبْتُمْ → ذَهَبَ ... (faqat fe'l yozuvi — ذَهَبٌ «oltin» emas)
+  if (!e) {
+    const p = /^(.{3,}?)\u062A[\u064F\u064E\u0650]?(?:\u0645[\u0652\u064F]?|\u0646\u0651?\u064E?|\u0645\u064E\u0627)?$/.exec(w);
+    if (p) e = tryW(p[1], (x) => isVerb(x) && same(p[1], x, false, 3));
+  }
+  // muannas ko'plik: مُعَلِّمَاتٌ → مُعَلِّمَةٌ (harakat solishtirishi «ات»ni «ة» bilan mos ko'rmaydi)
+  if (!e) { const f = w.replace(/\u0627\u062A[\u064B-\u0652]*$/, "\u0629"); e = tryW(f, (x) => same(f, x, false, 3)); }
+  // أَبُوكَ / أَبَا / أَخُوهُ → أَبٌ / أَخٌ (faqat olmosh qo'shimchasi bilan: أَبْوَابٌ emas)
+  if (!e) { const b = /^(?:[وف])?(اب|اخ)[واي](ك|ه|ها|هم|كم|نا|ي)?$/.exec(nk(w)); if (b) e = look(lex, b[1] === "اب" ? "أَبٌ" : "أَخٌ", ctx); }
+  // savol hamzasi: أَهَذَا / أَأَنْتَ / أَتَعْرِفُ → هَذَا / أَنْتَ / تَعْرِفُ (bir marta). Keyingi harf sukun yoki shaddali bo'lsa — savol emas (أَكْبَرُ، أَوَّلًا)
+  if (!e && deep && /^\u0623\u064E/.test(w) && nk(w).length >= 3 && !Q_NO.has(nk(w)) && !/^\u0623\u064E.[\u0652\u0651]/.test(w)) {
+    const r = w.slice(2);
+    e = tryW(r, (x) => same(r, x, true)) || altLook(lex, r, ctx, false);
+  }
+  return e;
+}
+
+/** sinov uchun: faqat ikkinchi urinishda topilgan (asosiy qidiruv topmagan) */
+export const lookupAltOnly = (lex: Lex, token: string) => (look(lex, token) ? null : altLook(lex, token));
 
 function look(lex: Lex, token: string, ctx?: { b: string; u: number }): LexE | null {
   const t = nk(token);
@@ -152,7 +206,7 @@ function look(lex: Lex, token: string, ctx?: { b: string; u: number }): LexE | n
   if (/\u064B\u0627$|\u0627\u064B$/.test(token) && t.endsWith("ا")) for (const [c, k] of cands(t.slice(0, -1))) if (!cs.has(c)) cs.set(c, k);
   for (const [c, cost] of cs) {
     for (const e of lex.idx.get(c) || []) {
-      const { f, pen } = fit(ts, seq(e.ar));
+      const { f, pen } = fitE(ts, e);
       if (voc && !f) continue;
       // tartib: avval kam kesilgani, keyin harakati mosi, keyin tanishroq daraja — الِاجْتِمَاعِيِّ → اجْتِمَاعِيٌّ, فِكْرَتُهُ → فِكْرَةٌ (كُرَةٌ emas)
       const sc = cost * 10 - f * 3 + pen * 2 + score(e, ctx) * 0.1;
@@ -169,6 +223,7 @@ export function knownTest(rank: number) {
   return (e: LexE) => {
     // yordamchi so'z (tur 4) — hamma uchun tanish; mazmunli umumiy so'z (tur 5: شَيْءٌ، أَكْثَرُ…) — A1 dan keyin
     if (e.b === "core") return e.k === 4 || rank > 1;
+    if (e.b === "qosh") return e.k === 4 || rank > 1; // 12.11: ism/joy — tanish; qo'shimcha so'z — A1 dan keyin
     if ((RANK[e.b] || 9) < rank) return true;
     if (srs(e.b)[e.ar]) return true;
     return !!(store.get<Record<string, unknown>>(bkKey(e.b, `known.${e.u}`), {})[e.ar] || store.get<Record<string, unknown>>(bkKey(e.b, `xk.${e.u}`), {})[e.ar]);

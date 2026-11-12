@@ -9,7 +9,7 @@ import { BookOpenText, Check, Headphones, Mic, Pause, Play, RotateCcw, Send, Tim
 import { blobB64, sendSub } from "../lib/kb";
 import { clean, kitobUrls, say, sha1 } from "../lib/audio";
 import { loadData } from "../lib/data";
-import { loadLex, lookup, type Lex } from "../lib/lex";
+import { loadLex, lookup, nk, type Lex } from "../lib/lex";
 import type { Book } from "../lib/progress";
 import { savedHas as isSaved, toggleSaved } from "../lib/saved";
 import { gain } from "../lib/store";
@@ -190,7 +190,7 @@ function Bars({ v }: { v: number[] }) {
 // ===== Tingla: karaoke =====
 function Listen({ g, aud, loading, why, onBack, onDone, onNext }: { g: Group; aud: Aud; loading: boolean; why: string; onBack: () => void; onDone: () => void; onNext: () => void }) {
   const [fin, setFin] = useState(false);
-  const [pop, setPop] = useState<{ ar: string; uz: string; line: number; lineUz: string } | null>(null);
+  const [pop, setPop] = useState<{ ar: string; uz: string; base: string; line: number; lineUz: string } | null>(null);
   const [lex, setLex] = useState<Lex | null>(null);
   const P = usePlayer(g, aud, () => { setFin(true); onDone(); });
   const refs = useRef<(HTMLParagraphElement | null)[]>([]);
@@ -204,11 +204,11 @@ function Listen({ g, aud, loading, why, onBack, onDone, onNext }: { g: Group; au
   }, [P.cur]);
   const word = (ws: string[], k: number, li: number) => {
     const w = ws[k].replace(PUN, "");
-    let e = lex ? lookup(lex, ws[k]) : null;
-    // topilmasa — ibora sifatida (مِنْ فَضْلِكَ): oldingi yoki keyingi so'z bilan
-    if (!e && lex && k > 0) e = lookup(lex, `${ws[k - 1]} ${ws[k]}`.replace(PUN, ""));
-    if (!e && lex && k + 1 < ws.length) e = lookup(lex, `${ws[k]} ${ws[k + 1]}`.replace(PUN, ""));
-    setPop({ ar: w, uz: e?.uz || "", line: li, lineUz: g.lines[li].uz || "" }); tg.haptic();
+    // avval ibora (مِنْ فَضْلِكَ، قِطَارُ الْأَنْفَاقِ) — oldingi yoki keyingi so'z bilan, keyin so'zning o'zi
+    let e = lex && k > 0 ? lookup(lex, `${ws[k - 1]} ${ws[k]}`) : null;
+    if (!e && lex && k + 1 < ws.length) e = lookup(lex, `${ws[k]} ${ws[k + 1]}`);
+    if (!e && lex) e = lookup(lex, ws[k]);
+    setPop({ ar: w, uz: e?.uz || "", base: e && nk(e.ar.split(/\s*\/\s*/)[0]) !== nk(w) ? e.ar : "", line: li, lineUz: g.lines[li].uz || "" }); tg.haptic();
   };
   return (
     <main className="screen tw">
@@ -257,6 +257,7 @@ function Listen({ g, aud, loading, why, onBack, onDone, onNext }: { g: Group; au
             {pop.uz && <button type="button" className={`tw-psv${isSaved(pop.ar) ? " on" : ""}`} onClick={() => { toggleSaved(pop.ar, pop.uz); setPop({ ...pop }); tg.haptic("success"); }}>{isSaved(pop.ar) ? <><Check size={15} strokeWidth={3} aria-hidden />Saqlandi</> : "Saqlash"}</button>}
             <button type="button" className="ibtn" aria-label="Yopish" onClick={() => setPop(null)}><X size={16} aria-hidden /></button>
           </div>
+          {pop.base && <span className="tw-pbase">Lug'atdagi shakli: <Ar>{pop.base}</Ar></span>}
           {(pop.lineUz || P.has(pop.line)) && (
             <div className="tw-pline">
               {pop.lineUz && <span><em>Gap:</em> {pop.lineUz}</span>}

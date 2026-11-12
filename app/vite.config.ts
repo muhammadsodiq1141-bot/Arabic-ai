@@ -70,6 +70,10 @@ function lexIndex(): Plugin {
     // yordamchi so'zlar (إِنَّ، هَلْ، الَّتِي…) — kitob lug'atlarida yo'q, lekin matnda eng ko'p uchraydi; hamma uchun tanish hisoblanadi
     const core = path.resolve(__dirname, "public/data/LEX_CORE.json");
     if (fs.existsSync(core)) for (const [ar, uz, m] of JSON.parse(fs.readFileSync(core, "utf8")) as string[][]) out.push([ar, uz, "core", 0, m === "m" ? 5 : 4]);
+    // 12.11.2026: qo'shimcha lug'at — o'qish matnlarida ko'p uchraydigan, kitob ro'yxatlarida yo'q so'zlar, kishi ismlari, joy nomlari (foydalanuvchi tasdiqlagan)
+    // k: 4 — ism / joy (hamma uchun tanish), 5 — so'z (A1 dan keyin tanish); «So'z boyligim» testiga kirmaydi
+    const qosh = path.resolve(__dirname, "public/data/LEX_QOSHIMCHA.json");
+    if (fs.existsSync(qosh)) for (const [ar, uz, k] of JSON.parse(fs.readFileSync(qosh, "utf8")) as [string, string, number][]) out.push([ar, uz, "qosh", 0, k]);
     return JSON.stringify(out);
   };
   return {
