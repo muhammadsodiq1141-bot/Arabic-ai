@@ -55,6 +55,18 @@ export function insUz(ins: string | undefined, type: string) {
 }
 export const tipOf = (type: string) => KB_TIP[type] || "";
 
+/** 12.11.2026: topshiriqning kitobdagi nomi («7-topshiriq» o'rniga). Manhaj: «Qoida · Ismli gap» + arabcha bo'lim nomi;
+ *  Madina: «Tamrinlar · 26–27-bet» (sarlavhadagi bet raqami). O'quvchi kitobdagi joyni darhol taniydi */
+export function stepLabel(st: KbStep): { name: string; ar: string; bet: string } {
+  const p = st.t.split(" · ");
+  if (/^\d+(-\d+)?-bet$/.test(p[0])) {
+    const bet = p[0].replace(/^(\d+)-(\d+)/, "$1–$2");
+    return { name: `${p.slice(1).join(" · ") || "Mashq"} · ${bet}`, ar: st.ar || "", bet };
+  }
+  const detail = /^Qoida/i.test(p[0]) && st.d ? st.d.split(/[:—]/)[0].trim() : "";
+  return { name: detail ? `${p[0]} · ${detail}` : p[0], ar: isAr(p[1]) ? p[1] : st.ar || "", bet: "" };
+}
+
 // "Tushunmadim" bosilganda: topshiriqni qanday bajarish (har tur uchun qisqa yo'riqnoma)
 export const HOW: Record<string, string> = {
   choose: "Savolni o'qing (karnay bo'lsa — tinglang) va pastdagi variantlardan bittasini bosing. Javobdan keyin izoh chiqadi.",

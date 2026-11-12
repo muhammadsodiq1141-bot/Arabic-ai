@@ -104,15 +104,21 @@ export async function say(text: string, rate = 1) {
     a.play().catch((e: Error) => { if (e?.name === "NotAllowedError") device(t, my); });
     return;
   }
+  // 12.11.2026: server ovozi (Gemini) ko'pincha ishlamaydi (kvota) — o'quvchi uni kutib qolmasin: 4 soniyadan keyin telefon ovozi;
+  // «tayyorlanmoqda» faqat 1.2 soniyadan oshsa ko'rinadi. Mashq va kitob gaplari endi oldindan tts omborida (Hamed ovozi)
   const server = async () => {
+    const note = setTimeout(() => { if (my === tok) toast("Ovoz tayyorlanmoqda…"); }, 1200);
     try {
-      if (my === tok) toast("Ovoz tayyorlanmoqda…");
-      const r = await api<{ url: string }>("tts", { t });
+      const r = await Promise.race([
+        api<{ url: string }>("tts", { t }),
+        new Promise<never>((_, rej) => setTimeout(() => rej(new Error("kech")), 4000)),
+      ]);
+      clearTimeout(note);
       if (my !== tok) return;
       a.onerror = () => device(t, my);
       a.src = r.url + "?v=1";
       await a.play();
-    } catch { device(t, my); }
+    } catch { clearTimeout(note); device(t, my); }
   };
   // tayyor fayl yo'q bo'lsa: kitob audiosi (bo'lsa) → bo'lmasa serverda yaratish
   const kitob = async () => {

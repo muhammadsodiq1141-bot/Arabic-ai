@@ -2,10 +2,10 @@
 // Savollar ketma-ket; har savol ostida "Tushunmadim": tushuntirish → baribir tushunmasa o'tkazib yuboriladi va ustozga xabar boradi.
 // 12-partiya (A2): xato javobdan keyin maslahat zinapoyasi — ishora → qoida → javob; maslahat bilan topilgan savol yarim ball.
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Check, HelpCircle, Mic, Pause, Play, RotateCcw, Send, Square, Star, Volume2, X } from "lucide-react";
+import { Check, HelpCircle, Info, Mic, Pause, Play, RotateCcw, Send, Square, Star, Volume2, X } from "lucide-react";
 import { preloadKitob, say, sayWait, stopSay } from "../lib/audio";
 import {
-  blobB64, freeOptional, GRADED, HOW, insUz, isAr, kbFlush, kbSaveBest, loadKb, prep, recMime, rightOf, sayAfter, sayAuto, sendSub, tipOf, kbTexts,
+  blobB64, freeOptional, GRADED, HOW, insUz, isAr, kbFlush, kbSaveBest, loadKb, prep, recMime, rightOf, sayAfter, sayAuto, sendSub, stepLabel, tipOf, kbTexts,
   type KbItem, type KbLesson, type KbStep, type Prepared,
 } from "../lib/kb";
 import { a0Answer, a0HwFor, a0HwState, loadAllA0, revAnswer, revDue, revWrong, type Rev } from "../lib/a0";
@@ -20,6 +20,7 @@ import { reactMark, reactReset, reactStepEnd } from "../ui/Reaction";
 import { Scale } from "../ui/Scale";
 import { Alphabet, Hear, Ladder, LetterItem, Trace } from "./KbA0";
 import { GainNote } from "../ui/GainNote";
+import { introFor, KbIntro } from "./KbIntro";
 import { ERR_KIND, HintLadder, noteHint, typeFirst } from "../ui/HintLadder";
 import { strandSet } from "../lib/strand";
 import { rkOn } from "../lib/reaction";
@@ -66,7 +67,16 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
   const items = useMemo(() => st.items.map(prep), [st]);
   const n = items.length;
   const graded = items.filter((x) => GRADED.includes(x.type)).length;
-  const [i, setI] = useState(st.rule ? -1 : 0);
+  // 12.11.2026: mashq oldidan karta — birinchi kirishda (qoida bo'lsa, qoida bilan bitta ekranda); keyin sarlavhadagi «i» bilan
+  const introKey = `${lessonKey}#${si}`;
+  const elig = !lessonKey.startsWith("a0:") && introFor(st);
+  const [introNew] = useState(() => elig && !store.get<Record<string, number>>("f.kbi", {})[introKey]);
+  const [info, setInfo] = useState(false);
+  const [i, setI] = useState(st.rule || introNew ? -1 : 0);
+  const startEx = () => {
+    if (elig) { const S = store.get<Record<string, number>>("f.kbi", {}); if (!S[introKey]) { S[introKey] = 1; store.set("f.kbi", S); } }
+    setI(0); window.scrollTo(0, 0);
+  };
   const [ok, setOk] = useState(0);
   const [okH, setOkH] = useState(0); // maslahatdan keyin topilganlar (yarim ball)
   const [tries, setTries] = useState(0); // shu savoldagi xato urinishlar
@@ -156,23 +166,27 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
     <>
       <header className="r-top">
         <button type="button" className="r-close" aria-label="Chiqish" onClick={() => { reactReset(); back(); }}><X size={22} aria-hidden />Chiqish</button>
-        <b>{virt ? L.title : `${si + 1}-topshiriq · ${label}`}</b>
+        <b>{virt ? L.title : stepLabel(st).name}</b>
+        {elig && i >= 0 && i < n && <button type="button" className="ibtn r-info" aria-label="Bu mashq haqida" onClick={() => setInfo(true)}><Info size={18} aria-hidden /></button>}
         <span className="r-count">{Math.max(0, Math.min(i, n))} / {n}</span>
       </header>
       <div className="r-bar"><i style={{ width: `${(Math.max(0, Math.min(i, n)) / n) * 100}%` }} /></div>
     </>
   );
 
-  // Qoida (qadam boshida)
-  if (i < 0 && st.rule) {
+  // Qoida va/yoki mashq kartasi (qadam boshida)
+  if (i < 0) {
     return (
       <main className="round kb">
         {head}
-        <section className="kb-card kb-rule">
-          <Ar className="kb-rh">{st.rule.h}</Ar>
-          {st.rule.p.map((p, k) => <p key={k} dangerouslySetInnerHTML={{ __html: p }} />)}
-        </section>
-        <button type="button" className="btn primary wide kb-next" onClick={() => setI(0)}>Mashqni boshlash</button>
+        {st.rule && (
+          <section className="kb-card kb-rule">
+            <Ar className="kb-rh">{st.rule.h}</Ar>
+            {st.rule.p.map((p, k) => <p key={k} dangerouslySetInnerHTML={{ __html: p }} />)}
+          </section>
+        )}
+        {introNew && <KbIntro L={L} st={st} lessonKey={lessonKey} unitN={unitN} />}
+        <button type="button" className="btn primary wide kb-next" onClick={startEx}>Mashqni boshlash</button>
       </main>
     );
   }
@@ -212,6 +226,11 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
   return (
     <main className="round kb">
       {head}
+      {info && (
+        <div className="kbi-ov" role="dialog" aria-modal="true" aria-label="Bu mashq haqida" onClick={(e) => { if (e.target === e.currentTarget) setInfo(false); }}>
+          <KbIntro L={L} st={st} lessonKey={lessonKey} unitN={unitN} onClose={() => setInfo(false)} />
+        </div>
+      )}
       <section className="kb-card" key={i}>
         <div className="kb-ins">{it.ins ? <><Ar className="kb-ins-ar">{it.ins}</Ar><span>{insUz(it.ins, it.type)}</span></> : <span>{tipOf(it.type)}</span>}</div>
         {it.type === "intro" && <Intro it={it} />}

@@ -2,6 +2,7 @@
 // Vahda ekranidagi "Davom etish" tugmasi va bosh sahifadagi uy vazifasi kartasi shu bir funksiyadan foydalanadi.
 import { isReadStep, kbBest, kbKeyOf, type KbLesson } from "./kb";
 import { unitGate } from "./order";
+import { stepLabel } from "./kb";
 import { bkKey, type Book } from "./progress";
 import { knownOf, store } from "./store";
 
@@ -39,7 +40,7 @@ export function nextStep(book: Book, unit: number, kb: KbLesson | null): Next {
       const st = kb.steps[si], parts = st.t.split(" · ");
       // Madina o'qish matni: "O'qish · Asosiy matn"
       if (book.id.startsWith("md") && isReadStep(st)) return { kind: "kb", view: "kb", params: { ...base, key, si }, label: "O'qish", sub: parts.slice(1).join(" · ") || st.t };
-      return { kind: "kb", view: "kb", params: { ...base, key, si }, label: `${si + 1}-topshiriq`, sub: parts[0] };
+      return { kind: "kb", view: "kb", params: { ...base, key, si }, label: stepLabel(st).name, sub: st.d || parts[0] }; // 12.11: kitobdagi nom
     }
     return null;
   };

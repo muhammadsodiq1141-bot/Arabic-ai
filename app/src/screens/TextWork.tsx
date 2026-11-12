@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BookOpenText, Check, Headphones, Mic, Pause, Play, RotateCcw, Send, Timer, Volume2, X } from "lucide-react";
 import { blobB64, sendSub } from "../lib/kb";
-import { clean, kitobUrls, say, sha1 } from "../lib/audio";
+import { clean, kitobUrls, say, sha1, TTS_BASE } from "../lib/audio";
 import { loadData } from "../lib/data";
 import { loadLex, lookup, nk, type Lex } from "../lib/lex";
 import type { Book } from "../lib/progress";
@@ -36,9 +36,9 @@ type Mode = "chain" | "listen" | "read" | "say" | "own";
 /** audio yo'q bo'lsa — sababi: internet, guruh (kitob audiosi faqat ustoz guruhidagilarga) yoki hali qo'shilmagan */
 function useNoAudioWhy() {
   const { me } = useSession();
-  if (typeof navigator !== "undefined" && !navigator.onLine) return "Internet yo'q — kitob audiosi yuklanmadi. Matnni o'qib chiqing.";
-  if (me && !me.group && !me.admin && !me.teacher) return "Kitob audiosi ustoz guruhidagi o'quvchilarga ochiq. Hozircha matnni o'qib chiqing.";
-  return "Bu matnning kitob ovozi hali qo'shilmagan. Matnni o'qib chiqing.";
+  if (typeof navigator !== "undefined" && !navigator.onLine) return "Internet yo'q — ovoz yuklanmadi.";
+  if (me && !me.group && !me.admin && !me.teacher) return "Kitobning asl audiosi ustoz guruhidagi o'quvchilarga ochiq.";
+  return "Bu matnning asl kitob ovozi hali qo'shilmagan.";
 }
 
 /** gaplarni ketma-ket ijro etish (ovozi borlarini); karaoke uchun joriy gap va so'z */
@@ -52,7 +52,9 @@ function usePlayer(g: Group, aud: Aud, onEnd?: () => void) {
   const raf = useRef(0);
   const curRef = useRef(-1);
   const only = useRef(false);
-  const has = (i: number) => !!aud.urls[aud.keys[i]];
+  // 12.11.2026 (foydalanuvchi qarori): avval kitobning asl ovozi, bo'lmasa — Hamed ovozi (tts ombori, oldindan yaratilgan)
+  const has = (i: number) => !!aud.keys[i];
+  const src = (i: number) => aud.urls[aud.keys[i]] || TTS_BASE + aud.keys[i] + ".mp3";
   const W = useMemo(() => g.lines.map((l) => { const ws = tokens(l.ar).map(weight); const t = ws.reduce((x, y) => x + y, 0); let c = 0; return ws.map((w) => (c += w) / t); }), [g]);
   useEffect(() => () => { cancelAnimationFrame(raf.current); a.current?.pause(); }, []);
   const tick = () => {
@@ -74,8 +76,9 @@ function usePlayer(g: Group, aud: Aud, onEnd?: () => void) {
     if (j >= g.lines.length || (one && j !== i)) { stopAll(); if (!one && i > 0) onEnd?.(); return; }
     if (!a.current) a.current = new Audio();
     const el = a.current;
-    el.src = aud.urls[aud.keys[j]]; el.playbackRate = rateRef.current; el.defaultPlaybackRate = rateRef.current;
+    el.src = src(j); el.playbackRate = rateRef.current; el.defaultPlaybackRate = rateRef.current;
     el.onended = () => (only.current ? stopAll() : playFrom(j + 1));
+    el.onerror = () => (only.current ? stopAll() : playFrom(j + 1)); // ovoz fayli hali yo'q — keyingi gapga
     curRef.current = j; setCur(j); setWi(-1); setPlay(true);
     el.play().catch(() => { setPlay(false); toast("Ovoz ochilmadi — internetni tekshiring"); });
     cancelAnimationFrame(raf.current); raf.current = requestAnimationFrame(tick);
@@ -86,7 +89,7 @@ function usePlayer(g: Group, aud: Aud, onEnd?: () => void) {
     playFrom(0);
   };
   const setRate = (r: number) => { setRateS(r); rateRef.current = r; if (a.current) { a.current.playbackRate = r; a.current.defaultPlaybackRate = r; } };
-  return { cur, wi, play, rate, has, any: aud.keys.some((k) => aud.urls[k]), playFrom, toggle, setRate, stopAll };
+  return { cur, wi, play, rate, has, kitob: (i: number) => !!aud.urls[aud.keys[i]], any: aud.keys.length > 0, playFrom, toggle, setRate, stopAll };
 }
 
 // qadamlar — alohida yo'nalish (m): Telegram «orqaga» tugmasi zanjirga qaytaradi, ekrandan chiqib ketmaydi
@@ -157,7 +160,7 @@ export function TextWorkScreen({ bookId, unitN, m = "chain", gi: gp = 0 }: { boo
       <ol className="tw-chain">
         <li className={`${prog.l ? "dn" : ""}${step === 0 ? " now" : ""}`}><button type="button" onClick={() => setMode("listen")}>
           <i aria-hidden>{prog.l ? <Check size={14} strokeWidth={3} /> : 1}</i>
-          <span><b>Tingla</b><small>{urls === null ? "kitob audiosi tekshirilmoqda…" : withAudio ? `kitob audiosi bilan kuzating · ${withAudio}/${g.lines.length} gap${prog.l ? ` · ${prog.l} marta` : ""}` : why}</small></span>
+          <span><b>Tingla</b><small>{urls === null ? "kitob audiosi tekshirilmoqda…" : `${withAudio === g.lines.length ? "kitob ovozi bilan kuzating" : withAudio ? `kitob ovozi ${withAudio}/${g.lines.length} gap, qolgani Hamed ovozida` : "Hamed ovozi bilan kuzating"}${prog.l ? ` · ${prog.l} marta` : ""}`}</small></span>
           <Headphones size={18} aria-hidden /></button></li>
         <li className={`${reads >= 3 ? "dn" : ""}${step === 1 ? " now" : ""}`}><button type="button" onClick={() => setMode("read")}>
           <i aria-hidden>{reads >= 3 ? <Check size={14} strokeWidth={3} /> : 2}</i>
@@ -213,7 +216,7 @@ function Listen({ g, aud, loading, why, onBack, onDone, onNext }: { g: Group; au
   return (
     <main className="screen tw">
       <ScreenHeader title="Tingla" ar="الِاسْتِمَاعُ" onBack={onBack} />
-      {!loading && !P.any && <p className="pf-note">{why} So'zni bossangiz, tarjimasi chiqadi.</p>}
+      {!loading && aud.keys.length > 0 && !aud.keys.some((k) => aud.urls[k]) && <p className="pf-note">{why} Matnni Hamed ovozi o'qiydi. So'zni bossangiz, tarjimasi chiqadi.</p>}
       <section className="tw-text" dir="rtl">
         {g.lines.map((l, i) => {
           const ws = tokens(l.ar);
@@ -223,7 +226,7 @@ function Listen({ g, aud, loading, why, onBack, onDone, onNext }: { g: Group; au
               {ws.map((w, k) => (
                 <span key={k}><button type="button" className={`tw-w${i === P.cur ? (k < P.wi ? " dn" : k === P.wi ? " hit" : "") : ""}`} onClick={(e) => { e.stopPropagation(); word(ws, k, i); }}>{w}</button>{" "}</span>
               ))}
-              {!P.has(i) && P.any && <small className="tw-na" dir="ltr">kitob ovozi hali yo'q</small>}
+              {!P.kitob(i) && aud.keys.some((k) => aud.urls[k]) && <small className="tw-na" dir="ltr">Hamed ovozi</small>}
             </p>
           );
         })}

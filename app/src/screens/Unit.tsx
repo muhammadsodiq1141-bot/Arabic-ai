@@ -8,7 +8,7 @@ import { ArrowRight, Bookmark, BookOpenText, Check, ChevronDown, ChevronRight, C
 import { isLite, offOf, onWifi, saveUnit, type OffUnit } from "../lib/lite";
 import { preloadKitob } from "../lib/audio";
 import { loadData } from "../lib/data";
-import { GRADED, isReadStep, kbBest, kbKeyOf, loadKb, type KbLesson, type KbStep } from "../lib/kb";
+import { GRADED, isReadStep, kbBest, kbKeyOf, loadKb, stepLabel, type KbLesson, type KbStep } from "../lib/kb";
 import { frontierOf, openAll, unitGate } from "../lib/order";
 import { dueText, gramPct, nextStep, pctOf, ROUND, rulesOf, theoryKey } from "../lib/next";
 import { hwProgress, localRaw, type Book } from "../lib/progress";
@@ -183,14 +183,17 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
   const stepRow = (s: KbStep, si: number, read: boolean) => {
     const on = g.stepOpen(si), b = kbB[si], why = g.stepWhy(si);
     const gq = s.items.filter((x) => GRADED.includes(x.type)).length;
-    const name = read ? s.t.split(" · ").slice(1).join(" · ") || s.t : s.t.split(" · ")[0];
-    const d = read ? (s.d || `${s.items.length} matn`) : `${name} · ${gq ? `${gq} savol` : `${s.items.length} qism`}`;
+    // 12.11.2026: kitobdagi nom («Qoida · Ismli gap», «Tamrinlar · 26–27-bet») — «7-topshiriq» o'rniga
+    const lbl = stepLabel(s);
+    const name = read ? s.t.split(" · ").slice(1).join(" · ") || s.t : lbl.name;
+    const cnt = gq ? `${gq} savol` : `${s.items.length} qism`;
+    const d = read ? (s.d || `${s.items.length} matn`) : <>{lbl.ar && <><Ar className="vp-sar">{lbl.ar}</Ar> · </>}{cnt}</>;
     return (
       <button key={si} type="button" className={`vp-row kbc ${read ? "rdc" : ""} ${on ? "" : "lock"} ${isNext("kb", si) ? "next" : ""}`} aria-disabled={!on}
-        aria-label={on ? undefined : `${si + 1}-topshiriq — ${why}`}
+        aria-label={on ? undefined : `${name} — ${why}`}
         onClick={() => (on ? go("kb", { key: kbKey, si, book: bookId, unit: unitN }) : lockMsg(why))}>
         <span className="vp-ic">{on ? <Emo e={read ? "📖" : kbIcon(s.k)} size={26} /> : <Lock size={15} aria-hidden />}</span>
-        <span className="vp-rt"><b>{read ? name : `${si + 1}-topshiriq`}</b><small>{on ? d : why}</small></span>
+        <span className="vp-rt"><b>{name}</b><small>{on ? d : why}</small></span>
         {on && <span className="vp-p">{b ?? 0}%</span>}
         <span className="vp-bar"><i style={{ width: `${b ?? 0}%` }} /></span>
       </button>
