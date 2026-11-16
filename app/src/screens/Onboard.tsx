@@ -2,6 +2,7 @@
 // Kalitlar: f.ob.intro (tanishuv ko'rilgan), f.ob.tip.<kalit> (ko'rsatma tugagan — har qanday sababda). Ko'rsatma faqat ekranda ko'rinadigan
 // elementlar bilan boshlanadi; bittasi ham ko'rinmasa — kalit yozilmaydi va keyingi safar yana uriniladi (eskidek).
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { zoomOf } from "../lib/board";
 import { OB_HELP, OB_INTRO, OB_TIPS, type Tip } from "../lib/obText";
 import { store } from "../lib/store";
 
@@ -84,15 +85,17 @@ export function CoachHost() {
   const nb = useRef<HTMLButtonElement>(null);
   useEffect(() => { if (rect) nb.current?.focus({ preventScroll: true }); }, [rect]);
   if (!cur || !step || !rect) return null;
-  const p = 6, H = window.innerHeight, W = window.innerWidth;
-  const top = Math.max(4, rect.top - p), hh = Math.min(rect.height + p * 2, H * 0.5);
+  // 14.11.2026: doskada ilova kattalashtirilgan (lib/board.ts) — o'lchovlar ekran pikselida, style esa kattalashtiriladi
+  const z = zoomOf(), p = 6, H = window.innerHeight / z, W = window.innerWidth / z;
+  const R = { left: rect.left / z, top: rect.top / z, width: rect.width / z, height: rect.height / z };
+  const top = Math.max(4, R.top - p), hh = Math.min(R.height + p * 2, H * 0.5);
   const below = top + hh + 14 + th < H - 8;
   const ty = below ? top + hh + 14 : Math.max(8, top - 14 - th);
   const n = cur.steps.length, last = cur.i === n - 1;
   const next = () => { if (!cur) return; if (cur.i < n - 1) { cur = { ...cur, i: cur.i + 1 }; emit(); } else endCoach(); };
   return (
     <div className="obc">
-      <div className="obc-hole" style={{ left: Math.max(4, rect.left - p), top, width: Math.min(W - 8, rect.width + p * 2), height: hh }} />
+      <div className="obc-hole" style={{ left: Math.max(4, R.left - p), top, width: Math.min(W - 8, R.width + p * 2), height: hh }} />
       <div ref={tip} className="obc-tip" role="dialog" aria-label="Ko'rsatma" style={{ top: ty }}>
         <span className="obc-k">Ko'rsatma · {cur.i + 1} / {n}</span>
         <b>{step.t}</b>

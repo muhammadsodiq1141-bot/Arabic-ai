@@ -4,7 +4,7 @@
 // 3) Ustoz diktanti: kod (A1-3-27) — o'quvchilar Mashq → Diktant'da shu kodni kiritadi; gaplar proyektorda yashirin turadi.
 // Server o'zgarmaydi; matnlar kitobdagidek (lib/texts.ts).
 import { useEffect, useRef, useState } from "react";
-import { ChevronRight, Coins, Eye, EyeOff, Pause, Play, RefreshCw, RotateCcw, SkipForward, Timer, Users, Volume2 } from "lucide-react";
+import { ChevronRight, Coins, Eye, EyeOff, Maximize2, Minimize2, Pause, Play, RefreshCw, RotateCcw, SkipForward, Timer, Users, Volume2 } from "lucide-react";
 import { preloadKitob, say } from "../lib/audio";
 import { kbKeyOf } from "../lib/kb";
 import { store } from "../lib/store";
@@ -13,6 +13,7 @@ import { tg } from "../lib/tg";
 import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
 import { Ar, ScreenHeader } from "../ui/kit";
+import { toast } from "../ui/Toast";
 import { useRBook } from "./Rules";
 import { bookOfLevel } from "./Unit";
 
@@ -32,6 +33,26 @@ function beep() {
   } catch { /* ovozsiz */ }
 }
 
+/** 14.11.2026: doskada brauzer panelini yashirish. Brauzer ruxsat bermasa (Telegram ichida) — tugma ko'rinmaydi */
+function FullBtn() {
+  const [on, setOn] = useState(() => !!document.fullscreenElement);
+  useEffect(() => {
+    const f = () => setOn(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", f);
+    return () => document.removeEventListener("fullscreenchange", f);
+  }, []);
+  if (!document.fullscreenEnabled) return null;
+  const toggle = () => {
+    tg.haptic();
+    (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => toast("Bu brauzerda to'liq ekran ishlamadi"));
+  };
+  return (
+    <button type="button" className="hdr-lbl" aria-pressed={on} onClick={toggle}>
+      {on ? <Minimize2 size={17} aria-hidden /> : <Maximize2 size={17} aria-hidden />}{on ? "Kichraytirish" : "To'liq ekran"}
+    </button>
+  );
+}
+
 export function ClassModeScreen() {
   const { me } = useSession();
   const { go } = useNav();
@@ -45,7 +66,7 @@ export function ClassModeScreen() {
   const u = book?.units.find((x) => x.n === unitN);
   return (
     <main className="screen cm">
-      <ScreenHeader title="Sinf rejimi" ar="وَضْعُ الْفَصْلِ" />
+      <ScreenHeader title="Sinf rejimi" ar="وَضْعُ الْفَصْلِ" actions={<FullBtn />} />
       {/* 3-paket 2-qism: darsda tanga — Ustoz panelidagi bilan bir xil ekran (tanlangan guruh) */}
       {!!me?.myGroups?.length && (
         <button type="button" className="rowbtn" onClick={() => go("tcoins")}>

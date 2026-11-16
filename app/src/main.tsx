@@ -4,9 +4,11 @@ import { App } from "./App";
 import { accountSwitch } from "./lib/store";
 import { initTelegram } from "./lib/tg";
 import { initErrLog } from "./lib/errlog";
+import { initBoard } from "./lib/board";
 import "./styles.css";
 
 initErrLog(); // 1-paket: xatolar jurnali
+initBoard(); // 14.11.2026: doska / katta ekranda ilova o'zi kattalashadi
 initTelegram();
 accountSwitch(); // eski ilova bilan bir xil: bitta telefonda bir nechta akkaunt progressi aralashmaydi
 createRoot(document.getElementById("root")!).render(
