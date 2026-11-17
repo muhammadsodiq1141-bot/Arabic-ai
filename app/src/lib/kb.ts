@@ -15,15 +15,35 @@ export type KbItem = {
   norm?: number; // o'qish normativi, soniya (Madina matnlari)
   ans?: string[]; // 18-partiya: kitobdagi namuna javob(lar) — erkin javob yuborilgach ko'rinadi
   l?: string; f?: number; ltr?: string; rows?: string[][]; // A0: harf, shakl (0 yakka … 3 oxirida), hisoblanadigan harf, zina
+  b?: string; // 17.11.2026: kitobdagi joyi — «117 · ثانيا» (bet · topshiriq raqami); o'quvchi ustoz aytgan topshiriqni topadi
+  bn?: number; // kitobdagi band raqami (kitobda ba'zi bandlar olib tashlangan: ١،٣،٤… — tartib raqami bilan mos kelmaydi)
+  insz?: string; // shu savol uchun ko'rsatmaning o'zbekchasi (kitob «اكْتُبْ» desa-yu, ilovada tanlab bajarilsa — umumiy «Yozing» chalg'itmasin)
 };
-export type KbStep = { k: string; t: string; ar?: string; d?: string; rule?: { h: string; p: string[] }; items: KbItem[] };
-export type KbLesson = { title: string; uz: string; book?: string; steps: KbStep[] };
+/** bet — kitob betlari («116–118»); vahda sahifasida bo'lim yonida ko'rinadi */
+export type KbStep = { k: string; t: string; ar?: string; d?: string; bet?: string; rule?: { h: string; p: string[] }; items: KbItem[] };
+/** v + remap: bo'limlar tartibi o'zgarganda eski natijalar (f.kb.<kalit>, bo'lim raqami bo'yicha) yangi raqamlarga ko'chiriladi */
+export type KbLesson = { title: string; uz: string; book?: string; v?: number; remap?: Record<string, number[]>; steps: KbStep[] };
 
 export const GRADED = ["choose", "qa", "listen1", "letters", "match", "tf", "classify", "order", "hear", "pick", "trace"];
 export const isAr = (s: unknown) => /[؀-ۿ]/.test(String(s ?? ""));
+/** pic — emoji yoki kitobdan kesilgan rasm («img/kb/a2-7/118-cv.jpg») */
+export const isImgPic = (p?: string) => !!p && /\.(jpe?g|png|webp)$/i.test(p);
 
 export const kbFile = (key: string) => `kb/${key.replace(":", "-")}`;
-export const loadKb = (key: string) => loadData<KbLesson>(kbFile(key));
+export const loadKb = (key: string) => loadData<KbLesson>(kbFile(key)).then((L) => { kbMigrate(key, L); return L; });
+/** 17.11.2026: vahda kitob tartibiga keltirilganda (masalan A2·7 ga tinglash bo'limi qo'shildi) o'quvchining eski natijasi
+ *  boshqa bo'limga o'tib qolmasin — bir marta ko'chiriladi (f.kbv.<kalit> = versiya) */
+function kbMigrate(key: string, L: KbLesson) {
+  const v = L.v || 1, vk = `f.kbv.${key}`;
+  if (store.get<number>(vk, 1) >= v) return;
+  if (L.remap) {
+    const B = kbBest(key), N: Record<string, number> = {};
+    for (const [o, p] of Object.entries(B)) for (const n of L.remap[o] ?? [Number(o)]) N[n] = Math.max(N[n] ?? 0, p);
+    store.set(bestKey(key), N);
+  }
+  store.set(vk, v);
+  scheduleSync();
+}
 /** Kitobda shu vahda uchun mashqlar bormi: A1 (a1:1…12), Madina 1 (md1:1…16), Madina 2 (md2:1…26).
  *  18-partiya: Manhaj A2 (12), B1 (10), B2 (10) — kitob .md fayllaridan (_mahalliy/manba/md2kb.py). C1 — keyin (manba faqat PDF). */
 const KB_UNITS: Record<string, number> = { a1: 12, a2: 12, b1: 10, b2: 10, md1: 16, md2: 26 };
@@ -53,7 +73,11 @@ export function insUz(ins: string | undefined, type: string) {
   const k = Object.keys(KB_INS_UZ).filter((x) => n.startsWith(x)).sort((a, b) => b.length - a.length)[0];
   return k ? KB_INS_UZ[k] : KB_TIP[type] || "";
 }
-export const tipOf = (type: string) => KB_TIP[type] || "";
+/** yangi turlar (eski ilovada yo'q edi) */
+const TIP_X: Record<string, string> = { nokey: "Tinglab, mos javobni belgilang" };
+export const tipOf = (type: string) => KB_TIP[type] || TIP_X[type] || "";
+/** «117 · ثانيا» → ["117-bet", "ثانيا"] */
+export const betParts = (b: string) => { const [p, ...r] = b.split(" · "); return [`${p}-bet`, r.join(" · ")] as const; };
 
 /** 12.11.2026: topshiriqning kitobdagi nomi («7-topshiriq» o'rniga). Manhaj: «Qoida · Ismli gap» + arabcha bo'lim nomi;
  *  Madina: «Tamrinlar · 26–27-bet» (sarlavhadagi bet raqami). O'quvchi kitobdagi joyni darhol taniydi */
@@ -64,13 +88,14 @@ export function stepLabel(st: KbStep): { name: string; ar: string; bet: string }
     return { name: `${p.slice(1).join(" · ") || "Mashq"} · ${bet}`, ar: st.ar || "", bet };
   }
   const detail = /^Qoida/i.test(p[0]) && st.d ? st.d.split(/[:—]/)[0].trim() : "";
-  return { name: detail ? `${p[0]} · ${detail}` : p[0], ar: isAr(p[1]) ? p[1] : st.ar || "", bet: "" };
+  return { name: detail ? `${p[0]} · ${detail}` : p[0], ar: isAr(p[1]) ? p[1] : st.ar || "", bet: st.bet ? `${st.bet}-bet` : "" };
 }
 
 // "Tushunmadim" bosilganda: topshiriqni qanday bajarish (har tur uchun qisqa yo'riqnoma)
 export const HOW: Record<string, string> = {
   choose: "Savolni o'qing (karnay bo'lsa — tinglang) va pastdagi variantlardan bittasini bosing. Javobdan keyin izoh chiqadi.",
   listen1: "Karnayni bosib so'zni tinglang. Keyin uning ma'nosini variantlardan tanlang.",
+  nokey: "Darsda matnni tinglang va har savolga o'zingizcha javobni belgilang. Ilova baho qo'ymaydi — to'g'ri javobni ustoz darsda aytadi.",
   pick: "Karnayni bosib so'zni tinglang va shu so'zga mos rasmni bosing.",
   tf: "Gapni o'qing yoki tinglang. Matnga mos bo'lsa — «To'g'ri», mos bo'lmasa — «Noto'g'ri».",
   letters: "Pastdagi harflarni so'zdagi tartibda bosing. Xato bossangiz, yuqoridagi harfni bosib qaytaring.",

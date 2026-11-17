@@ -3,7 +3,7 @@
 // Birinchi kirishda to'liq chiqadi; keyin sarlavhadagi «i» tugmasi bilan qayta ochiladi.
 import type { ReactNode } from "react";
 import { X } from "lucide-react";
-import { GRADED, HOW, insUz, isAr, stepLabel, tipOf, type KbItem, type KbLesson, type KbStep } from "../lib/kb";
+import { betParts, GRADED, HOW, insUz, isAr, stepLabel, tipOf, type KbItem, type KbLesson, type KbStep } from "../lib/kb";
 import { Ar } from "../ui/kit";
 
 const BOOK: Record<string, string> = { a1: "Manhaj A1", a2: "Manhaj A2", b1: "Manhaj B1", b2: "Manhaj B2", c1: "Manhaj C1", md1: "Madina 1", md2: "Madina 2" };
@@ -69,7 +69,8 @@ export function KbIntro({ L, st, lessonKey, unitN, onClose }: { L: KbLesson; st:
   const lessons = (L as KbLesson & { lessons?: number[] }).lessons || [];
   const where: ReactNode = b.startsWith("md")
     ? <>{BOOK[b]} · {lessons.length ? `${lessons.join("–")}-dars` : `${unitN}-qism`}{lbl.bet ? ` · ${lbl.bet}` : ""}</>
-    : /^nazorat/.test(st.k) ? <>{BOOK[b] || b} · {unitN}-vahda yakunidagi test</>
+    : /^nazorat/.test(st.k) ? <>{BOOK[b] || b} · {unitN}-vahda bo'yicha yakuniy test</>
+    : first?.b ? <>{BOOK[b] || b} · {unitN}-vahda · {betParts(first.b)[0]}{betParts(first.b)[1] && <> · <Ar>{betParts(first.b)[1]}</Ar></>}</>
     : <>{BOOK[b] || b} · {unitN}-vahda · {lbl.ar ? <>«<Ar>{lbl.ar}</Ar>» bo'limi</> : lbl.name}</>;
   const demo = first ? demoOf(first) : null;
   const kinds = new Set(st.items.filter((x) => GRADED.includes(x.type) || x.type === "free").map((x) => x.type)).size;
@@ -77,7 +78,7 @@ export function KbIntro({ L, st, lessonKey, unitN, onClose }: { L: KbLesson; st:
     <section className={`kbi${onClose ? " sheet" : ""}`} aria-label="Bu mashq haqida">
       {onClose && <header className="kbi-h"><b>Bu mashq haqida</b><button type="button" className="ibtn" aria-label="Yopish" onClick={onClose}><X size={18} aria-hidden /></button></header>}
       <div className="kbi-row"><em>Kitobda</em><span>{where}</span></div>
-      {ins && <div className="kbi-row"><em>Topshiriq</em><span><Ar className="kbi-ins">{ins}</Ar><br />{insUz(ins, first?.type || "")}</span></div>}
+      {ins && <div className="kbi-row"><em>Topshiriq</em><span><Ar className="kbi-ins">{ins}</Ar><br />{first?.insz || insUz(ins, first?.type || "")}</span></div>}
       <div className="kbi-row"><em>Ilovada</em><span>{HOW[first?.type || ""] || tipOf(first?.type || "")}{kinds > 1 ? " Topshiriqda bir necha xil mashq bor — har birining yo'riqnomasi savol tepasida." : ""}</span></div>
       <div className="kbi-row"><em>Nega</em><span>{nega(st, first?.type || "")}</span></div>
       {demo && (

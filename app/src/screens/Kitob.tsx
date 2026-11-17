@@ -5,7 +5,7 @@ import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "
 import { Check, HelpCircle, Info, Mic, Pause, Play, RotateCcw, Send, Square, Star, Volume2, X } from "lucide-react";
 import { preloadKitob, say, sayWait, stopSay } from "../lib/audio";
 import {
-  blobB64, freeOptional, GRADED, HOW, insUz, isAr, kbFlush, kbSaveBest, loadKb, prep, recMime, rightOf, sayAfter, sayAuto, sendSub, stepLabel, tipOf, kbTexts,
+  betParts, blobB64, freeOptional, GRADED, HOW, insUz, isAr, isImgPic, kbFlush, kbSaveBest, loadKb, prep, recMime, rightOf, sayAfter, sayAuto, sendSub, stepLabel, tipOf, kbTexts,
   type KbItem, type KbLesson, type KbStep, type Prepared,
 } from "../lib/kb";
 import { a0Answer, a0HwFor, a0HwState, loadAllA0, revAnswer, revDue, revWrong, type Rev } from "../lib/a0";
@@ -83,6 +83,7 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
   const [ans, setAns] = useState<boolean | null>(null);
   const [help, setHelp] = useState(false);
   const [freeSent, setFreeSent] = useState<"srv" | "local" | null>(null);
+  const [nk, setNk] = useState(false); // kalitsiz tanlov (tinglash, audio darsda): belgilandimi
   const [pct, setPct] = useState<number | null>(null);
   const skipped = useRef<number[]>([]);
   const title = `${L.title} · ${st.t}`;
@@ -112,7 +113,7 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
   // 4 yo'l hisobi: o'qish/tinglash matnlari — kiritma, erkin javob — chiqarma, qolgani — til shakli
   useEffect(() => {
     const t = st.items.map((x) => x.type);
-    strandSet(t.some((x) => x === "free") ? "o" : t.filter((x) => ["read", "listen1", "hear"].includes(x)).length * 2 >= t.length ? "i" : "f");
+    strandSet(t.some((x) => x === "free") ? "o" : t.filter((x) => ["read", "listen1", "hear", "nokey"].includes(x)).length * 2 >= t.length ? "i" : "f");
   }, [st]);
   const it: Prepared | undefined = items[i];
   useEffect(() => {
@@ -145,7 +146,7 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
   };
   const next = () => {
     stopSay();
-    setAns(null); setHelp(false); setFreeSent(null); setTries(0);
+    setAns(null); setHelp(false); setFreeSent(null); setTries(0); setNk(false);
     if (i + 1 >= n) {
       const p = graded ? Math.min(100, Math.round(((ok + okH * 0.5) / graded) * 100)) : 100;
       if (!virt) kbSaveBest(lessonKey, si, p);
@@ -203,7 +204,9 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
           <Scale size={150} balanced={p >= 70} star={p >= 70} />
           <h1>{p >= 90 ? "Mukammal!" : p >= 70 ? "Ajoyib!" : p >= 40 ? "Yaxshi, davom eting!" : "Yana bir bor urinib ko'ring"}</h1>
           <span className="kb-big">{p}%</span>
-          <p>{label} · {ok + okH} / {graded} to'g'ri{okH ? ` · ${okH} tasi maslahat bilan` : ""}</p>
+          {!graded && st.items.some((x) => x.type === "nokey")
+            ? <p>{label} · javoblaringiz belgilandi. To'g'ri javobni ustoz darsda aytadi.</p>
+            : <p>{label} · {ok + okH} / {graded} to'g'ri{okH ? ` · ${okH} tasi maslahat bilan` : ""}</p>}
           {a0n && revAdded.current > 0 && <p className="a0-revnote"><RotateCcw size={16} aria-hidden />{revAdded.current} ta xato savol «Takrorlash»ga qo'shildi — ertaga yana chiqadi.</p>}
           {xp > 0 && <p className="r-earn"><Star size={22} aria-hidden /><CountUp to={xp} />&nbsp;yulduzcha</p>}
           <GainNote />
@@ -221,8 +224,12 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
   const isGraded = GRADED.includes(it.type);
   // Madina'da erkin javob ixtiyoriy: ustozga yubormasdan ham keyingisiga o'tish mumkin (natijaga ta'sir qilmaydi)
   const optFree = it.type === "free" && freeOptional(lessonKey) && !freeSent;
-  const canNext = ["intro", "read", "ladder", "letter", "alphabet"].includes(it.type) ? true : it.type === "free" ? !!freeSent || optFree : done;
+  const canNext = ["intro", "read", "ladder", "letter", "alphabet"].includes(it.type) ? true : it.type === "free" ? !!freeSent || optFree : it.type === "nokey" ? nk : done;
   const props = { it, done, ans, mark, tries };
+  // 17.11.2026: kitobdagi joyi — «117-bet · ثانيا · 2-band» (bir xil joydagi bir necha savol bo'lsa, band raqami)
+  const same = it.b ? st.items.filter((x) => x.b === it.b) : [];
+  // kitob raqamlari berilgan guruhda raqamsiz savol (masalan zarflarni ustunlarga ajratish) band raqamisiz ko'rinadi
+  const band = it.bn ? `${it.bn}-band` : same.length > 1 && !same.some((x) => x.bn) ? `${st.items.slice(0, i).filter((x) => x.b === it.b).length + 1}-band` : "";
   return (
     <main className="round kb">
       {head}
@@ -232,7 +239,10 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
         </div>
       )}
       <section className="kb-card" key={i}>
-        <div className="kb-ins">{it.ins ? <><Ar className="kb-ins-ar">{it.ins}</Ar><span>{insUz(it.ins, it.type)}</span></> : <span>{tipOf(it.type)}</span>}</div>
+        {it.b && <span className="kb-bet">{betParts(it.b)[0]}{betParts(it.b)[1] && <> · <Ar>{betParts(it.b)[1]}</Ar></>}{band && ` · ${band}`}</span>}
+        <div className="kb-ins">{it.ins ? <><Ar className="kb-ins-ar">{it.ins}</Ar><span>{it.insz || insUz(it.ins, it.type)}</span></> : <span>{tipOf(it.type)}</span>}</div>
+        {isImgPic(it.pic) && <KbImg src={it.pic!} />}
+        {it.type === "nokey" && <NoKey it={it} picked={nk} onPick={() => setNk(true)} />}
         {it.type === "intro" && <Intro it={it} />}
         {it.type === "read" && <Read it={it} normKey={`${lessonKey}#${si}.${i}`} lk={lessonKey} />}
         {(it.type === "choose" || it.type === "qa") && <Choose {...props} />}
@@ -248,7 +258,7 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
         {it.type === "ladder" && <Ladder {...props} />}
         {it.type === "letter" && <LetterItem {...props} />}
         {it.type === "alphabet" && <Alphabet />}
-        {!["intro", "read", "choose", "qa", "listen1", "pick", "tf", "letters", "order", "match", "classify", "free", "hear", "trace", "ladder", "letter", "alphabet"].includes(it.type) && <p className="muted">Bu turdagi mashq hali yangi ilovada yo'q. Davom etishingiz mumkin.</p>}
+        {!["intro", "read", "choose", "qa", "listen1", "pick", "tf", "letters", "order", "match", "classify", "free", "hear", "trace", "ladder", "letter", "alphabet", "nokey"].includes(it.type) && <p className="muted">Bu turdagi mashq hali yangi ilovada yo'q. Davom etishingiz mumkin.</p>}
       </section>
 
       {tries > 0 && !done && !help && (
@@ -257,7 +267,7 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
       )}
       {isGraded && done && <Feedback it={it} good={!!ans} n={i} hinted={tries > 0} rev={a0n && (!ans || tries > 0) && it.type !== "trace"} />}
 
-      {!done && !help && !freeSent && !["intro", "read", "ladder", "letter", "alphabet"].includes(it.type) && (
+      {!done && !help && !freeSent && !(it.type === "nokey" && nk) && !["intro", "read", "ladder", "letter", "alphabet"].includes(it.type) && (
         <button type="button" className="kb-dunno" onClick={() => { setHelp(true); tg.haptic("light"); }}><HelpCircle size={18} aria-hidden />{tries ? "Baribir tushunmadim" : "Tushunmadim"}</button>
       )}
       {help && !done && (
@@ -464,11 +474,55 @@ function NormTimer({ norm, k }: { norm: number; k: string }) {
   );
 }
 
+/** 17.11.2026: kitobdan kesilgan rasm (rasm bilan juftlash, e'lon). Bosilsa — butun ekranda */
+function KbImg({ src }: { src: string }) {
+  const [big, setBig] = useState(false);
+  useEffect(() => {
+    if (!big) return;
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") setBig(false); };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [big]);
+  return (
+    <>
+      <button type="button" className="kb-img" aria-label="Rasmni kattalashtirish" onClick={() => setBig(true)}>
+        <img src={`./${src}`} alt="" loading="lazy" draggable={false} />
+      </button>
+      {big && (
+        <div className="kb-zoom" role="dialog" aria-modal="true" aria-label="Rasm" onClick={() => setBig(false)}>
+          <img src={`./${src}`} alt="" />
+          <button type="button" className="ibtn" aria-label="Yopish" onClick={() => setBig(false)}><X size={20} aria-hidden /></button>
+        </div>
+      )}
+    </>
+  );
+}
+
+/** 17.11.2026: kalitsiz tanlov — tinglash bo'limi (audio darsda, javob kaliti kitobda yo'q). Baholanmaydi */
+function NoKey({ it, picked, onPick }: { it: Prepared; picked: boolean; onPick: () => void }) {
+  const [sel, setSel] = useState<string | null>(null);
+  const opts = it.opts || [];
+  return (
+    <>
+      {it.q && <Mixed text={it.q} />}
+      <div className="r-opts">
+        {opts.map((o) => (
+          <button key={o} type="button" className={`opt ${sel === o ? "sel" : ""} ${isAr(o) ? "opt-r" : ""}`} aria-pressed={sel === o}
+            onClick={() => { setSel(o); onPick(); tg.haptic("light"); }}>
+            {isAr(o) ? <Ar className="opt-ar">{o}</Ar> : o}
+          </button>
+        ))}
+      </div>
+      {picked && <p className="kb-nk">Javobingiz belgilandi. To'g'ri javobni ustoz darsda aytadi.</p>}
+    </>
+  );
+}
+
 function Choose({ it, done, mark, tries }: P) {
   const answer = (o: string) => { mark(o === it.ok); const t = sayAfter(it); if (t) void say(t); };
   return (
     <>
-      {it.pic && <div className="kb-pic"><Emo e={it.pic} size={88} /></div>}
+      {it.pic && !isImgPic(it.pic) && <div className="kb-pic"><Emo e={it.pic} size={88} /></div>}
       {it.say && <div className="kb-q"><SayBtn t={it.say} big /></div>}
       {it.q && <Mixed text={it.q} />}
       {it.qz && <p className="kb-uz">{it.qz}</p>}
@@ -545,7 +599,7 @@ function Build({ it, done, ans, mark, tries }: P) {
   };
   return (
     <>
-      {it.pic && <div className="kb-pic"><Emo e={it.pic} size={80} /></div>}
+      {it.pic && !isImgPic(it.pic) && <div className="kb-pic"><Emo e={it.pic} size={80} /></div>}
       {it.see && <div className="kb-q"><SayBtn t={it.show || ""} /><Ar className="kb-qa">{it.see}</Ar></div>}
       <p className="kb-uz">{letters ? (it.q || `«${it.uz}» so'zini yasang`) : it.uz}</p>
       <div className={`kb-line ${done ? (ans ? "ok" : "bad") : ""} ${letters ? "join" : ""}`} dir="rtl">

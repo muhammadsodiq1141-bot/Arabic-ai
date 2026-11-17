@@ -193,7 +193,7 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
         aria-label={on ? undefined : `${name} — ${why}`}
         onClick={() => (on ? go("kb", { key: kbKey, si, book: bookId, unit: unitN }) : lockMsg(why))}>
         <span className="vp-ic">{on ? <Emo e={read ? "📖" : kbIcon(s.k)} size={26} /> : <Lock size={15} aria-hidden />}</span>
-        <span className="vp-rt"><b>{name}</b><small>{on ? d : why}</small></span>
+        <span className="vp-rt"><b>{name}{s.bet && <em className="vp-bet">{s.bet}-bet</em>}</b><small>{on ? d : why}</small></span>
         {on && <span className="vp-p">{b ?? 0}%</span>}
         <span className="vp-bar"><i style={{ width: `${b ?? 0}%` }} /></span>
       </button>
