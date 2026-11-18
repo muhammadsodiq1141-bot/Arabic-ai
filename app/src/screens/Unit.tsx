@@ -17,7 +17,7 @@ import { report } from "../lib/report";
 import { knownOf, store, syncNow } from "../lib/store";
 import { twGet, twSteps } from "../lib/textwork";
 import { tg } from "../lib/tg";
-import { loadWords, type Word } from "../lib/words";
+import { loadWords, shuffle, type Word } from "../lib/words";
 import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
 import { Emo } from "../ui/Emo";
@@ -435,6 +435,12 @@ export function RoundScreen({ bookId, unitN, n }: { bookId: string; unitN: numbe
   if (!all) return <main className="screen"><p className="muted pad">Yuklanmoqda…</p></main>;
   const words = all.slice((n - 1) * ROUND, n * ROUND);
   const more = all.length > n * ROUND;
-  return <Round bookId={bookId} unit={unitN} n={n} words={words} pool={all} onExit={() => back()}
+  // 18.11.2026: pufakcha o'yini uchun oldingi vahdalar so'zlari (avval yodlanganlari) — 6 tagacha
+  const prev = (book?.units || []).filter((x) => x.n < unitN).flatMap((x) => {
+    const k = knownOf(bookId, x.n);
+    return (x.words as string[][]).map((w) => ({ w: { ar: w[0], uz: w[1], img: null, card: null } as Word, known: !!k[w[0]] }));
+  });
+  const review = [...shuffle(prev.filter((x) => x.known)), ...shuffle(prev.filter((x) => !x.known))].slice(0, 6).map((x) => x.w);
+  return <Round bookId={bookId} unit={unitN} n={n} words={words} pool={all} review={review} onExit={() => back()}
     onNextRound={more ? () => replace("round", { book: bookId, unit: unitN, n: n + 1 }) : undefined} />;
 }

@@ -2,7 +2,7 @@
 // Savollar ketma-ket; har savol ostida "Tushunmadim": tushuntirish → baribir tushunmasa o'tkazib yuboriladi va ustozga xabar boradi.
 // 12-partiya (A2): xato javobdan keyin maslahat zinapoyasi — ishora → qoida → javob; maslahat bilan topilgan savol yarim ball.
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Check, HelpCircle, Info, Mic, Pause, Play, RotateCcw, Send, Square, Star, Volume2, X } from "lucide-react";
+import { Check, HelpCircle, Info, Keyboard, Mic, Pause, Play, RotateCcw, Send, Square, Star, Volume2, X } from "lucide-react";
 import { preloadKitob, say, sayWait, stopSay } from "../lib/audio";
 import {
   betParts, blobB64, freeOptional, GRADED, HOW, insUz, isAr, isImgPic, kbFlush, kbSaveBest, loadKb, prep, recMime, rightOf, sayAfter, sayAuto, sendSub, stepLabel, tipOf, kbTexts,
@@ -15,6 +15,9 @@ import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
 import { Emo, EmoLead } from "../ui/Emo";
 import { Ar } from "../ui/kit";
+import { ArKbd } from "../ui/ArKbd";
+import { api } from "../lib/api";
+import { aiAnswer, isFail, type AnswerRes } from "../lib/ai";
 import { CountUp } from "../ui/CountUp";
 import { reactMark, reactReset, reactStepEnd } from "../ui/Reaction";
 import { Scale } from "../ui/Scale";
@@ -84,6 +87,7 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
   const [help, setHelp] = useState(false);
   const [freeSent, setFreeSent] = useState<"srv" | "local" | null>(null);
   const [nk, setNk] = useState(false); // kalitsiz tanlov (tinglash, audio darsda): belgilandimi
+  const [heard, setHeard] = useState(false); // 18.11.2026: tinglash bo'limi — audio kamida bir marta oxirigacha eshitildimi
   const [pct, setPct] = useState<number | null>(null);
   const skipped = useRef<number[]>([]);
   const title = `${L.title} · ${st.t}`;
@@ -116,6 +120,8 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
     strandSet(t.some((x) => x === "free") ? "o" : t.filter((x) => ["read", "listen1", "hear", "nokey"].includes(x)).length * 2 >= t.length ? "i" : "f");
   }, [st]);
   const it: Prepared | undefined = items[i];
+  // 18.11.2026: o'qish bo'limidagi matn — AI javobni shu matn bo'yicha tekshiradi
+  const readCtx = useMemo(() => st.items.filter((x) => x.type === "read").flatMap((x) => (x.lines as (string | string[])[] | undefined) || []).map((l) => (Array.isArray(l) ? l[1] : l)).join(" ").slice(0, 4000), [st]);
   useEffect(() => {
     if (!it) return;
     const t = sayAuto(it);
@@ -162,6 +168,18 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
   // 12-partiya (A5): baholanmaydigan (o'qish) qadam — har matn uchun 3 yulduzcha (avval 5 ta qat'iy edi)
   const stepXp = () => (graded ? Math.max(5, ok * 2 + okH) : Math.max(6, n * 3));
   const skip = () => { skipped.current = [...skipped.current, i]; tg.haptic("light"); next(); };
+  // 18.11.2026 (foydalanuvchi): variant tanlashda faqat TO'G'RI javobda ovoz chiqadi, so'ng ilova o'zi keyingi savolga o'tadi.
+  // Noto'g'ri javobda ovoz yo'q (Choose endi o'zi gapirmaydi). «Davom etish» qo'lda bosilsa — ikki marta o'tmaydi (live)
+  useEffect(() => {
+    if (ans !== true || !it || !AUTO_NEXT.has(it.type)) return;
+    let live = true;
+    const t = sayAfter(it);
+    void (async () => {
+      if (t) await sayWait(t); else await new Promise((r) => setTimeout(r, 1200));
+      if (live) next();
+    })();
+    return () => { live = false; };
+  }, [ans]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const head = (
     <>
@@ -186,8 +204,9 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
             {st.rule.p.map((p, k) => <p key={k} dangerouslySetInnerHTML={{ __html: p }} />)}
           </section>
         )}
+        {st.audio && <ListenGate lessonKey={lessonKey} si={si} k={st.audio} plays={st.plays || 2} onHeard={() => setHeard(true)} />}
         {introNew && <KbIntro L={L} st={st} lessonKey={lessonKey} unitN={unitN} />}
-        <button type="button" className="btn primary wide kb-next" onClick={startEx}>Mashqni boshlash</button>
+        <button type="button" className="btn primary wide kb-next" disabled={!!st.audio && !heard} onClick={startEx}>{st.audio && !heard ? "Avval audioni tinglang" : st.audio ? "Savollarga o'tish" : "Mashqni boshlash"}</button>
       </main>
     );
   }
@@ -223,7 +242,8 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
   const done = ans !== null;
   const isGraded = GRADED.includes(it.type);
   // Madina'da erkin javob ixtiyoriy: ustozga yubormasdan ham keyingisiga o'tish mumkin (natijaga ta'sir qilmaydi)
-  const optFree = it.type === "free" && freeOptional(lessonKey) && !freeSent;
+  // 18.11.2026: bittalab savollarda (FreeSeq) «Yubormasdan keyingisiga» yo'q — o'quvchi savollarni oxirigacha ishlaydi
+  const optFree = it.type === "free" && freeOptional(lessonKey) && !freeSent && !seqFree(st, it);
   const canNext = ["intro", "read", "ladder", "letter", "alphabet"].includes(it.type) ? true : it.type === "free" ? !!freeSent || optFree : it.type === "nokey" ? nk : done;
   const props = { it, done, ans, mark, tries };
   // 17.11.2026: kitobdagi joyi — «117-bet · ثانيا · 2-band» (bir xil joydagi bir necha savol bo'lsa, band raqami)
@@ -240,7 +260,7 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
       )}
       <section className="kb-card" key={i}>
         {it.b && <span className="kb-bet">{betParts(it.b)[0]}{betParts(it.b)[1] && <> · <Ar>{betParts(it.b)[1]}</Ar></>}{band && ` · ${band}`}</span>}
-        <div className="kb-ins">{it.ins ? <><Ar className="kb-ins-ar">{it.ins}</Ar><span>{it.insz || insUz(it.ins, it.type)}</span></> : <span>{tipOf(it.type)}</span>}</div>
+        <div className="kb-ins">{it.ins ? <><Ar className="kb-ins-ar">{it.ins}</Ar><span>{it.insz || (it.type === "free" && seqFree(st, it) ? "Har savolga ovoz yoki yozma javob bering — ilova tekshiradi" : insUz(it.ins, it.type))}</span></> : <span>{tipOf(it.type)}</span>}</div>
         {isImgPic(it.pic) && <KbImg src={it.pic!} />}
         {it.type === "nokey" && <NoKey it={it} picked={nk} onPick={() => setNk(true)} />}
         {it.type === "intro" && <Intro it={it} />}
@@ -252,7 +272,9 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
         {(it.type === "letters" || it.type === "order") && <Build {...props} />}
         {it.type === "match" && <Match {...props} />}
         {it.type === "classify" && <Classify {...props} />}
-        {it.type === "free" && <Free it={it} sent={freeSent} onSent={setFreeSent} sub={{ lesson: lessonKey, step: st.k, item: i, title }} />}
+        {it.type === "free" && (seqFree(st, it)
+          ? <FreeSeq it={it} ctx={readCtx} sent={freeSent} onSent={setFreeSent} sub={{ lesson: lessonKey, step: st.k, item: i, title }} />
+          : <Free it={it} sent={freeSent} onSent={setFreeSent} sub={{ lesson: lessonKey, step: st.k, item: i, title }} />)}
         {it.type === "hear" && <Hear {...props} />}
         {it.type === "trace" && <Trace {...props} />}
         {it.type === "ladder" && <Ladder {...props} />}
@@ -299,6 +321,10 @@ type P = { it: Prepared; done: boolean; ans: boolean | null; mark: (v: boolean) 
 
 /** qayta urinish beriladigan turlar (to'g'ri/noto'g'ri — ikki variantli, qayta urinish javobni ochib qo'yadi; match — o'z hisobi bor) */
 const RETRY = new Set(["choose", "qa", "listen1", "pick", "letters", "order", "classify"]);
+/** 18.11.2026: o'qish bo'limidagi savol qatorlari bor erkin javob — savollar bittalab (FreeSeq) */
+const seqFree = (st: KbStep, it: KbItem) => /^(oqish|qiroat|matn)/.test(st.k) && !!it.lines?.length;
+/** to'g'ri javobdan keyin ovoz → avtomatik keyingi savol (18.11.2026) */
+const AUTO_NEXT = new Set(["choose", "qa"]);
 /** 1-pog'ona: savolning o'zidan olingan ishora */
 function hintOf(it: Prepared): ReactNode {
   const many = (it.opts || []).length >= 4;
@@ -519,7 +545,7 @@ function NoKey({ it, picked, onPick }: { it: Prepared; picked: boolean; onPick: 
 }
 
 function Choose({ it, done, mark, tries }: P) {
-  const answer = (o: string) => { mark(o === it.ok); const t = sayAfter(it); if (t) void say(t); };
+  const answer = (o: string) => { mark(o === it.ok); }; // ovoz va keyingi savol — Run'da, faqat to'g'ri javobda
   return (
     <>
       {it.pic && !isImgPic(it.pic) && <div className="kb-pic"><Emo e={it.pic} size={88} /></div>}
@@ -734,6 +760,143 @@ function Free({ it, sent, onSent, sub }: { it: KbItem; sent: "srv" | "local" | n
         ? <p className="kb-sent"><Check size={18} aria-hidden />{sent === "local" ? "Saqlandi. Internet ulanganda ustozga yuboriladi." : "Ustozga yuborildi. Baho qo'yilgach, Telegram orqali xabar keladi."}</p>
         : <button type="button" className="btn primary wide" disabled={busy} onClick={() => void send()}><Send size={18} aria-hidden />{busy ? "Yuborilmoqda…" : "Ustozga yuborish"}</button>}
     </>
+  );
+}
+
+// 18.11.2026 (foydalanuvchi): o'qish bo'limidagi «matn asosida savollarga javob bering» — savollar BITTALAB chiqadi.
+// Har savolga: ovoz yoki ilovadagi arabcha (Saudiya tartibidagi) klaviatura; sun'iy intellekt (server aiAnswer) tekshiradi,
+// kitobdagi namuna javobni ko'rsatadi, so'ng keyingi savol. Oxirida hamma javoblar bitta xabar bo'lib ustozga boradi.
+// AI ishlamasa — javob saqlanadi va ustozga boradi (namuna javob baribir ko'rsatiladi).
+type SeqAns = { q: string; a: string; v?: AnswerRes["verdict"]; fb?: string };
+const VERD: Record<AnswerRes["verdict"], [string, string]> = { ok: ["To'g'ri", "ok"], partial: ["Qisman to'g'ri", "part"], no: ["Noto'g'ri", "no"] };
+function FreeSeq({ it, ctx, sent, onSent, sub }: { it: KbItem; ctx: string; sent: "srv" | "local" | null; onSent: (s: "srv" | "local") => void; sub: { lesson: string; step: string; item: number; title: string } }) {
+  const qs = useMemo(() => ((it.lines as (string | string[])[] | undefined) || []).map((l) => (Array.isArray(l) ? l[1] : l)), [it]);
+  const [k, setK] = useState(0);
+  const [mode, setMode] = useState<"voice" | "keys">("voice");
+  const [native, setNative] = useState(false); // telefonning o'z klaviaturasi
+  const [text, setText] = useState("");
+  const [voice, setVoice] = useState<{ blob: Blob; mime: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [res, setRes] = useState<AnswerRes | null>(null);
+  const [off, setOff] = useState("");
+  const [done, setDone] = useState<SeqAns[]>([]);
+  const lastVoice = useRef<{ blob: Blob; mime: string } | null>(null);
+  const q = qs[k] || "", model = it.ans?.[k] || "";
+  const ready = mode === "voice" ? !!voice : text.trim().length >= 2;
+  const check = async () => {
+    if (!ready) return;
+    setBusy(true); setOff("");
+    const r = await aiAnswer({ q, model, ctx, ...(mode === "voice" ? { b: voice!.blob } : { text: text.trim() }) });
+    if (isFail(r)) {
+      setOff(r.limit ? "Bugungi avtomatik tekshiruv chegarasi tugadi — javobingiz ustozga boradi." : "Avtomatik tekshiruv hozir ishlamadi — javobingiz ustozga boradi.");
+      if (mode === "voice") lastVoice.current = voice;
+      setDone((d) => [...d, { q, a: mode === "voice" ? "🎙 ovozli javob" : text.trim() }]);
+    } else {
+      setRes(r); tg.haptic(r.verdict === "ok" ? "success" : r.verdict === "partial" ? "light" : "error");
+      setDone((d) => [...d, { q, a: mode === "voice" ? r.heard : text.trim(), v: r.verdict, fb: r.feedback }]);
+    }
+    setBusy(false);
+  };
+  const next = async () => {
+    if (k + 1 < qs.length) { setK(k + 1); setText(""); setVoice(null); setRes(null); setOff(""); window.scrollTo(0, 0); return; }
+    // hammasi tugadi — ustozga bitta xabar
+    setBusy(true);
+    const body = done.map((d, j) => `${j + 1}) ${d.q}\n— ${d.a}${d.v ? ` · AI: ${VERD[d.v][0]}${d.fb ? ` (${d.fb})` : ""}` : ""}`).join("\n").slice(0, 1500);
+    try {
+      const lv = lastVoice.current;
+      onSent(await sendSub({ ...sub, text: body, ...(lv ? { audio: await blobB64(lv.blob), mime: lv.mime } : {}) }));
+      tg.haptic("success");
+    } catch { onSent("local"); }
+    setBusy(false);
+  };
+  if (sent) return <p className="kb-sent"><Check size={18} aria-hidden />{sent === "local" ? "Javoblar saqlandi. Internet ulanganda ustozga yuboriladi." : "Hamma javoblar ustozingizga yuborildi."}</p>;
+  const checked = !!res || !!off;
+  return (
+    <section className="kb-seq">
+      <span className="kb-seq-n">Savol {k + 1} / {qs.length}</span>
+      <div className="kb-seq-q"><SayBtn t={q} /><Ar>{q}</Ar></div>
+      {!checked && (
+        <>
+          <div className="seg kb-seq-mode" role="tablist" aria-label="Javob usuli">
+            <button type="button" role="tab" aria-selected={mode === "voice"} className={mode === "voice" ? "on" : ""} onClick={() => setMode("voice")}><Mic size={16} aria-hidden />Ovoz</button>
+            <button type="button" role="tab" aria-selected={mode === "keys"} className={mode === "keys" ? "on" : ""} onClick={() => setMode("keys")}><Keyboard size={16} aria-hidden />Yozish</button>
+          </div>
+          {mode === "voice"
+            ? <VoiceRec value={voice} onChange={setVoice} disabled={busy} label="Javobni arabcha ayting" max={60} priv="Javob tekshirish uchun yuboriladi va ustozingizga boradi." />
+            : (
+              <>
+                <textarea className="kb-free kb-seq-in" dir="rtl" lang="ar" rows={2} placeholder="Arabcha yozing" value={text} disabled={busy}
+                  inputMode={native ? "text" : "none"} onChange={(e) => setText(e.target.value)} />
+                {!native && <ArKbd onKey={(c) => setText((t) => t + c)} onBack={() => setText((t) => Array.from(t).slice(0, -1).join(""))} />}
+                <button type="button" className="kb-seq-native" onClick={() => setNative(!native)}>{native ? "Ilovadagi arabcha klaviatura" : "Telefonning o'z klaviaturasi"}</button>
+              </>
+            )}
+          <button type="button" className="btn primary wide" disabled={!ready || busy} onClick={() => void check()}><Send size={18} aria-hidden />{busy ? "Tekshirilmoqda…" : "Tekshirish"}</button>
+        </>
+      )}
+      {res && (
+        <div className={`kb-seq-res ${VERD[res.verdict][1]}`} role="status">
+          <b>{res.verdict === "ok" ? <Check size={18} strokeWidth={3} aria-hidden /> : res.verdict === "no" ? <X size={18} strokeWidth={3} aria-hidden /> : null}{VERD[res.verdict][0]}</b>
+          {res.heard && mode === "voice" && <span className="kb-seq-heard">Eshitildi: <Ar>{res.heard}</Ar></span>}
+          {res.feedback && <span>{res.feedback}</span>}
+          {res.fix && res.verdict !== "ok" && <span>To'g'risi: <Ar>{res.fix}</Ar></span>}
+        </div>
+      )}
+      {off && <p className="kb-seq-off" role="status">{off}</p>}
+      {checked && model && <details className="kb-model" open><summary>Kitobdagi namuna javob</summary><Mixed text={model} /></details>}
+      {checked && <button type="button" className="btn primary wide" disabled={busy} onClick={() => void next()}>{k + 1 < qs.length ? "Keyingi savol" : busy ? "Yuborilmoqda…" : "Tugatish"}</button>}
+    </section>
+  );
+}
+
+// 18.11.2026 (foydalanuvchi): tinglash bo'limi — kitob audiosi bo'lim boshida, faqat 2 marta eshitish mumkin; savollar audio
+// kamida bir marta oxirigacha eshitilgach ochiladi. Hisob shu kun uchun telefonda saqlanadi (chiqib qayta kirsa ham ortmaydi).
+// Audio berilmasa (guruhda emas yoki yuklanmagan) — savollarga o'tishga ruxsat, ogohlantirish bilan.
+function ListenGate({ lessonKey, si, k, plays, onHeard }: { lessonKey: string; si: number; k: string; plays: number; onHeard: () => void }) {
+  const key = `f.tl.${lessonKey}#${si}`;
+  const today = new Date().toISOString().slice(0, 10);
+  const [n, setN] = useState(() => { const v = store.get<{ d: string; n: number } | null>(key, null); return v && v.d === today ? v.n : 0; });
+  const [url, setUrl] = useState<string | null | undefined>(undefined);
+  const [err, setErr] = useState("");
+  const [playing, setPlaying] = useState(false);
+  const [pos, setPos] = useState(0);
+  const el = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => {
+    let live = true;
+    api<{ urls?: Record<string, string> }>("kitobAudio", { keys: [k], dir: lessonKey.replace(":", "/") })
+      .then((r) => { if (live) setUrl(r.urls?.[k] || null); })
+      .catch((e) => { if (live) { setErr(e instanceof Error ? e.message : ""); setUrl(null); } });
+    return () => { live = false; el.current?.pause(); };
+  }, [k, lessonKey]);
+  useEffect(() => { if (n > 0 || url === null) onHeard(); }, [url]); // eslint-disable-line react-hooks/exhaustive-deps
+  const play = () => {
+    if (!url || n >= plays || playing) return;
+    stopSay();
+    const a = el.current || new Audio(url);
+    el.current = a;
+    a.currentTime = 0;
+    a.ontimeupdate = () => setPos(a.duration ? a.currentTime / a.duration : 0);
+    a.onended = () => { setPlaying(false); setPos(1); onHeard(); tg.haptic("success"); };
+    const nn = n + 1;
+    setN(nn); store.set(key, { d: today, n: nn }); // eshitish boshlanganda sanaladi
+    void a.play().then(() => setPlaying(true)).catch(() => { setPlaying(false); });
+  };
+  const left = Math.max(0, plays - n);
+  return (
+    <section className="kb-card kb-lg" aria-label="Tinglash">
+      {url === undefined && <p className="muted">Audio yuklanmoqda…</p>}
+      {url === null && <p className="kb-lg-off">{err || "Bu audio hozircha ilovada yo'q."} Matnni darsda ustoz qo'yib beradi — keyin savollarga javob bering.</p>}
+      {url && (
+        <>
+          <button type="button" className="kb-lg-play" aria-label={playing ? "Eshitilmoqda" : "Tinglash"} disabled={playing || left === 0} onClick={play}>
+            {playing ? <Pause size={30} aria-hidden /> : <Play size={30} aria-hidden />}
+          </button>
+          <span className="kb-lg-bar"><i style={{ width: `${Math.round(pos * 100)}%` }} /></span>
+          <span className="kb-lg-dots" aria-live="polite">{Array.from({ length: plays }, (_, j) => <b key={j} className={j < n ? "on" : ""} />)}{n} / {plays} marta eshitildi</span>
+          <p className="kb-lg-note">{left > 0 ? `Diqqat bilan tinglang: audio yana ${left} marta qo'yiladi. Savollar boshlangach, qayta eshitib bo'lmaydi.` : "Audio 2 marta eshitildi. Endi savollarga javob bering."}</p>
+        </>
+      )}
+    </section>
   );
 }
 

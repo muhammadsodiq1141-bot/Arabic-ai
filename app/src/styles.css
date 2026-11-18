@@ -2649,3 +2649,54 @@ html.obscured .app { filter: blur(22px); }
 .kb-zoom .ibtn { position: absolute; top: calc(12px + env(safe-area-inset-top)); right: 12px; }
 .opt.sel { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 16%, var(--card)); }
 .kb-nk { margin: 10px 0 0; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--gold) 16%, var(--card)); font-size: 14px; font-weight: 600; }
+/* 18.11.2026: talaffuzni ilova tekshiradi — natija qatori */
+.r-ai { display: flex; align-items: center; gap: 8px; margin: 10px auto 0; padding: 10px 14px; border-radius: 14px; font-weight: 700; font-size: 15px; max-width: 360px; }
+.r-ai.ok { background: var(--ok-bg); color: var(--ok-line); }
+.r-ai.no { background: var(--no-bg); color: var(--no-line); }
+.r-ai.off { background: var(--soft); color: var(--muted); font-weight: 600; font-size: 14px; }
+/* 18.11.2026: «Matn bilan ishlash» — Xulosa (AI bahosi) */
+.tw-x { display: flex; flex-direction: column; gap: 10px; }
+.tw-x-total { align-self: center; font-size: 46px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+.tw-x-total small { font-size: 20px; color: var(--muted); }
+.tw-x-crit { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; margin: 0; font-size: 14.5px; }
+.tw-x-crit dt { color: var(--muted); }
+.tw-x-crit dd { margin: 0; font-weight: 800; font-variant-numeric: tabular-nums; }
+.tw-x-fb { margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--ok-bg); font-size: 14.5px; line-height: 1.5; }
+.tw-x-heard { margin: 0; font-size: 13px; color: var(--muted); }
+.tw-x-heard .ar { font-size: 17px; color: var(--ink); }
+.tw-x-note { margin: 8px 0; padding: 10px 12px; border-radius: 12px; background: var(--soft); font-size: 14px; }
+/* 18.11.2026: o'qish savollari bittalab (FreeSeq) va ilova arabcha klaviaturasi (Saudiya tartibi) */
+.kb-seq { display: flex; flex-direction: column; gap: 12px; }
+.kb-seq-n { align-self: flex-start; font-size: 12.5px; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
+.kb-seq-q { display: flex; align-items: flex-start; gap: 10px; }
+.kb-seq-q .ar { flex: 1; font-size: 21px; line-height: 1.8; text-align: right; }
+.kb-seq-mode button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.kb-seq-in { font-size: 20px; min-height: 64px; }
+.kb-seq-native { align-self: center; border: 0; background: none; color: var(--accent); font-weight: 700; font-size: 13.5px; text-decoration: underline; padding: 4px; }
+.kb-seq-res { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 14px; font-size: 14.5px; line-height: 1.5; }
+.kb-seq-res b { display: flex; align-items: center; gap: 6px; font-size: 16px; }
+.kb-seq-res.ok { background: var(--ok-bg); color: var(--ink); }
+.kb-seq-res.ok b { color: var(--ok-line); }
+.kb-seq-res.part { background: color-mix(in srgb, var(--gold) 18%, var(--card)); }
+.kb-seq-res.no { background: var(--no-bg); }
+.kb-seq-res.no b { color: var(--no-line); }
+.kb-seq-res .ar { font-size: 18px; }
+.kb-seq-heard { color: var(--muted); }
+.kb-seq-off { margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--soft); font-size: 14px; }
+.akb { display: flex; flex-direction: column; gap: 6px; padding: 8px 4px; border-radius: 14px; background: var(--soft); user-select: none; -webkit-user-select: none; }
+.akb-r { display: flex; gap: 4px; justify-content: center; }
+.akb-r button { flex: 1 1 0; min-width: 0; max-width: 40px; height: 44px; border: 0; border-radius: 8px; background: var(--card); color: var(--ink); font-family: "Noto Naskh Arabic", "Sakkal Majalla", serif; font-size: 20px; line-height: 1; box-shadow: 0 1px 0 rgba(0, 0, 0, .18); touch-action: manipulation; }
+.akb-r button:active { background: var(--gold); }
+.akb-r .akb-del { max-width: 52px; flex-grow: 1.4; display: grid; place-items: center; }
+.akb-r .akb-sp { max-width: none; flex-grow: 3; font-family: inherit; font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+/* 18.11.2026: tinglash bo'limi — audio 2 marta */
+.kb-lg { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.kb-lg-play { width: 76px; height: 76px; border-radius: 50%; border: 0; background: var(--gold); color: #2A2418; display: grid; place-items: center; box-shadow: 0 8px 18px -10px rgba(0, 0, 0, .5); }
+.kb-lg-play:disabled { opacity: .45; }
+.kb-lg-bar { width: 100%; height: 6px; border-radius: 3px; background: var(--soft); overflow: hidden; }
+.kb-lg-bar i { display: block; height: 100%; background: var(--gold); transition: width .25s linear; }
+.kb-lg-dots { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
+.kb-lg-dots b { width: 12px; height: 12px; border-radius: 50%; background: var(--soft); }
+.kb-lg-dots b.on { background: var(--gold); }
+.kb-lg-note, .kb-lg-off { margin: 0; font-size: 14px; text-align: center; color: var(--muted); }
+.kb-lg-off { padding: 10px 12px; border-radius: 12px; background: var(--soft); color: var(--ink); }

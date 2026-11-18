@@ -20,7 +20,8 @@ export type KbItem = {
   insz?: string; // shu savol uchun ko'rsatmaning o'zbekchasi (kitob «اكْتُبْ» desa-yu, ilovada tanlab bajarilsa — umumiy «Yozing» chalg'itmasin)
 };
 /** bet — kitob betlari («116–118»); vahda sahifasida bo'lim yonida ko'rinadi */
-export type KbStep = { k: string; t: string; ar?: string; d?: string; bet?: string; rule?: { h: string; p: string[] }; items: KbItem[] };
+/** audio — tinglash bo'limi: kitob audiosi kaliti (kitob ombori, sha1), plays — necha marta eshitish mumkin (asli 2) */
+export type KbStep = { k: string; t: string; ar?: string; d?: string; bet?: string; audio?: string; plays?: number; rule?: { h: string; p: string[] }; items: KbItem[] };
 /** v + remap: bo'limlar tartibi o'zgarganda eski natijalar (f.kb.<kalit>, bo'lim raqami bo'yicha) yangi raqamlarga ko'chiriladi */
 export type KbLesson = { title: string; uz: string; book?: string; v?: number; remap?: Record<string, number[]>; steps: KbStep[] };
 

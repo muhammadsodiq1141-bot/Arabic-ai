@@ -3,7 +3,7 @@
 //   rl: rg paydo bo'lgunga qadar o'qishlar soni (eski yozuv), s: aytib bo'lgan vaqti, w: o'z gaplari }
 import { store } from "./store";
 
-export type TwProg = { l: number; r: number[]; rg?: Record<string, number[]>; rl?: number; s?: number; w?: number };
+export type TwProg = { l: number; r: number[]; rg?: Record<string, number[]>; rl?: number; s?: number; w?: number; x?: number }; // x — «Xulosa» AI bahosi (eng yaxshisi, /10)
 export const twKey = (book: string, unit: number) => `f.tw.${book}:${unit}`;
 export const twGet = (book: string, unit: number) => store.get<TwProg>(twKey(book, unit), { l: 0, r: [] });
 export const twSet = (book: string, unit: number, p: TwProg) => store.set(twKey(book, unit), p);

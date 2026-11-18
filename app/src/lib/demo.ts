@@ -99,6 +99,16 @@ export async function demoApi(action: string, p: Record<string, unknown>): Promi
     return { ok: true, urls: u ? Object.fromEntries(((p.keys as string[]) || []).filter((_, i) => i % 4 !== 1).map((k) => [k, u])) : {} };
   }
   if (action === "tts") throw new Error("demo: server ovozi yo'q"); // telefonning o'z ovoziga o'tadi
+  // 18.11.2026: sun'iy intellekt tekshiruvi (sinov). window.__demoAi = "pass" | "fail" | "limit" (yo'q bo'lsa — pass)
+  if (action === "aiSay" || action === "aiAnswer" || action === "aiSummary") {
+    const m = (window as unknown as { __demoAi?: string }).__demoAi || "pass";
+    await new Promise((r) => setTimeout(r, 600));
+    if (m === "limit") { const { ApiError } = await import("./api"); throw new ApiError("Bugungi AI tekshiruv chegarasi tugadi", 200, { limit: true }); }
+    const good = m === "pass";
+    if (action === "aiSay") return { ok: true, pass: good, heard: good ? String(p.word || "") : "يُسافِرُ", tip: good ? "" : "Oxiridagi «بُ» ni aniqroq ayting." };
+    if (action === "aiAnswer") return { ok: true, verdict: good ? "ok" : "partial", heard: String(p.text || "لِأَنَّهُ يَبْحَثُ عَنْ عَمَلٍ"), feedback: good ? "Ma'no to'g'ri, javobingiz matnga mos." : "Ma'no qisman to'g'ri: sababini ham ayting.", fix: String(p.model || "") };
+    return { ok: true, heard: "عامِرٌ يَبْحَثُ عَنْ عَمَلٍ في الجَريدَةِ، وَبَكْرٌ يَقولُ إِنَّ الإِنْتَرْنِتَ أَسْرَعُ.", content: good ? 4 : 2, language: 2, fluency: 2, total: good ? 8 : 6, feedback: "Asosiy fikr bor: Omir ish qidiryapti, e'lonlar endi internetda. Fe'llarni to'g'ri shaklda ishlating." };
+  }
   if (action === "subSend") return { ok: true, id: 1 };
   if (action.startsWith("duel")) return duelDemo(action, p);
   return { ok: true }; // sync va boshqalar

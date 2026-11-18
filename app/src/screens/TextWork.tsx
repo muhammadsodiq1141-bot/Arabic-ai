@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BookOpenText, Check, Headphones, Mic, Pause, Play, RotateCcw, Send, Timer, Volume2, X } from "lucide-react";
 import { blobB64, sendSub } from "../lib/kb";
+import { aiSummary, isFail, type SummaryRes } from "../lib/ai";
 import { clean, kitobUrls, say, sha1, TTS_BASE } from "../lib/audio";
 import { loadData } from "../lib/data";
 import { loadLex, lookup, nk, type Lex } from "../lib/lex";
@@ -144,7 +145,7 @@ export function TextWorkScreen({ bookId, unitN, m = "chain", gi: gp = 0 }: { boo
   if (mode === "listen") return <Listen g={g} aud={aud} loading={urls === null} why={why} onBack={() => setMode("chain")} onDone={listened} onNext={() => setMode("read")} />;
   if (mode === "read") return <ReadTimes g={g} n={nWords} cap={WPM_MAX[bookId] || 200} prog={prog} onSave={(wpm) => { save(twAddRead(prog, g.key, wpm)); gain("mtext", 3); }} onBack={() => setMode("chain")} />;
   if (mode === "say") return <Say bookId={bookId} unitN={unitN} g={g} n={nWords} aud={aud} onBack={() => setMode("chain")} onSent={() => { if (!prog.s) gain("mtext", 8); save({ ...prog, s: Date.now() }); setMode("chain"); }} />;
-  if (mode === "own") return <Own bookId={bookId} unitN={unitN} onBack={() => setMode("chain")} onSent={() => { if (!prog.w) gain("mtext", 5); save({ ...prog, w: Date.now() }); setMode("chain"); }} />;
+  if (mode === "own") return <Xulosa bookId={bookId} unitN={unitN} g={g} onBack={() => setMode("chain")} onSent={(sc) => { if (!prog.w) gain("mtext", 5); save({ ...prog, w: Date.now(), x: sc === null ? prog.x : Math.max(prog.x ?? 0, sc) }); setMode("chain"); }} />;
 
   const reads = twReads(prog), mine = twOf(prog, g.key);
   const step = prog.l < 1 ? 0 : reads < 3 ? 1 : !prog.s ? 2 : 3;
@@ -170,11 +171,12 @@ export function TextWorkScreen({ bookId, unitN, m = "chain", gi: gp = 0 }: { boo
           <i aria-hidden>{prog.s ? <Check size={14} strokeWidth={3} /> : 3}</i>
           <span><b>Ayt</b><small>{prog.s ? "bajarildi" : "o'zingiz o'qib yozib oling · asl ovoz bilan solishtiring"}</small></span>
           <Mic size={18} aria-hidden /></button></li>
+        <li className={`${prog.w ? "dn" : ""}${step === 3 && !prog.w ? " now" : ""}`}><button type="button" onClick={() => setMode("own")}>
+          <i aria-hidden>{prog.w ? <Check size={14} strokeWidth={3} /> : 4}</i>
+          <span><b>Xulosa</b><small>{prog.x !== undefined ? `baho: ${prog.x}/10 · yana aytsangiz bo'ladi` : prog.w ? "yuborildi" : "matn mazmunini 30–60 soniyada arabcha aytib bering"}</small></span>
+          <BookOpenText size={18} aria-hidden /></button></li>
       </ol>
       {mine.length > 1 && <Bars v={mine.slice(-3)} />}
-      <button type="button" className="rowbtn tw-own" onClick={() => setMode("own")}>
-        <BookOpenText size={22} aria-hidden /><span><b>Qo'shimcha · o'z gaplaringiz</b><small>{prog.w ? "bajarildi" : "Matndagi 5 ta so'z bilan o'z gaplaringizni yozing (ixtiyoriy)"}</small></span>
-      </button>
     </main>
   );
 }
@@ -353,26 +355,56 @@ function Say({ bookId, unitN, g, n, aud, onBack, onSent }: { bookId: string; uni
 }
 
 // ===== Tanlov: o'z gaplari =====
-function Own({ bookId, unitN, onBack, onSent }: { bookId: string; unitN: number; onBack: () => void; onSent: () => void }) {
+// 18.11.2026 (foydalanuvchi): «Qo'shimcha · o'z gaplaringiz» o'rniga «Xulosa» — o'quvchi matn mazmunini ovoz bilan aytib beradi,
+// sun'iy intellekt (server aiSummary) 10 ballik baholaydi: mazmun 4 + til 3 + ravonlik 3. Yozuv ustozga ham boradi (guruhda bo'lsa).
+// AI ishlamasa (chegara, internet) — faqat ustozga yuboriladi.
+function Xulosa({ bookId, unitN, g, onBack, onSent }: { bookId: string; unitN: number; g: Group; onBack: () => void; onSent: (score: number | null) => void }) {
   const { me } = useSession();
-  const [text, setText] = useState("");
+  const [rec, setRec] = useState<{ blob: Blob; mime: string } | null>(null);
   const [busy, setBusy] = useState(false);
-  const send = async () => {
-    if (text.trim().length < 5) { toast("Gaplaringizni yozing"); return; }
-    if (!me?.group) { tg.haptic("success"); toast("Barakalla!"); onSent(); return; }
-    setBusy(true);
-    try {
-      await sendSub({ lesson: `read:${bookId}:${unitN}`, step: "read", item: 1, text: text.trim().slice(0, 1500), title: `O'z gaplari · ${unitN}-vahda` });
-      tg.haptic("success"); toast("Ustozingizga yuborildi"); onSent();
-    } catch (e) { toast(e instanceof Error ? e.message : "Yuborilmadi"); }
+  const [res, setRes] = useState<SummaryRes | null>(null);
+  const [note, setNote] = useState("");
+  const ctx = g.lines.map((l) => l.ar).join(" ");
+  const check = async () => {
+    if (!rec) return;
+    setBusy(true); setNote("");
+    const r = await aiSummary(rec.blob, ctx, g.title || `${unitN}-vahda matni`);
+    const ok = !isFail(r);
+    if (ok) { setRes(r); tg.haptic("success"); } else setNote(r.limit ? "Bugungi avtomatik tekshiruv chegarasi tugadi — ustozingiz baholaydi." : "Avtomatik tekshiruv hozir ishlamadi — ustozingiz baholaydi.");
+    if (me?.group) {
+      const text = ok ? `Xulosa · AI bahosi ${r.total}/10 (mazmun ${r.content}/4, til ${r.language}/3, ravonlik ${r.fluency}/3). ${r.feedback}` : "Xulosa (ovozli)";
+      try { await sendSub({ lesson: `read:${bookId}:${unitN}`, step: "read", item: 2, text: text.slice(0, 1500), title: `Xulosa · ${unitN}-vahda`, audio: await blobB64(rec.blob), mime: rec.mime }); }
+      catch { /* AI natijasi baribir ko'rsatiladi */ }
+    }
     setBusy(false);
+    if (!ok) { onSent(null); toast(me?.group ? "Ustozingizga yuborildi" : "Yozib olindi"); }
   };
   return (
     <main className="screen tw">
-      <ScreenHeader title="O'z gaplaringiz" ar="جُمَلِي" onBack={onBack} />
-      <p className="pf-note">Matndagi 5 ta so'zni tanlab, ular bilan o'z gaplaringizni arabcha yozing.{me?.group ? " Ustozingiz tekshiradi." : ""}</p>
-      <section className="card form"><label htmlFor="tw-own">Gaplaringiz<textarea id="tw-own" rows={5} dir="auto" maxLength={1500} value={text} onChange={(e) => setText(e.target.value)} /></label></section>
-      <button type="button" className="btn primary wide" disabled={busy || text.trim().length < 5} onClick={() => void send()}><Send size={18} aria-hidden />{busy ? "Yuborilmoqda…" : me?.group ? "Ustozga yuborish" : "Tugatdim"}</button>
+      <ScreenHeader title="Xulosa" ar="الْخُلَاصَةُ" onBack={onBack} />
+      {!res ? (
+        <>
+          <p className="pf-note">Matnni o'qib bo'ldingiz. Endi uning mazmunini o'z so'zlaringiz bilan arabcha aytib bering: kim, nima, qayerda, nega. 30–60 soniya yetarli.</p>
+          <VoiceRec value={rec} onChange={setRec} disabled={busy} label="Xulosani ovoz bilan aytish" max={90} priv={me?.group ? "Yozuv tekshirish uchun yuboriladi va ustozingizga boradi." : "Yozuv faqat tekshirish uchun yuboriladi."} />
+          {note && <p className="tw-x-note" role="status">{note}</p>}
+          <button type="button" className="btn primary wide" disabled={!rec || busy} onClick={() => void check()}><Send size={18} aria-hidden />{busy ? "Tekshirilmoqda…" : "Tekshirish"}</button>
+        </>
+      ) : (
+        <section className="card tw-x" aria-live="polite">
+          <span className="tw-x-total">{res.total}<small> / 10</small></span>
+          <dl className="tw-x-crit">
+            <dt>Mazmun (asosiy fikrlar)</dt><dd>{res.content} / 4</dd>
+            <dt>Til (grammatika, so'zlar)</dt><dd>{res.language} / 3</dd>
+            <dt>Ravonlik</dt><dd>{res.fluency} / 3</dd>
+          </dl>
+          {res.feedback && <p className="tw-x-fb">{res.feedback}</p>}
+          {res.heard && <p className="tw-x-heard"><span>Eshitildi:</span> <Ar>{res.heard}</Ar></p>}
+          <div className="r-cmp two">
+            <button type="button" className="btn ghost" onClick={() => { setRes(null); setRec(null); }}><RotateCcw size={18} aria-hidden />Qayta aytish</button>
+            <button type="button" className="btn primary" onClick={() => onSent(res.total)}><Check size={18} aria-hidden />Tayyor</button>
+          </div>
+        </section>
+      )}
     </main>
   );
 }
