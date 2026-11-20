@@ -72,7 +72,8 @@ export function KbIntro({ L, st, lessonKey, unitN, onClose }: { L: KbLesson; st:
     : /^nazorat/.test(st.k) ? <>{BOOK[b] || b} · {unitN}-vahda bo'yicha yakuniy test</>
     : first?.b ? <>{BOOK[b] || b} · {unitN}-vahda · {betParts(first.b)[0]}{betParts(first.b)[1] && <> · <Ar>{betParts(first.b)[1]}</Ar></>}</>
     : <>{BOOK[b] || b} · {unitN}-vahda · {lbl.ar ? <>«<Ar>{lbl.ar}</Ar>» bo'limi</> : lbl.name}</>;
-  const demo = first ? demoOf(first) : null;
+  // 20.11.2026: tinglash bo'limida namuna ko'rsatilmaydi — audio eshitilmasdan 1-savol javobi ochilib qolardi
+  const demo = first && !st.audio ? demoOf(first) : null;
   const kinds = new Set(st.items.filter((x) => GRADED.includes(x.type) || x.type === "free").map((x) => x.type)).size;
   return (
     <section className={`kbi${onClose ? " sheet" : ""}`} aria-label="Bu mashq haqida">

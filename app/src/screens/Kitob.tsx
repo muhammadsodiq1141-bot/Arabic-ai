@@ -359,18 +359,20 @@ function Mixed({ text, className = "" }: { text: string; className?: string }) {
   );
 }
 
-function Opts({ opts, ok, done, tries, onPick }: { opts: string[]; ok: string; done: boolean; tries: number; onPick: (o: string) => void }) {
+function Opts({ opts, ok, alt, done, tries, onPick }: { opts: string[]; ok: string; alt?: string[]; done: boolean; tries: number; onPick: (o: string) => void }) {
   const [pick, setPick] = useState<string | null>(null);
   const [bad, setBad] = useState<string[]>([]); // xato tanlanganlar (qayta urinishda yopiq)
+  // 20.11.2026: alt — kitob qoidasiga ko'ra ham to'g'ri bo'lgan boshqa javob(lar) (masalan «يَجوزُ»: واسِعَةٌ / واسِعاتٌ)
+  const right = (o: string) => o === ok || !!alt?.includes(o);
   // ishora: 4 va undan ko'p variantda yana bitta xato variant o'chiriladi
-  const cut = tries && !done && opts.length >= 4 ? opts.find((o) => o !== ok && !bad.includes(o)) : undefined;
+  const cut = tries && !done && opts.length >= 4 ? opts.find((o) => !right(o) && !bad.includes(o)) : undefined;
   return (
     <div className="r-opts">
       {opts.map((o) => {
-        const s = done ? (o === ok ? "ok" : o === pick || bad.includes(o) ? "no" : "dim") : bad.includes(o) ? "no" : o === cut ? "dim" : "";
+        const s = done ? (right(o) ? "ok" : o === pick || bad.includes(o) ? "no" : "dim") : bad.includes(o) ? "no" : o === cut ? "dim" : "";
         return (
           <button key={o} type="button" className={`opt ${s} ${isAr(o) ? "opt-r" : ""}`} disabled={done || bad.includes(o) || o === cut}
-            onClick={() => { setPick(o); if (o !== ok) setBad([...bad, o]); onPick(o); }}>
+            onClick={() => { setPick(o); if (!right(o)) setBad([...bad, o]); onPick(o); }}>
             {isAr(o) ? <Ar className="opt-ar">{o}</Ar> : o}
             <Mark s={s} />
           </button>
@@ -545,14 +547,14 @@ function NoKey({ it, picked, onPick }: { it: Prepared; picked: boolean; onPick: 
 }
 
 function Choose({ it, done, mark, tries }: P) {
-  const answer = (o: string) => { mark(o === it.ok); }; // ovoz va keyingi savol — Run'da, faqat to'g'ri javobda
+  const answer = (o: string) => { mark(o === it.ok || !!it.alt?.includes(o)); }; // ovoz va keyingi savol — Run'da, faqat to'g'ri javobda
   return (
     <>
       {it.pic && !isImgPic(it.pic) && <div className="kb-pic"><Emo e={it.pic} size={88} /></div>}
       {it.say && <div className="kb-q"><SayBtn t={it.say} big /></div>}
       {it.q && <Mixed text={it.q} />}
       {it.qz && <p className="kb-uz">{it.qz}</p>}
-      <Opts opts={it.opts || []} ok={String(it.ok)} done={done} tries={tries} onPick={answer} />
+      <Opts opts={it.opts || []} ok={String(it.ok)} alt={it.alt} done={done} tries={tries} onPick={answer} />
       {done && it.full && <div className="kb-full"><SayBtn t={it.full} /><span><Ar>{it.full}</Ar>{it.fz && <small>{it.fz}</small>}</span></div>}
     </>
   );
