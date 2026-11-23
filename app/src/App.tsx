@@ -4,7 +4,7 @@ import { useTheme } from "./state/theme";
 import { usePrivacy, Watermark } from "./ui/Guard";
 import { Logo } from "./ui/kit";
 import { Toaster } from "./ui/Toast";
-import { NoAuth, Pending, Problem, Register, Rejected } from "./screens/Gate";
+import { Blocked, NoAuth, Pending, Problem, Register, Rejected } from "./screens/Gate";
 import { Main } from "./screens/Main";
 import { MotivHost } from "./screens/Motiv";
 import { CoachHost } from "./screens/Onboard";
@@ -16,6 +16,7 @@ function Gate() {
   if (phase === "register") return <Register />;
   if (phase === "pending") return <Pending />;
   if (phase === "rejected") return <Rejected />;
+  if (phase === "blocked") return <Blocked />;
   if (phase === "error") return <Problem />;
   return (
     <NavProvider>

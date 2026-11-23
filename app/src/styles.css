@@ -1168,6 +1168,10 @@ html.obscured .app { filter: blur(22px); }
 .ad-sheet dl div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 2px; border-top: 1px solid var(--line); font-size: 14px; }
 .ad-sheet dt { color: var(--muted); font-weight: 600; }
 .ad-sheet dd { margin: 0; font-weight: 800; text-align: right; }
+/* 23.11.2026: ilovadan chiqarish */
+.ad-out { display: inline-flex; align-items: center; gap: 5px; color: var(--bad); font-weight: 700; font-size: 13px; font-style: normal; }
+.ad-sheet .ad-kick { margin-top: 10px; }
+.ad-sure { margin: 10px 4px 4px; font-size: 15px; line-height: 1.45; color: var(--ink); }
 .ad-kup { display: flex; flex-direction: column; gap: 10px; }
 .ad-kup > p { margin: 0; color: var(--muted); font-size: 13.5px; font-weight: 600; line-height: 1.5; }
 .ad-kup > p b { color: var(--ink); }

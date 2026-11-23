@@ -1,7 +1,7 @@
 // Bosh admin paneli: umumiy raqamlar (adminOverview), kirish so'rovlari, ustozlik so'rovlari va ustozlar (adminTeachers, adminSetTeacher),
 // foydalanuvchilar ro'yxati (adminUsers), guruhlar (bosilsa — guruh paneli), kitob audiosini yuklash (kitobPut, kitobCount).
 import { useEffect, useMemo, useState } from "react";
-import { Bug, Check, ChevronRight, Coins, FileAudio, Gift, MessageSquareHeart, GraduationCap, Search, UserCheck, Users, X } from "lucide-react";
+import { Bug, Check, ChevronRight, Coins, FileAudio, Gift, MessageSquareHeart, GraduationCap, Search, UserCheck, UserX, Users, X } from "lucide-react";
 import { api } from "../lib/api";
 import { weekId } from "../lib/progress";
 import { tg } from "../lib/tg";
@@ -14,7 +14,8 @@ type Totals = { students: number; teachers: number; groups: number; today: numbe
 type OGroup = { code: string; title: string; teacher: string; n: number; today: number; week: number; xp: number; words: number };
 type Overview = { totals: Totals; levels: Record<string, number>; teachers: { name: string; groups: number; n: number; week: number; last: string | null }[]; groups: OGroup[] };
 type TRow = { id: string; name: string; login: string; level: string; at: string | null; note: string; byGroup?: boolean };
-type URow = { tg: number | null; name: string; full: string; user: string; level: string; group: string; teacher: boolean; seen: string | null; at: string | null; words: number | null };
+type URow = { tg: number | null; name: string; full: string; user: string; level: string; group: string; teacher: boolean; seen: string | null; at: string | null; words: number | null;
+  sid?: string; st?: string; admin?: boolean; kg?: string; kicked?: string | null }; // 23.11.2026: chiqarish (st "blocked", kg — oldingi guruhi)
 
 const ago = (t: string | null) => {
   if (!t) return "—";
@@ -214,29 +215,53 @@ export function AdminTeachersScreen() {
 }
 
 // ===== Foydalanuvchilar =====
-type UF = "all" | "today" | "new" | "nogroup" | "teachers";
-const UF_L: [UF, string][] = [["all", "Hammasi"], ["today", "Bugun"], ["new", "Yangi"], ["nogroup", "Guruhsiz"], ["teachers", "Ustozlar"]];
+// 23.11.2026: «Chiqarilganlar» — bosh admin ilovadan chiqargan odamlar (boshqa filtrlarda ko'rinmaydi); har kim bosilsa oyna ochiladi.
+type UF = "all" | "today" | "new" | "nogroup" | "teachers" | "kicked";
+const UF_L: [UF, string][] = [["all", "Hammasi"], ["today", "Bugun"], ["new", "Yangi"], ["nogroup", "Guruhsiz"], ["teachers", "Ustozlar"], ["kicked", "Chiqarilganlar"]];
+const uName = (u: URow) => u.full || u.name || "Ismsiz";
 
 export function AdminUsersScreen() {
   const [list, setList] = useState<URow[] | null | "err">(null);
   const [q, setQ] = useState("");
   const [f, setF] = useState<UF>("all");
   const [open, setOpen] = useState<URow | null>(null);
+  const [sure, setSure] = useState(false); // chiqarishni tasdiqlash bosqichi
+  const [busy, setBusy] = useState(false);
   useEffect(() => { api<{ users: URow[] }>("adminUsers").then((r) => setList(r.users || [])).catch(() => setList("err")); }, []);
+  const kickedN = list && list !== "err" ? list.filter((u) => u.st === "blocked").length : 0;
   const shown = useMemo(() => {
     if (!list || list === "err") return [];
     const s = q.trim().toLowerCase().replace(/^@/, "");
     const day = (t: string | null) => (t ? (Date.now() - new Date(t).getTime()) / 864e5 : 1e9);
-    return list.filter((u) => (f === "all" || (f === "today" && day(u.seen) < 1) || (f === "new" && day(u.at) < 7) || (f === "nogroup" && !u.group) || (f === "teachers" && u.teacher))
-      && (!s || `${u.full} ${u.name} ${u.user} ${u.group}`.toLowerCase().includes(s)));
+    return list.filter((u) => (f === "kicked" ? u.st === "blocked" : u.st !== "blocked"
+        && (f === "all" || (f === "today" && day(u.seen) < 1) || (f === "new" && day(u.at) < 7) || (f === "nogroup" && !u.group) || (f === "teachers" && u.teacher)))
+      && (!s || `${u.full} ${u.name} ${u.user} ${u.group} ${u.kg || ""}`.toLowerCase().includes(s)));
   }, [list, q, f]);
-  const tap = (u: URow) => { if (u.user) tg.openLink(`https://t.me/${u.user}`); else setOpen(u); };
+  const tap = (u: URow) => { setSure(false); setOpen(u); };
+  const close = () => { if (busy) return; setOpen(null); setSure(false); };
+  const profile = (u: URow) => { if (u.user) tg.openLink(`https://t.me/${u.user}`); else if (u.tg) window.location.href = `tg://user?id=${u.tg}`; };
+  const act = async (u: URow, kick: boolean) => {
+    if (!u.sid || busy) return;
+    setBusy(true);
+    try {
+      const r = await api<{ group?: string | null }>(kick ? "adminKick" : "adminRestore", { sid: u.sid });
+      const nu: URow = kick
+        ? { ...u, st: "blocked", kg: u.group, group: "", kicked: new Date().toISOString() }
+        : { ...u, st: "approved", group: r.group ? u.kg || "" : "", kg: "", kicked: null };
+      setList((l) => (l && l !== "err" ? l.map((x) => (x.sid === u.sid ? nu : x)) : l));
+      tg.haptic(kick ? "medium" : "success");
+      toast(kick ? `${uName(u)} ilovadan chiqarildi` : `${uName(u)} qaytarildi${r.group ? " va guruhiga qo'shildi" : ""}`);
+      setOpen(null); setSure(false);
+    } catch (e) { toast(errText(e)); }
+    setBusy(false);
+  };
   return (
     <main className="screen">
       <ScreenHeader title="Foydalanuvchilar" ar="الْمُسْتَخْدِمُونَ" />
       <label className="ad-search"><Search size={18} aria-hidden /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ism, @username yoki guruh" aria-label="Foydalanuvchi qidirish" /></label>
       <div className="chips" role="group" aria-label="Filtr">
-        {UF_L.map(([k, l]) => <button key={k} type="button" className={f === k ? "on" : ""} aria-pressed={f === k} onClick={() => setF(k)}>{l}</button>)}
+        {UF_L.map(([k, l]) => (k === "kicked" && !kickedN && f !== "kicked") ? null
+          : <button key={k} type="button" className={f === k ? "on" : ""} aria-pressed={f === k} onClick={() => setF(k)}>{l}{k === "kicked" ? <b>{kickedN}</b> : null}</button>)}
       </div>
       {list === null && <p className="muted pad">Yuklanmoqda…</p>}
       {list === "err" && <p className="err">Ro'yxat yuklanmadi. Internetni tekshiring.</p>}
@@ -247,31 +272,50 @@ export function AdminUsersScreen() {
           <li key={`${u.tg}-${i}`}>
             <button type="button" className="srow ad-u" onClick={() => tap(u)}>
               <Avatar name={u.full || u.name} size={40} />
-              <span className="st"><b>{u.full || u.name || "—"}{u.teacher ? " · ustoz" : ""}</b><span>{[u.user && `@${u.user}`, u.level, u.group || "guruhsiz"].filter(Boolean).join(" · ")}</span><span>{ago(u.seen)}{u.words !== null ? ` · ${u.words} so'z` : ""}</span></span>
+              <span className="st"><b>{u.full || u.name || "—"}{u.teacher ? " · ustoz" : ""}</b><span>{[u.user && `@${u.user}`, u.level, u.st === "blocked" ? (u.kg ? `oldingi guruhi: ${u.kg}` : "") : (u.group || "guruhsiz")].filter(Boolean).join(" · ")}</span>
+                <span>{u.st === "blocked" ? <em className="ad-out">Chiqarilgan · {ago(u.kicked ?? null)}</em> : <>{ago(u.seen)}{u.words !== null ? ` · ${u.words} so'z` : ""}</>}</span></span>
               <ChevronRight size={18} aria-hidden />
             </button>
           </li>
         ))}
       </ul>
       {open && (
-        <div className="mpop" role="dialog" aria-modal="true" aria-label="Foydalanuvchi" onClick={(e) => { if (e.target === e.currentTarget) setOpen(null); }}>
+        <div className="mpop" role="dialog" aria-modal="true" aria-label="Foydalanuvchi" onClick={(e) => { if (e.target === e.currentTarget) close(); }}>
           <div className="mpopc ad-sheet">
             <Avatar name={open.full || open.name} size={56} />
             <b>{open.full || open.name || "—"}</b>
-            <dl>
-              <div><dt>Telegram'dagi ismi</dt><dd>{open.name || "—"}</dd></div>
-              <div><dt>Telegram ID</dt><dd>{open.tg ?? "—"}</dd></div>
-              <div><dt>Daraja</dt><dd>{open.level || "—"}</dd></div>
-              <div><dt>Guruh</dt><dd>{open.group || "guruhsiz"}</dd></div>
-              <div><dt>Roli</dt><dd>{open.teacher ? "ustoz" : "o'quvchi"}</dd></div>
-              <div><dt>Birinchi kirgan</dt><dd>{open.at ? new Date(open.at).toLocaleDateString("uz-UZ") : "—"}</dd></div>
-              <div><dt>Oxirgi faollik</dt><dd>{ago(open.seen)}</dd></div>
-              <div><dt>O'rgangan so'zlari</dt><dd>{open.words ?? "—"}</dd></div>
-            </dl>
-            <div className="row2">
-              <button type="button" className="btn ghost" onClick={() => setOpen(null)}>Yopish</button>
-              <button type="button" className="btn primary" disabled={!open.tg} onClick={() => { window.location.href = `tg://user?id=${open.tg}`; }}>Telegram profili</button>
-            </div>
+            {open.st === "blocked" && <span className="ad-out"><UserX size={15} aria-hidden />Ilovadan chiqarilgan · {open.kicked ? new Date(open.kicked).toLocaleDateString("uz-UZ") : "—"}</span>}
+            {!sure ? (
+              <>
+                <dl>
+                  <div><dt>Telegram'dagi ismi</dt><dd>{open.name || "—"}</dd></div>
+                  <div><dt>Telegram</dt><dd>{open.user ? `@${open.user}` : open.tg ?? "—"}</dd></div>
+                  <div><dt>Daraja</dt><dd>{open.level || "—"}</dd></div>
+                  {open.st === "blocked"
+                    ? <div><dt>Oldingi guruhi</dt><dd>{open.kg || "guruhsiz"}</dd></div>
+                    : <div><dt>Guruh</dt><dd>{open.group || "guruhsiz"}</dd></div>}
+                  <div><dt>Roli</dt><dd>{open.admin ? "admin" : open.teacher ? "ustoz" : "o'quvchi"}</dd></div>
+                  <div><dt>Birinchi kirgan</dt><dd>{open.at ? new Date(open.at).toLocaleDateString("uz-UZ") : "—"}</dd></div>
+                  <div><dt>Oxirgi faollik</dt><dd>{ago(open.seen)}</dd></div>
+                  <div><dt>O'rgangan so'zlari</dt><dd>{open.words ?? "—"}</dd></div>
+                </dl>
+                <div className="row2">
+                  <button type="button" className="btn ghost" onClick={close}>Yopish</button>
+                  <button type="button" className="btn primary" disabled={!open.tg && !open.user} onClick={() => profile(open)}>Telegram profili</button>
+                </div>
+                {open.sid && !open.admin && (open.st === "blocked"
+                  ? <button type="button" className="btn good wide ad-kick" disabled={busy} onClick={() => void act(open, false)}><UserCheck size={18} aria-hidden />Ilovaga qaytarish</button>
+                  : <button type="button" className="btn ghost bad wide ad-kick" onClick={() => setSure(true)}><UserX size={18} aria-hidden />Ilovadan chiqarish</button>)}
+              </>
+            ) : (
+              <>
+                <p className="ad-sure"><b>{uName(open)}</b> ilovadan chiqarilsinmi? U ilovani ocha olmaydi. Natijalari saqlanadi, istalgan vaqt qaytarishingiz mumkin.</p>
+                <div className="row2">
+                  <button type="button" className="btn ghost" disabled={busy} onClick={() => setSure(false)}>Bekor qilish</button>
+                  <button type="button" className="btn bad-fill" disabled={busy} onClick={() => void act(open, true)}>{busy ? "Chiqarilmoqda…" : "Chiqarish"}</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

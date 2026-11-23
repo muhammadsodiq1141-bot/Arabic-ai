@@ -11,6 +11,7 @@ let autoGraded = false; // 3-paket: hwAutoGrade sinovi
 let demoSpent = 0; // 3-paket: muzlatish uchun sarflangan tanga (sinov)
 const demoClass: Record<string, number> = { k1: 150, k3: 200 }; // 3-paket 2-qism: bugun darsda berilgan (sinov)
 let demoRef = 2; // ?rd=1 — mukofoti olinmagan do'stlar (refClaim kamaytiradi)
+const demoKicked = new Set<string>(["tg104"]); // 23.11.2026: ilovadan chiqarilganlar (sinov)
 const people = [
   { sid: "tg101", name: "Aziz Karimov", tgName: "Aziz", user: "aziz_k", level: "A1", group: { code: "K7QX2M", title: "A1-ertalab", teacher: "Domla" }, at: new Date(Date.now() - 5 * 6e4).toISOString(), seen: null },
   { sid: "tg102", name: "Zarina Saidova", tgName: "Zarina", user: "", level: "A0", group: null, at: new Date(Date.now() - 36e5).toISOString(), seen: null, ref: "Aziz Karimov · MJ-48213" },
@@ -39,7 +40,7 @@ export async function demoApi(action: string, p: Record<string, unknown>): Promi
     return {
       ok: true, id: "tg101", name: "Aziz", full_name: admin ? "Bosh admin" : "Aziz Karimov", login: admin ? "MJ-10001" : "MJ-48213", level: "A1",
       group: admin ? null : dGroup, admin, tg: 101, teacherReq: dReq,
-      access: admin ? "approved" : DEMO === "rejected" ? "rejected" : DEMO === "approved" ? "approved" : "pending",
+      access: admin ? "approved" : DEMO === "rejected" ? "rejected" : DEMO === "blocked" ? "blocked" : DEMO === "approved" ? "approved" : "pending",
       ...(q.get("rd") === "1" ? { refNew: 2, refBy: true } : {}),
     };
   }
@@ -225,8 +226,14 @@ function profileDemo(action: string, p: Record<string, unknown>, admin: boolean)
     requests: [{ id: "tg301", name: "Sardor Aliyev", login: "MJ-30112", level: "C1", at: new Date(Date.now() - 3 * 36e5).toISOString(), note: "Markazda A1 guruhini o'qitaman" }],
     teachers: [{ id: "tg201", name: "Malika Rahimova", login: "MJ-20017", level: "C1", at: null, note: "", byGroup: false }, { id: "tg202", name: "Domla", login: "MJ-20005", level: "C1", at: null, note: "", byGroup: true }] };
   if (action === "adminSetTeacher") return { ok: true };
-  if (action === "adminUsers") return { ok: true, users: people.map((x, i) => ({
-    tg: 101 + i, name: x.tgName, full: x.name, user: x.user, level: x.level, group: x.group?.title || "", teacher: false, seen: x.at, at: x.at, words: [96, 12, 184, 41][i] ?? null })) };
+  if (action === "adminUsers") return { ok: true, users: people.map((x, i) => {
+    const out = demoKicked.has(x.sid);
+    return { tg: 101 + i, name: x.tgName, full: x.name, user: x.user, level: x.level, group: out ? "" : x.group?.title || "", teacher: false, seen: x.at, at: x.at, words: [96, 12, 184, 41][i] ?? null,
+      sid: x.sid, st: out ? "blocked" : "approved", admin: false, kg: out ? x.group?.title || "" : "", kicked: out ? new Date(Date.now() - 2 * 864e5).toISOString() : null };
+  }) };
+  // 23.11.2026: ilovadan chiqarish / qaytarish
+  if (action === "adminKick") { demoKicked.add(String(p.sid)); return { ok: true, group: null }; }
+  if (action === "adminRestore") { demoKicked.delete(String(p.sid)); return { ok: true, group: people.find((x) => x.sid === p.sid)?.group?.code ?? null }; }
   if (action === "kitobCount") return { ok: true, n: 1240 };
   if (action === "kitobPut") return { ok: true, up: Array.isArray(p.files) ? p.files.length : 0, skip: 0, bad: 0 };
   return null;

@@ -128,6 +128,18 @@ export function Rejected() {
   );
 }
 
+// 23.11.2026: bosh admin ilovadan chiqargan odam
+export function Blocked() {
+  return (
+    <main className="gate">
+      <Logo />
+      <h1>Kirish yopilgan</h1>
+      <p>Miyzan'dan foydalanish ruxsatingiz bosh admin tomonidan to'xtatilgan. Savollar bo'lsa, adminga yozing.</p>
+      <button type="button" className="btn ghost wide" onClick={() => tg.openLink(BOT_LINK)}><Send size={18} aria-hidden />Botga yozish</button>
+    </main>
+  );
+}
+
 export function Problem() {
   const { error, refresh } = useSession();
   return (

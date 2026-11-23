@@ -2,7 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { api, ApiError, hasCredentials } from "../lib/api";
 
-export type Access = "pending" | "approved" | "rejected";
+export type Access = "pending" | "approved" | "rejected" | "blocked"; // blocked — 23.11.2026: bosh admin ilovadan chiqargan
 export type Me = {
   id: string;
   name: string;
@@ -19,12 +19,12 @@ export type Me = {
   refNew?: number; // 14-partiya: tasdiqlangan, hali mukofoti olinmagan taklif qilingan do'stlar
   refBy?: boolean; // o'zi do'st taklifi bilan kelgan
 };
-export type Phase = "loading" | "noauth" | "register" | "pending" | "rejected" | "ready" | "error";
+export type Phase = "loading" | "noauth" | "register" | "pending" | "rejected" | "blocked" | "ready" | "error";
 
 type Session = { phase: Phase; me: Me | null; error: string; refresh: () => Promise<void> };
 const Ctx = createContext<Session | null>(null);
 
-const phaseOf = (m: Me): Phase => (!m.full_name ? "register" : m.access === "approved" ? "ready" : m.access === "rejected" ? "rejected" : "pending");
+const phaseOf = (m: Me): Phase => (m.access === "blocked" ? "blocked" : !m.full_name ? "register" : m.access === "approved" ? "ready" : m.access === "rejected" ? "rejected" : "pending");
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [phase, setPhase] = useState<Phase>("loading");
@@ -40,7 +40,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setError("");
     } catch (e) {
       const access = e instanceof ApiError ? (e.data.access as Access | undefined) : undefined;
-      if (access === "pending" || access === "rejected") { setPhase(access); return; }
+      if (access === "pending" || access === "rejected" || access === "blocked") { setPhase(access); return; }
       if (e instanceof ApiError && e.status === 401) { setPhase("noauth"); setError(e.message); return; }
       setError(e instanceof Error ? e.message : String(e));
       setPhase("error");
