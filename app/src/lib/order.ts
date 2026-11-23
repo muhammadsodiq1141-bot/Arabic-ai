@@ -5,6 +5,8 @@
 // Qoidalar: «bajarildi» = oxirigacha ishlangan (ball qulflamaydi); boshlangan narsa hech qachon qulflanmaydi (eski o'quvchilar
 // yo'qotmasin); «Bilaman — sinab ko'raman» (so'z testi 90%+) lug'atni yoki butun vahdani o'tkazadi.
 // Vahdalar orasidagi qulf faqat guruhsiz o'quvchiga: guruhda sur'atni ustoz belgilaydi.
+// 23.11.2026: foydalanuvchi qarori — qulflar o'chirildi (Main.tsx setOpenAll(true)): istalgan vahda va bo'lim ochiq, quyidagi tartib
+//   faqat «keyingi qadam» tavsiyasi uchun ishlatiladi (next.ts). Qaytarish: Main.tsx da setOpenAll(!!me?.admin).
 import { kbBest, kbKeyOf, type KbLesson } from "./kb";
 import { bkKey, type Book } from "./progress";
 import { knownOf, store } from "./store";

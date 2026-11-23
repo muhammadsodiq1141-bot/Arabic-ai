@@ -120,7 +120,9 @@ function Screens() {
   useStartParam();
   useReactions(); // reaksiya stikerlari overlay'i (har qanday ekran ustida) va bir martalik «Xush kebsiz!»
   const { me } = useSession();
-  setOpenAll(!!me?.admin); // 12.11.2026: admin uchun hamma bo'lim ochiq (render paytida — ichki ekranlar shu render'da qulfni tekshiradi)
+  // 23.11.2026 (foydalanuvchi): «talaba kirib istagan mavzusini ishlayverishi kerak» — hamma uchun istalgan vahda va bo'lim ochiq;
+  // tartib endi faqat tavsiya («Davom etish» va oltin halqali keyingi qadam). Avval (12.11) faqat admin uchun edi: setOpenAll(!!me?.admin).
+  setOpenAll(true);
   useEffect(() => { setReportMe(me); }, [me]); // Google jadval hisobotidagi ism va login
   // mashq o'rtasida ilova yopilsa javoblar yo'qoladi — Telegram yopishdan oldin so'raydi
   const guard = GUARDED.has(route.view);

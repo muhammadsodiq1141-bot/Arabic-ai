@@ -336,14 +336,14 @@ export function UnitScreen({ bookId, unitN }: { bookId: string; unitN: number })
         )}
 
         {kbKey && (!kb || exIdx.length > 0) && (
-          <li className={`vp ${kb && exPct >= 100 ? "dn" : ""} ${next.kind === "kb" && exIdx.includes(Number(next.params.si)) ? "on" : ""} ${!kb || g.testDone ? "" : "lk"}`}>
-            {N(!!kb && exPct >= 100, !!kb && !g.testDone)}
+          <li className={`vp ${kb && exPct >= 100 ? "dn" : ""} ${next.kind === "kb" && exIdx.includes(Number(next.params.si)) ? "on" : ""} ${!kb || g.testDone || openAll() ? "" : "lk"}`}>
+            {N(!!kb && exPct >= 100, !!kb && !g.testDone && !openAll())}
             <div className="vp-c">
               <button type="button" className="vp-hb v-ex" aria-expanded={open === "ex"} onClick={() => setOpen(open === "ex" ? null : "ex")}>
                 <span className="vp-t"><b>{preIdx.length && !preRead ? "Mashqlar · 2-qism" : "Mashqlar"}</b><Ar className="vp-ar">التَّدْرِيبَاتُ</Ar></span>{kb && <em className="vp-pct">{exPct}%</em>}
                 {open === "ex" ? <ChevronUp size={18} className="vp-go" aria-hidden /> : <ChevronDown size={18} className="vp-go" aria-hidden />}
               </button>
-              <small className="vp-sub">{!kb ? "Yuklanmoqda…" : !g.testDone && g.hasRules ? "Grammatik testdan keyin ochiladi" : `${exIdx.length} topshiriq · ${exIdx.filter((i) => kbB[i] !== undefined).length}/${exIdx.length} bajarildi · ketma-ket ochiladi`}</small>
+              <small className="vp-sub">{!kb ? "Yuklanmoqda…" : !g.testDone && g.hasRules && !openAll() ? "Grammatik testdan keyin ochiladi" : `${exIdx.length} topshiriq · ${exIdx.filter((i) => kbB[i] !== undefined).length}/${exIdx.length} bajarildi${openAll() ? "" : " · ketma-ket ochiladi"}`}</small>
               {open === "ex" && kb && <div className="vp-rows">{!preIdx.length && twRow(exIdx[0])}{exIdx.map((si) => stepRow(kb.steps[si], si, false))}</div>}
             </div>
           </li>
