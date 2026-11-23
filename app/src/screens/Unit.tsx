@@ -9,7 +9,7 @@ import { isLite, offOf, onWifi, saveUnit, type OffUnit } from "../lib/lite";
 import { preloadKitob } from "../lib/audio";
 import { loadData } from "../lib/data";
 import { GRADED, isReadStep, kbBest, kbKeyOf, loadKb, stepLabel, type KbLesson, type KbStep } from "../lib/kb";
-import { frontierOf, openAll, unitGate } from "../lib/order";
+import { frontierOf, openAll, unitGate, UNITS_FREE } from "../lib/order";
 import { dueText, gramPct, nextStep, pctOf, ROUND, rulesOf, theoryKey } from "../lib/next";
 import { hwProgress, localRaw, type Book } from "../lib/progress";
 import { itemsOf } from "../lib/practice";
@@ -64,7 +64,7 @@ export function Lessons() {
     return () => { a = false; };
   }, [book, free, front]);
   const assignedU = new Set(store.get<HwItem[]>("f.hw", []).filter((h) => !h.teacher && h.book === bookId).map((h) => h.unit));
-  const unitOpen = (n: number) => openAll() || !free || n <= front || assignedU.has(n) || (n === front + 1 && !!frontDone);
+  const unitOpen = (n: number) => UNITS_FREE || openAll() || !free || n <= front || assignedU.has(n) || (n === front + 1 && !!frontDone);
   return (
     <main className="screen">
       <SectionTitle ar="الدُّرُوسُ" uz={book ? `Darslar · ${book.title}` : "Darslar"}
