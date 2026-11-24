@@ -18,10 +18,12 @@ export type Me = {
   teacherReq?: boolean; // ustozlik so'rovi yuborilgan, admin ko'rmoqda
   refNew?: number; // 14-partiya: tasdiqlangan, hali mukofoti olinmagan taklif qilingan do'stlar
   refBy?: boolean; // o'zi do'st taklifi bilan kelgan
+  marksNew?: number; // 24.11.2026 (api 25): ko'rilmagan ustoz baholari — pastki menyu «Baholar» belgisi
 };
 export type Phase = "loading" | "noauth" | "register" | "pending" | "rejected" | "blocked" | "ready" | "error";
 
-type Session = { phase: Phase; me: Me | null; error: string; refresh: () => Promise<void> };
+/** patch — serverga so'ramasdan bir maydonni yangilash (masalan «Ustoz izohlari» ko'rilgach marksNew) */
+type Session = { phase: Phase; me: Me | null; error: string; refresh: () => Promise<void>; patch: (p: Partial<Me>) => void };
 const Ctx = createContext<Session | null>(null);
 
 const phaseOf = (m: Me): Phase => (m.access === "blocked" ? "blocked" : !m.full_name ? "register" : m.access === "approved" ? "ready" : m.access === "rejected" ? "rejected" : "pending");
@@ -47,8 +49,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const patch = useCallback((p: Partial<Me>) => setMe((m) => (m ? { ...m, ...p } : m)), []);
   useEffect(() => { void refresh(); }, [refresh]);
-  return <Ctx.Provider value={{ phase, me, error, refresh }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ phase, me, error, refresh, patch }}>{children}</Ctx.Provider>;
 }
 
 export function useSession() {

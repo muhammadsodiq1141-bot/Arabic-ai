@@ -6,6 +6,7 @@ import { loadData } from "./data";
 import { KB_INS_UZ, KB_TIP } from "./kbText";
 import { scheduleSync, store } from "./store";
 import { shuffle } from "./words";
+import type { SubAi } from "./subs";
 
 export type KbItem = {
   type: string; ins?: string; title?: string; q?: string; qz?: string; s?: string; uz?: string; ar?: string; say?: string;
@@ -154,7 +155,8 @@ export function kbTexts(st: KbStep) {
 }
 
 // ===== Ustozga yuborish (erkin javob va "Tushunmadim"). Internet bo'lmasa navbatga =====
-export type Sub = { lesson: string; step: string; item: number; text: string; title?: string; audio?: string; mime?: string };
+/** 24.11.2026 (api 25): title — joy nomi («A2 · 3-vahda · Xulosa»), ai — AI dastlabki bahosi (ustozga «AI taklifi», o'quvchiga «Baholar»da) */
+export type Sub = { lesson: string; step: string; item: number; text: string; title?: string; audio?: string; mime?: string; ai?: SubAi };
 const QKEY = "f.kbq";
 export async function sendSub(s: Sub): Promise<"srv" | "local"> {
   try { await api("subSend", s); return "srv"; }

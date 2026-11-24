@@ -2,6 +2,7 @@
 import type { ReactNode } from "react";
 import { BookOpen, ChevronLeft, ClipboardCheck, House, Mic, UserRound } from "lucide-react";
 import { useNav, type Tab } from "../state/nav";
+import { useSession } from "../state/session";
 import { tg } from "../lib/tg";
 
 export function Ar({ children, className = "" }: { children: ReactNode; className?: string }) {
@@ -46,14 +47,19 @@ const TABS: { id: Tab; label: string; Icon: typeof House }[] = [
 
 export function BottomNav() {
   const { tab, setTab } = useNav();
+  const { me } = useSession();
+  const marksNew = Math.max(0, me?.marksNew || 0); // 24.11.2026 (api 25): ko'rilmagan ustoz baholari
   return (
     <nav className="bnav" aria-label="Asosiy menyu">
-      {TABS.map(({ id, label, Icon }) => (
-        <button key={id} type="button" className={id === tab ? "on" : ""} aria-current={id === tab ? "page" : undefined}
-          onClick={() => { tg.haptic(); setTab(id); }}>
-          <Icon aria-hidden size={26} strokeWidth={2.2} />{label}
-        </button>
-      ))}
+      {TABS.map(({ id, label, Icon }) => {
+        const n = id === "marks" ? marksNew : 0;
+        return (
+          <button key={id} type="button" className={id === tab ? "on" : ""} aria-current={id === tab ? "page" : undefined}
+            aria-label={n ? `${label}, ${n} ta yangi ustoz izohi` : undefined} onClick={() => { tg.haptic(); setTab(id); }}>
+            <span className="bnav-ic"><Icon aria-hidden size={26} strokeWidth={2.2} />{n > 0 && <em className="bnav-n" aria-hidden>{n > 9 ? "9+" : n}</em>}</span>{label}
+          </button>
+        );
+      })}
     </nav>
   );
 }

@@ -18,6 +18,7 @@ import { Ar } from "../ui/kit";
 import { ArKbd } from "../ui/ArKbd";
 import { api } from "../lib/api";
 import { aiAnswer, isFail, type AnswerRes } from "../lib/ai";
+import { KB_KEY, kbPlace, type SubAi } from "../lib/subs";
 import { CountUp } from "../ui/CountUp";
 import { reactMark, reactReset, reactStepEnd } from "../ui/Reaction";
 import { Scale } from "../ui/Scale";
@@ -91,6 +92,8 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
   const [pct, setPct] = useState<number | null>(null);
   const skipped = useRef<number[]>([]);
   const title = `${L.title} · ${st.t}`;
+  // 24.11.2026 (api 25): ustozga va «Baholar»ga boradigan joy nomi — «A2 · 3-vahda · Yozish»
+  const place = KB_KEY.test(lessonKey) ? kbPlace(lessonKey, st) : title;
   // "12-bet · Asosiy matn" kabi sarlavhada bet raqami emas, nomi ko'rsatiladi
   const parts = st.t.split(" · ");
   const label = /^\d+(-\d+)?-bet$/.test(parts[0]) && parts.length > 1 ? parts.slice(1).join(" · ") : parts[0];
@@ -273,8 +276,8 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
         {it.type === "match" && <Match {...props} />}
         {it.type === "classify" && <Classify {...props} />}
         {it.type === "free" && (seqFree(st, it)
-          ? <FreeSeq it={it} ctx={readCtx} sent={freeSent} onSent={setFreeSent} sub={{ lesson: lessonKey, step: st.k, item: i, title }} />
-          : <Free it={it} sent={freeSent} onSent={setFreeSent} sub={{ lesson: lessonKey, step: st.k, item: i, title }} />)}
+          ? <FreeSeq it={it} ctx={readCtx} sent={freeSent} onSent={setFreeSent} sub={{ lesson: lessonKey, step: st.k, item: i, title: place }} />
+          : <Free it={it} sent={freeSent} onSent={setFreeSent} sub={{ lesson: lessonKey, step: st.k, item: i, title: place }} />)}
         {it.type === "hear" && <Hear {...props} />}
         {it.type === "trace" && <Trace {...props} />}
         {it.type === "ladder" && <Ladder {...props} />}
@@ -759,7 +762,7 @@ function Free({ it, sent, onSent, sub }: { it: KbItem; sent: "srv" | "local" | n
         </details>
       )}
       {sent
-        ? <p className="kb-sent"><Check size={18} aria-hidden />{sent === "local" ? "Saqlandi. Internet ulanganda ustozga yuboriladi." : "Ustozga yuborildi. Baho qo'yilgach, Telegram orqali xabar keladi."}</p>
+        ? <p className="kb-sent"><Check size={18} aria-hidden />{sent === "local" ? "Saqlandi. Internet ulanganda ustozga yuboriladi." : "Ustozga yuborildi. Bahosi Telegram'da keladi va Baholar bo'limida ham chiqadi."}</p>
         : <button type="button" className="btn primary wide" disabled={busy} onClick={() => void send()}><Send size={18} aria-hidden />{busy ? "Yuborilmoqda…" : "Ustozga yuborish"}</button>}
     </>
   );
@@ -795,6 +798,7 @@ function FreeSeq({ it, ctx, sent, onSent, sub }: { it: KbItem; ctx: string; sent
       setDone((d) => [...d, { q, a: mode === "voice" ? "🎙 ovozli javob" : text.trim() }]);
     } else {
       setRes(r); tg.haptic(r.verdict === "ok" ? "success" : r.verdict === "partial" ? "light" : "error");
+      if (mode === "voice" && r.verdict !== "ok") lastVoice.current = voice; // 24.11 (Q8): ustoz eshitishi kerak bo'lgan oxirgi ovoz
       setDone((d) => [...d, { q, a: mode === "voice" ? r.heard : text.trim(), v: r.verdict, fb: r.feedback }]);
     }
     setBusy(false);
@@ -804,14 +808,17 @@ function FreeSeq({ it, ctx, sent, onSent, sub }: { it: KbItem; ctx: string; sent
     // hammasi tugadi — ustozga bitta xabar
     setBusy(true);
     const body = done.map((d, j) => `${j + 1}) ${d.q}\n— ${d.a}${d.v ? ` · AI: ${VERD[d.v][0]}${d.fb ? ` (${d.fb})` : ""}` : ""}`).join("\n").slice(0, 1500);
+    // 24.11.2026 (api 25): AI dastlabki natijasi — ustozga «AI taklifi: N/5», o'quvchiga «AI dastlabki bahosi»
+    const cnt = (v: AnswerRes["verdict"]) => done.filter((d) => d.v === v).length;
+    const ai: SubAi | undefined = done.some((d) => d.v) ? { k: "q", ok: cnt("ok"), part: cnt("partial"), no: cnt("no"), n: qs.length, off: done.filter((d) => !d.v).length } : undefined;
     try {
       const lv = lastVoice.current;
-      onSent(await sendSub({ ...sub, text: body, ...(lv ? { audio: await blobB64(lv.blob), mime: lv.mime } : {}) }));
+      onSent(await sendSub({ ...sub, text: body, ...(ai ? { ai } : {}), ...(lv ? { audio: await blobB64(lv.blob), mime: lv.mime } : {}) }));
       tg.haptic("success");
     } catch { onSent("local"); }
     setBusy(false);
   };
-  if (sent) return <p className="kb-sent"><Check size={18} aria-hidden />{sent === "local" ? "Javoblar saqlandi. Internet ulanganda ustozga yuboriladi." : "Hamma javoblar ustozingizga yuborildi."}</p>;
+  if (sent) return <p className="kb-sent"><Check size={18} aria-hidden />{sent === "local" ? "Javoblar saqlandi. Internet ulanganda ustozga yuboriladi." : "Hamma javoblar ustozingizga yuborildi. Ustoz bahosi Baholar bo'limida ham chiqadi."}</p>;
   const checked = !!res || !!off;
   return (
     <section className="kb-seq">
@@ -902,8 +909,9 @@ function ListenGate({ lessonKey, si, k, plays, onHeard }: { lessonKey: string; s
   );
 }
 
-/** Ovozli javob: bosib yozish, qayta bosib to'xtatish (2 daqiqagacha), tinglab ko'rish, qayta yozish */
-export function VoiceRec({ value, onChange, disabled, label = "Ovoz bilan javob berish", max = 120, priv = "Ovozingizni faqat ustozingiz eshitadi." }: { value: { blob: Blob; mime: string } | null; onChange: (v: { blob: Blob; mime: string } | null) => void; disabled?: boolean; label?: string; max?: number; priv?: string }) {
+/** Ovozli javob: bosib yozish, qayta bosib to'xtatish (2 daqiqagacha), tinglab ko'rish, qayta yozish. sec — yozuv uzunligi (24.11: ustozning ovozli izohi) */
+export type Rec = { blob: Blob; mime: string; sec?: number };
+export function VoiceRec({ value, onChange, disabled, label = "Ovoz bilan javob berish", max = 120, priv = "Ovozingizni faqat ustozingiz eshitadi." }: { value: Rec | null; onChange: (v: Rec | null) => void; disabled?: boolean; label?: string; max?: number; priv?: string }) {
   const can = typeof MediaRecorder !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
   const [rec, setRec] = useState(false);
   const [sec, setSec] = useState(0);
@@ -925,7 +933,7 @@ export function VoiceRec({ value, onChange, disabled, label = "Ovoz bilan javob 
       const ch: Blob[] = [];
       const t0 = Date.now();
       r.ondataavailable = (e) => ch.push(e.data);
-      r.onstop = () => { s.getTracks().forEach((t) => t.stop()); const mime = r.mimeType || m || "audio/webm"; onChange({ blob: new Blob(ch, { type: mime }), mime }); };
+      r.onstop = () => { s.getTracks().forEach((t) => t.stop()); const mime = r.mimeType || m || "audio/webm"; onChange({ blob: new Blob(ch, { type: mime }), mime, sec: Math.max(1, Math.round((Date.now() - t0) / 1000)) }); };
       r.start(); mr.current = r; setRec(true); setSec(0); tg.haptic("medium");
       tick.current = window.setInterval(() => { const s2 = Math.round((Date.now() - t0) / 1000); setSec(s2); if (s2 >= max) stop(); }, 500);
     } catch { setErr("Mikrofonga ruxsat berilmadi."); }

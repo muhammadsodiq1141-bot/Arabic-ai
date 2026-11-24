@@ -4,6 +4,7 @@ import { DEMO } from "./demoFlag";
 import { xDemo, xDemoSub } from "./demoX"; // 3-paket 3-qism
 import { shopDemo } from "./demoShop"; // 3-paket 4-qism
 import { fbDemo } from "./demoFb"; // tashakkur va takliflar
+import { subsDemo, subsNew } from "./demoSubs"; // 24.11.2026 (api 25): ustoz bahosi
 export { DEMO };
 const q = new URLSearchParams(location.search);
 
@@ -32,9 +33,12 @@ export async function demoApi(action: string, p: Record<string, unknown>): Promi
     return {
       ok: true, id: "tg201", name: "Malika", full_name: "Malika Rahimova", login: "MJ-20017", level: "C1", tg: 201, admin: false, access: "approved",
       group: { code: "K7QX2M", title: "A1-ertalab", teacher: true }, teacher: true,
-      myGroups: [{ code: "K7QX2M", title: "A1-ertalab" }, { code: "P4WZ8N", title: "A2-kechki" }],
+      myGroups: [{ code: "K7QX2M", title: "A1-ertalab" }, { code: "P4WZ8N", title: "A2-kechki" }], marksNew: 0,
     };
   }
+  // 24.11.2026 (api 25): javob ovozi / ustozning ovozli izohi — sinovda 0,6 soniyalik jimlik
+  if (action === "subAudio") { (window as unknown as { __au?: unknown[] }).__au = [...((window as unknown as { __au?: unknown[] }).__au || []), p]; return { ok: true, url: silentWav() }; }
+  if (!teacher && ["subMine", "subSeen", "subSend"].includes(action)) { const r = subsDemo(action, p); if (r) return r; }
   if (action.startsWith("fb")) { const r = fbDemo(action, p); if (r) return r; }
   if (action.startsWith("shop")) { const r = shopDemo(action, p, admin); if (r) return r; }
   if (action.startsWith("x") && /^x[A-Z]/.test(action)) { const x = xDemo(action, p, teacher || admin, q); if (x) return x; }
@@ -46,7 +50,7 @@ export async function demoApi(action: string, p: Record<string, unknown>): Promi
       ok: true, id: "tg101", name: "Aziz", full_name: admin ? "Bosh admin" : "Aziz Karimov", login: admin ? "MJ-10001" : "MJ-48213", level: "A1",
       group: admin ? null : dGroup, admin, tg: 101, teacherReq: dReq,
       access: admin ? "approved" : DEMO === "rejected" ? "rejected" : DEMO === "blocked" ? "blocked" : DEMO === "approved" ? "approved" : "pending",
-      ...(q.get("rd") === "1" ? { refNew: 2, refBy: true } : {}),
+      ...(q.get("rd") === "1" ? { refNew: 2, refBy: true } : {}), marksNew: admin ? 0 : subsNew(),
     };
   }
   if (action === "register") return { ok: true, login: "MJ-48213", pin: "305917" };
@@ -161,16 +165,27 @@ function teacherDemo(action: string, p: Record<string, unknown>): Record<string,
     { id: 34, lesson: "a1:4", step: "hw", item: 7, text: "📘 Uy vazifasi: Kasblar va ishlar · o'rtacha 86% · 5/5 qadam · Hammasini bajardim, 3-savol qiyin bo'ldi.", created_at: iso(15), grade: null, comment: null, audio: false, name: "Aziz Karimov", login: "MJ-48213" },
     { id: 31, lesson: "a1:4", step: "suhbat", item: 5, text: "أَنَا طَالِبٌ فِي الْجَامِعَةِ. أَعْمَلُ مِنَ الصَّبَاحِ حَتَّى الْمَسَاءِ.", created_at: iso(35), grade: null, comment: null, audio: false, name: "Aziz Karimov", login: "MJ-48213" },
     { id: 32, lesson: "a1:4", step: "yozish", item: 10, text: "🎙 Ovozli javob", created_at: iso(120), grade: null, comment: null, audio: true, name: "Madina Yusupova", login: "MJ-48877" },
+    { id: 40, lesson: "a2:3", step: "yozish", item: 2, text: "هَذَا سَيَّارَةٌ جَمِيلَةٌ. أَبْحَثُ عَنْ شَقَّةٍ كَبِيرَةٍ.", created_at: iso(50), grade: null, comment: null, audio: false, name: "Dilnoza Rahmonova", login: "MJ-49002" },
+    { id: 41, lesson: "read:a2:3", step: "read", item: 2, text: "Xulosa · AI bahosi 8/10 (mazmun 4/4, til 2/3, ravonlik 2/3). Asosiy fikr bor.", created_at: iso(70), grade: null, comment: null, audio: true,
+      name: "Bekzod Toshev", login: "MJ-48990", title: "A2 · 3-vahda · Xulosa", ai: { k: "sum", total: 8, content: 4, language: 2, fluency: 2 } },
+    { id: 42, lesson: "a2:3", step: "oqish1", item: 4, text: "1) لِماذا يَبْحَثُ عامِرٌ عَنْ شَقَّةٍ؟\n— لِأَنَّهُ يَعْمَلُ فِي الْمَدِينَةِ · AI: To'g'ri\n2) كَمْ غُرْفَةً في الشَّقَّةِ؟\n— غُرْفَتانِ · AI: Qisman to'g'ri (sonni to'liq ayting)\n3) أَيْنَ الشَّقَّةُ؟\n— فِي وَسَطِ الْمَدِينَةِ · AI: To'g'ri",
+      created_at: iso(90), grade: null, comment: null, audio: true, name: "Bekzod Toshev", login: "MJ-48990", title: "A2 · 3-vahda · Oʻqish", ai: { k: "q", ok: 2, part: 1, no: 0, n: 3 } },
     { id: 33, lesson: "a1:4", step: "lmashq2", item: 302, text: "Tushunmadim: «Lugʻat mashqlari» topshirig'ida 2 ta savolni o'tkazib yubordi (3, 7-savol).", created_at: iso(240), grade: null, comment: null, audio: false, name: "Dilnoza Rahmonova", login: "MJ-49002" },
     { id: 30, lesson: "a1:3", step: "yozish", item: 9, text: "هَذِهِ جَامِعَتِي. هِيَ كَبِيرَةٌ وَجَمِيلَةٌ.", created_at: iso(60 * 30), grade: 5, comment: "Barakalla!", audio: false, name: "Madina Yusupova", login: "MJ-48877" },
+    { id: 29, lesson: "md1:3", step: "matn21", item: 3, text: "الْكِتَابُ عَلَى الْمَكْتَبِ.", created_at: iso(60 * 40), grade: 4, comment: "Gaplar bog'langan, fikr tushunarli · So'z oxiridagi harakatni tekshiring", audio: false,
+      name: "Aziz Karimov", login: "MJ-48213", tags: ["Harakat"], praise: "Gaplar bog'langan, fikr tushunarli", fix: "So'z oxiridagi harakatni tekshiring", t_audio: true, t_sec: 21 },
   ], coinGrade: { 5: 1000, 4: 600, 3: 300, 2: 0, 1: 0 } };
-  if (action === "subAudio") throw new Error("Sinov rejimida ovoz yo'q");
   if (action === "hwList") return { ok: true, items: [
     { id: 7, group_code: "K7QX2M", book: "a1", unit: 4, title: "Kasblar va ishlar", due: day(2), mine: null, teacher: true, stats: { total: 6, done: 2 } },
     { id: 8, group_code: "P4WZ8N", book: "a2", unit: 2, title: "", due: day(-1), mine: null, teacher: true, stats: { total: 2, done: 0 } },
   ] };
   if (action === "hwStatus") return { ok: true, rows: MEM.map((m, i) => ({ n: m.full_name, lg: m.login, done: i === 1 || i === 2, progress: i < 3 ? { words: [60, 100, 95][i], test: [70, 90, 82][i], rules: [50, 100, 80][i], ...(i > 0 ? { avg: [0, 94, 78][i], ...(autoGraded ? { grade: [0, 5, 4][i], auto: true } : {}) } : {}) } : null })) };
-  if (action === "subGrade") return { ok: true, coins: ({ 5: 1000, 4: 600, 3: 300 } as Record<number, number>)[Number(p.grade)] || 0 };
+  if (action === "subGrade") {
+    const W = window as unknown as { __sg?: unknown[] };
+    W.__sg = [...(W.__sg || []), { ...p, audio: p.audio ? `<${String(p.audio).length} belgi>` : undefined }]; // 24.11.2026: sinov tekshiradi
+    const paid = [34, 36].includes(Number(p.id)); // tanga faqat uy (34) va qo'shimcha (36) vazifaga — server kabi
+    return { ok: true, coins: paid ? ({ 5: 1000, 4: 600, 3: 300 } as Record<number, number>)[Number(p.grade)] || 0 : 0, t_audio: !!p.audio };
+  }
   if (action === "hwAutoGrade") { autoGraded = true; return { ok: true, n: 2, coins: 1600 }; }
   if (["hwDelete", "groupKick", "groupDelete"].includes(action)) return { ok: true };
   if (action === "hwCreate") return { ok: true, id: 9 };
@@ -242,4 +257,18 @@ function profileDemo(action: string, p: Record<string, unknown>, admin: boolean)
   if (action === "kitobCount") return { ok: true, n: 1240 };
   if (action === "kitobPut") return { ok: true, up: Array.isArray(p.files) ? p.files.length : 0, skip: 0, bad: 0 };
   return null;
+}
+
+/** 24.11.2026: sinov ovozi — 0,6 soniyalik jim WAV (8 kHz, 8 bit) */
+let wav = "";
+function silentWav() {
+  if (wav) return wav;
+  const n = 4800, b = new Uint8Array(44 + n), v = new DataView(b.buffer);
+  const str = (o: number, t: string) => { for (let i = 0; i < t.length; i++) b[o + i] = t.charCodeAt(i); };
+  str(0, "RIFF"); v.setUint32(4, 36 + n, true); str(8, "WAVEfmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, 8000, true); v.setUint32(28, 8000, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true); str(36, "data"); v.setUint32(40, n, true);
+  b.fill(128, 44);
+  let bin = ""; for (const x of b) bin += String.fromCharCode(x);
+  wav = "data:audio/wav;base64," + btoa(bin);
+  return wav;
 }

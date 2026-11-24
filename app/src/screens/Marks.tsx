@@ -1,7 +1,12 @@
 // Baholar: o'quvchining o'z natijalari vahdalar bo'yicha — lug'at, so'z testi, grammatika, mashqlar (telefondagi progressdan).
-// Ustoz bahosi (erkin javoblar) keyingi navbatda qo'shiladi.
-import { useEffect, useState } from "react";
-import { Check, ChevronRight, ClipboardCheck, Play, TrendingUp } from "lucide-react";
+// 24.11.2026 (api 25, K2): «Vahdalar | Ustoz izohlari» — ustoz bahosi, kuchli tomon, tuzatish, xato turi, ustoz ovozi, o'z javobi va AI dastlabki
+// bahosi (server subMine). Ko'ringan yangi izohlar «ko'rildi» deb belgilanadi (subSeen) — pastki menyudagi belgi kamayadi.
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Check, ChevronRight, ClipboardCheck, Clock, MessageSquareText, PenLine, Play, Sparkles, ThumbsUp, TrendingUp } from "lucide-react";
+import { api } from "../lib/api";
+import { aiOf, aiShort, autoText, dateUz, fmtSec, marksJump, placeOf, pureAr, splitAiText, useKbTitles, type MySub } from "../lib/subs";
+import { MixedText } from "../ui/Mixed";
+import { SubVoice } from "../ui/SubVoice";
 import { vGet } from "../lib/vdb";
 import { toast } from "../ui/Toast";
 import { spkAll } from "./Speak";
@@ -15,17 +20,45 @@ import { ltmStat } from "../lib/practice";
 import { knownOf, store } from "../lib/store";
 import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
-import { Ar, SectionTitle } from "../ui/kit";
+import { Ar, Empty, SectionTitle } from "../ui/kit";
 import { VocabCard } from "./VocabCard";
 import { bookOfLevel } from "./Unit";
 
 type Row = { n: number; uz: string; ar: string; voc: number; wt: number; gram: number | null; ex: number | null; done: boolean };
 
+/** ustoz bahosi bor, o'quvchi hali ko'rmagan */
+const isNew = (x: MySub) => x.grade !== null && !x.seen_at;
+
 export function Marks() {
-  const { me } = useSession();
+  const { me, patch } = useSession();
   const { go, setTab } = useNav();
   const bookId = store.get("a1.book", bookOfLevel(me?.level));
   const [rows, setRows] = useState<Row[] | null>(null);
+  // 24.11.2026 (K2): bot xabaridagi «Baholarni ochish» → darhol «Ustoz izohlari»
+  const [view, setView] = useState<"units" | "notes">(() => (marksJump.notes ? "notes" : "units"));
+  useEffect(() => { marksJump.notes = false; }, []); // bir martalik (initializer ichida o'zgartirilmaydi — StrictMode uni ikki marta chaqiradi)
+  const [mine, setMine] = useState<MySub[] | null | "err">(null);
+  const [seen, setSeen] = useState<Set<number>>(() => new Set()); // shu safar «ko'rildi» deb yuborilganlar
+  const meN = useRef(0);
+  meN.current = me?.marksNew || 0;
+  useEffect(() => {
+    if (view !== "notes" || (mine !== null && mine !== "err")) return;
+    let alive = true;
+    setMine(null);
+    api<{ items: MySub[] }>("subMine").then((r) => {
+      if (!alive) return;
+      const L = r.items || [];
+      const at = (x: MySub) => x.graded_at || x.created_at;
+      // yangi baholar birinchi, keyin oxirgi baholangan / yuborilgan
+      setMine([...L].sort((a, b) => Number(isNew(b)) - Number(isNew(a)) || at(b).localeCompare(at(a))));
+    }).catch(() => alive && setMine("err"));
+    return () => { alive = false; };
+  }, [view]); // eslint-disable-line react-hooks/exhaustive-deps
+  const onSeen = useCallback((ids: number[], n: number) => {
+    setSeen((s) => new Set([...s, ...ids]));
+    patch({ marksNew: Math.max(0, meN.current - n) });
+  }, [patch]);
+  const nNew = Array.isArray(mine) ? mine.filter((x) => isNew(x) && !seen.has(x.id)).length : me?.marksNew || 0;
 
   useEffect(() => {
     let alive = true;
@@ -55,6 +88,13 @@ export function Marks() {
   return (
     <main className="screen marks">
       <SectionTitle ar="الدَّرَجَاتُ" uz="Baholar" />
+      <div className="seg mk-seg" role="tablist" aria-label="Baholar">
+        <button type="button" role="tab" aria-selected={view === "units"} className={view === "units" ? "on" : ""} onClick={() => setView("units")}>Vahdalar</button>
+        <button type="button" role="tab" aria-selected={view === "notes"} className={view === "notes" ? "on" : ""} onClick={() => setView("notes")}>
+          Ustoz izohlari{nNew > 0 && <em aria-label={`${nNew} ta yangi`}>{nNew}</em>}
+        </button>
+      </div>
+      {view === "notes" ? <Notes items={mine} done={seen} onSeen={onSeen} /> : <>
       <Growth />
       <VocabCard />
       {rows === null && <p className="muted pad">Yuklanmoqda…</p>}
@@ -85,7 +125,88 @@ export function Marks() {
           </li>
         ))}
       </ul>
+      </>}
     </main>
+  );
+}
+
+/** 24.11.2026 (K2): «Ustoz izohlari» — ekranda ko'ringan yangi baholar 0,4 soniyadan keyin «ko'rildi» bo'ladi (subSeen, ≤60 ta) */
+function Notes({ items, done, onSeen }: { items: MySub[] | null | "err"; done: Set<number>; onSeen: (ids: number[], n: number) => void }) {
+  const kbT = useKbTitles(Array.isArray(items) ? items : null);
+  const sent = useRef(new Set<number>(done)); // oldinroq (bo'limlar almashguncha) yuborilganlar qayta yuborilmaydi
+  const pend = useRef(new Set<number>());
+  const timer = useRef<number | undefined>(undefined);
+  const cb = useRef(onSeen);
+  cb.current = onSeen;
+  const flush = useCallback(() => {
+    const ids = [...pend.current].slice(0, 60);
+    if (!ids.length) return;
+    ids.forEach((i) => { pend.current.delete(i); sent.current.add(i); });
+    api<{ n?: number }>("subSeen", { ids }).then((r) => cb.current(ids, r.n ?? ids.length)).catch(() => ids.forEach((i) => sent.current.delete(i)));
+  }, []);
+  const [io] = useState(() => (typeof IntersectionObserver === "undefined" ? null : new IntersectionObserver((es, ob) => {
+    for (const e of es) {
+      if (!e.isIntersecting) continue;
+      ob.unobserve(e.target);
+      const id = Number((e.target as HTMLElement).dataset.id);
+      if (id && !sent.current.has(id)) pend.current.add(id);
+    }
+    clearTimeout(timer.current);
+    timer.current = window.setTimeout(flush, 400);
+  }, { threshold: 0.4 })));
+  useEffect(() => () => { io?.disconnect(); clearTimeout(timer.current); flush(); }, [io, flush]);
+  // IntersectionObserver yo'q (eski brauzer) — ro'yxatdagi hammasi
+  useEffect(() => {
+    if (io || !Array.isArray(items)) return;
+    items.filter(isNew).forEach((x) => { if (!sent.current.has(x.id)) pend.current.add(x.id); });
+    flush();
+  }, [io, items, flush]);
+
+  if (items === null) return <div className="lg-skel" aria-label="Yuklanmoqda">{[0, 1, 2].map((k) => <span key={k} />)}</div>;
+  if (items === "err") return <Empty icon={<MessageSquareText size={28} />} title="Izohlar yuklanmadi" text="Internetni tekshirib, «Vahdalar» va «Ustoz izohlari»ni qayta bosing." />;
+  if (!items.length) return <Empty icon={<MessageSquareText size={28} />} title="Hali ustoz izohi yo'q" text="Yozma yoki ovozli javobni ustozga yuborsangiz, bahosi va izohi shu yerda chiqadi." />;
+  return (
+    <>
+      <p className="mk-note">Ustoz bahosi — yakuniy. AI bahosi — dastlabki, ustoz tekshirguncha.</p>
+      <ul className="mn-list">
+        {items.map((x) => (
+          <NoteCard key={x.id} x={x} place={placeOf(x, kbT)}
+            obs={(el) => { if (el && io && isNew(x) && !sent.current.has(x.id)) io.observe(el); }} />
+        ))}
+      </ul>
+    </>
+  );
+}
+
+function NoteCard({ x, place, obs }: { x: MySub; place: string; obs: (el: HTMLLIElement | null) => void }) {
+  const ai = aiOf(x);
+  const graded = x.grade !== null;
+  const fresh = isNew(x);
+  const txt = splitAiText(x.text).own; // xulosa: «AI bahosi …» qatori o'quvchining o'z matni emas
+  const own = !!txt && !autoText(txt);
+  return (
+    <li ref={obs} data-id={x.id} className={`mn-card ${fresh ? "new" : ""}`}>
+      <div className="mn-hd">
+        <span className="mn-t"><b>{place}</b><small>{graded && x.graded_at ? `Baholandi · ${dateUz(x.graded_at)}` : `Yuborildi · ${dateUz(x.created_at)}`}</small></span>
+        <span className="mn-st">
+          {fresh && <span className="mn-new">Yangi</span>}
+          {graded ? <span className={`mn-g ${(x.grade || 0) >= 4 ? "hi" : ""}`}>{x.grade} / 5</span> : <span className="mn-wait"><Clock size={14} aria-hidden />Tekshirilmoqda</span>}
+        </span>
+      </div>
+      {x.praise && <p className="mn-l"><ThumbsUp size={17} aria-hidden /><span><b>Kuchli tomon</b><MixedText text={x.praise} /></span></p>}
+      {x.fix && <p className="mn-l fix"><PenLine size={17} aria-hidden /><span><b>Tuzatish</b><MixedText text={x.fix} /></span></p>}
+      {!x.praise && !x.fix && x.comment && <p className="mn-c">«<MixedText text={x.comment} />»</p>}
+      {!!x.tags?.length && <div className="mn-tags" aria-label="Xato turi">{x.tags.map((t) => <span key={t}>{t}</span>)}</div>}
+      {x.t_audio && <SubVoice id={x.id} t label={`Ustoz ovozi${x.t_sec ? ` · ${fmtSec(x.t_sec)}` : ""}`} className="mn-tv" />}
+      {ai && <p className="mn-ai"><Sparkles size={14} aria-hidden />{graded ? "Ustoz bahosi — yakuniy · " : ""}AI dastlabki bahosi: {aiShort(ai)}</p>}
+      {(own || x.audio) && (
+        <details className="mn-mine">
+          <summary>Mening javobim</summary>
+          {own && (pureAr(txt) ? <Ar className="mn-ar">{txt}</Ar> : <p className="mn-txt"><MixedText text={txt} /></p>)}
+          {x.audio && <SubVoice id={x.id} label="Mening ovozim" />}
+        </details>
+      )}
+    </li>
   );
 }
 

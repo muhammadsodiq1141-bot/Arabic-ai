@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BookOpenText, Check, Headphones, Mic, Pause, Play, RotateCcw, Send, Timer, Volume2, X } from "lucide-react";
 import { blobB64, sendSub } from "../lib/kb";
+import { readPlace } from "../lib/subs";
 import { aiSummary, isFail, type SummaryRes } from "../lib/ai";
 import { clean, kitobUrls, say, sha1, TTS_BASE } from "../lib/audio";
 import { loadData } from "../lib/data";
@@ -334,8 +335,8 @@ function Say({ bookId, unitN, g, n, aud, onBack, onSent }: { bookId: string; uni
     setBusy(true);
     try {
       const audio = await blobB64(voice.blob);
-      await sendSub({ lesson: `read:${bookId}:${unitN}`, step: "read", item: 0, text: "🎙 Matnni o'qish", title: `Matnni o'qish · ${unitN}-vahda`, audio, mime: voice.mime });
-      tg.haptic("success"); toast("Ustozingizga yuborildi"); onSent();
+      await sendSub({ lesson: `read:${bookId}:${unitN}`, step: "read", item: 0, text: "🎙 Matnni o'qish", title: readPlace(bookId, unitN, 0), audio, mime: voice.mime });
+      tg.haptic("success"); toast("Ustozingizga yuborildi — bahosi Baholar bo'limida chiqadi"); onSent();
     } catch (e) { toast(e instanceof Error ? e.message : "Yuborilmadi, qayta urinib ko'ring"); }
     setBusy(false);
   };
@@ -364,6 +365,7 @@ function Xulosa({ bookId, unitN, g, onBack, onSent }: { bookId: string; unitN: n
   const [busy, setBusy] = useState(false);
   const [res, setRes] = useState<SummaryRes | null>(null);
   const [note, setNote] = useState("");
+  const [sent, setSent] = useState(false); // ustozga yetib bordi
   const ctx = g.lines.map((l) => l.ar).join(" ");
   const check = async () => {
     if (!rec) return;
@@ -373,11 +375,13 @@ function Xulosa({ bookId, unitN, g, onBack, onSent }: { bookId: string; unitN: n
     if (ok) { setRes(r); tg.haptic("success"); } else setNote(r.limit ? "Bugungi avtomatik tekshiruv chegarasi tugadi — ustozingiz baholaydi." : "Avtomatik tekshiruv hozir ishlamadi — ustozingiz baholaydi.");
     if (me?.group) {
       const text = ok ? `Xulosa · AI bahosi ${r.total}/10 (mazmun ${r.content}/4, til ${r.language}/3, ravonlik ${r.fluency}/3). ${r.feedback}` : "Xulosa (ovozli)";
-      try { await sendSub({ lesson: `read:${bookId}:${unitN}`, step: "read", item: 2, text: text.slice(0, 1500), title: `Xulosa · ${unitN}-vahda`, audio: await blobB64(rec.blob), mime: rec.mime }); }
+      // 24.11.2026 (api 25): AI dastlabki bahosi alohida (ustozga «AI taklifi: N/5»), joy nomi «A2 · 3-vahda · Xulosa»
+      const ai = ok ? { k: "sum" as const, total: r.total, content: r.content, language: r.language, fluency: r.fluency } : undefined;
+      try { await sendSub({ lesson: `read:${bookId}:${unitN}`, step: "read", item: 2, text: text.slice(0, 1500), title: readPlace(bookId, unitN, 2), audio: await blobB64(rec.blob), mime: rec.mime, ...(ai ? { ai } : {}) }); setSent(true); }
       catch { /* AI natijasi baribir ko'rsatiladi */ }
     }
     setBusy(false);
-    if (!ok) { onSent(null); toast(me?.group ? "Ustozingizga yuborildi" : "Yozib olindi"); }
+    if (!ok) { onSent(null); toast(me?.group ? "Ustozingizga yuborildi — bahosi Baholar bo'limida chiqadi" : "Yozib olindi"); }
   };
   return (
     <main className="screen tw">
@@ -399,6 +403,7 @@ function Xulosa({ bookId, unitN, g, onBack, onSent }: { bookId: string; unitN: n
           </dl>
           {res.feedback && <p className="tw-x-fb">{res.feedback}</p>}
           {res.heard && <p className="tw-x-heard"><span>Eshitildi:</span> <Ar>{res.heard}</Ar></p>}
+          {sent && <p className="tw-x-sent">Bu — dastlabki baho. Yozuv ustozingizga ham bordi: ustoz bahosi Baholar bo'limida chiqadi.</p>}
           <div className="r-cmp two">
             <button type="button" className="btn ghost" onClick={() => { setRes(null); setRec(null); }}><RotateCcw size={18} aria-hidden />Qayta aytish</button>
             <button type="button" className="btn primary" onClick={() => onSent(res.total)}><Check size={18} aria-hidden />Tayyor</button>

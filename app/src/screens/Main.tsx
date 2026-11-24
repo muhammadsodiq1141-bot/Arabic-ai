@@ -15,6 +15,7 @@ import type { ShItem } from "../lib/mult";
 import { setReportMe } from "../lib/report";
 import { store } from "../lib/store";
 import { setOpenAll } from "../lib/order";
+import { marksJump } from "../lib/subs";
 import { startGo, tg } from "../lib/tg";
 import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
@@ -86,7 +87,7 @@ const GoalScreen = lazy(() => import("./Goal").then((m) => ({ default: m.GoalScr
 /** Bot havolasidan kelganda (?go=... yoki start_param): d_KOD — bellashuv, g_KOD — guruhga qo'shilish.
  *  f.handled — eski ilova bilan umumiy; f.gjoin — tasdiq kutilayotganda saqlangan guruh kodi (endi qo'shiladi). */
 function useStartParam() {
-  const { go } = useNav();
+  const { go, setTab } = useNav();
   const { me, refresh } = useSession();
   useEffect(() => {
     const v = startGo();
@@ -99,6 +100,8 @@ function useStartParam() {
       else if (v.startsWith("rem_")) go("remind");
       return;
     }
+    // 24.11.2026 (api 25): baho xabaridagi «📋 Baholarni ochish» — marks_<javob raqami> → Baholar → Ustoz izohlari
+    if (fresh && /^marks_\d{1,12}$/.test(v)) { store.set("f.handled", v); marksJump.notes = true; setTab("marks"); return; }
     let code = fresh && /^g_[A-Za-z0-9]{4,10}$/.test(v) ? v.slice(2) : "";
     if (code) store.set("f.handled", v);
     else code = store.get("f.gjoin", "");

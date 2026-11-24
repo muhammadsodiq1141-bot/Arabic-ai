@@ -2721,3 +2721,74 @@ html.obscured .app { filter: blur(22px); }
 .rem-act { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; margin: 16px 0 8px; }
 .rem-act .btn { justify-content: center; }
 .rem-note { font-size: 13px; text-align: center; }
+
+/* 24.11.2026 (api 25): ustoz bahosi — U2 tez baholash (TeacherSubs) va K2 «Ustoz izohlari» (Marks) */
+.bnav-ic { position: relative; display: inline-grid; }
+.bnav-n { position: absolute; top: -5px; right: -12px; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 10px; background: #C2412D; color: #FFFFFF; font-style: normal; font-size: 11px; font-weight: 800; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--card); }
+.sv-btn { align-self: flex-start; height: 44px; }
+.ts-card { scroll-margin-top: 12px; }
+.ts-head { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 0; border: 0; background: none; text-align: left; color: inherit; }
+.ts-head .ts-hd { flex: 1; min-width: 0; }
+.ts-head .ts-hd small { overflow-wrap: anywhere; }
+.ts-chev { flex: none; color: var(--muted); transition: transform .2s; }
+.ts-card.open .ts-chev { transform: rotate(180deg); }
+.ts-head .ts-g { flex: none; }
+.ts-aip { flex: none; padding: 4px 10px; border-radius: 12px; background: var(--soft); color: var(--accent); font-weight: 800; font-size: 13px; }
+.ts-body { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line); padding-top: 12px; }
+.ts-body .ts-plain { white-space: pre-line; overflow-wrap: anywhere; }
+.ts-ai { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 10px 12px; border-radius: 14px; background: var(--soft); font-size: 14px; font-weight: 700; }
+.ts-ai svg { flex: none; margin-top: 2px; color: var(--accent); }
+.ts-ai small { display: block; margin-top: 2px; font-weight: 600; color: var(--muted); }
+.ts-grade .cc-lbl { margin: 6px 0 -2px; }
+.ts-sug { color: var(--accent); }
+.ts-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.ts-tags button { min-height: 44px; padding: 0 14px; border-radius: 22px; border: 1.5px solid var(--line); background: var(--bg); font-weight: 700; font-size: 14px; }
+.ts-tags button.on { background: var(--hero); color: var(--hero-ink); border-color: var(--hero); }
+:root[data-theme="dark"] .ts-tags button.on { background: var(--gold); color: #1E2118; border-color: var(--gold); }
+.ts-ph { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: -2px -16px 0; padding: 0 16px 2px; }
+.ts-ph::-webkit-scrollbar { display: none; }
+.ts-ph button { flex: none; min-height: 44px; padding: 0 12px; border-radius: 14px; border: 1.5px dashed var(--edge); background: transparent; font-weight: 600; font-size: 13.5px; }
+.ts-stars button { position: relative; }
+.ts-stars button.sug::after { content: ""; position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+.ts-stars button.on.sug::after { background: var(--gold); }
+:root[data-theme="dark"] .ts-stars button.on.sug::after { background: #1E2118; }
+.ts-tv .kb-rec { justify-content: flex-start; }
+.ts-tv-have { display: flex; flex-wrap: wrap; gap: 8px; }
+.ts-body .ts-done { flex-direction: column; align-items: stretch; gap: 8px; }
+.ts-body .ts-done .kb-link { align-self: flex-start; }
+.ts-done-r { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ts-tag { padding: 3px 10px; border-radius: 10px; background: var(--soft); font-size: 12.5px; font-weight: 800; color: var(--muted); }
+.ts-pf { display: flex; gap: 8px; margin: 0; font-size: 14.5px; line-height: 1.5; }
+.ts-pf svg { flex: none; margin-top: 3px; color: var(--ok-line); }
+.ts-pf.fix svg { color: var(--accent); }
+.mk-seg { margin: 4px 0 14px; }
+.mn-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.mn-card { background: var(--card); border-radius: 20px; box-shadow: var(--shadow); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.mn-card.new { box-shadow: var(--shadow), inset 4px 0 0 var(--gold); }
+.mn-hd { display: flex; align-items: flex-start; gap: 10px; }
+.mn-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mn-t b { font-size: 15.5px; line-height: 1.3; overflow-wrap: anywhere; }
+.mn-t small { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.mn-st { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.mn-g { padding: 4px 12px; border-radius: 12px; background: var(--soft); font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums; }
+.mn-g.hi { background: var(--ok-bg); color: var(--ok-line); }
+.mn-wait { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 12px; background: var(--soft); color: var(--muted); font-size: 12.5px; font-weight: 800; }
+.mn-new { padding: 2px 8px; border-radius: 8px; background: var(--gold); color: #2A2418; font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; }
+.mn-l { display: flex; gap: 10px; margin: 0; font-size: 14.5px; line-height: 1.5; }
+.mn-l svg { flex: none; margin-top: 3px; color: var(--ok-line); }
+.mn-l.fix svg { color: var(--accent); }
+.mn-l b { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.mn-c { margin: 0; font-size: 14.5px; line-height: 1.5; }
+.mn-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.mn-tags span { padding: 3px 10px; border-radius: 10px; background: var(--soft); font-size: 12.5px; font-weight: 800; color: var(--muted); }
+.mn-ai { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 13px; font-weight: 700; color: var(--muted); }
+.mn-ai svg { flex: none; color: var(--accent); }
+.mn-mine { border-top: 1px solid var(--line); padding-top: 2px; display: flex; flex-direction: column; }
+.mn-mine summary { min-height: 44px; display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 14px; color: var(--accent); cursor: pointer; list-style: none; }
+.mn-mine summary::-webkit-details-marker { display: none; }
+.mn-mine summary::after { content: ""; width: 7px; height: 7px; border-right: 2px solid; border-bottom: 2px solid; transform: rotate(45deg); margin-top: -4px; }
+.mn-mine[open] summary::after { transform: rotate(-135deg); margin-top: 4px; }
+.mn-mine .sv-btn { margin-top: 8px; }
+.mn-ar { display: block; font-size: 20px; line-height: 1.8; text-align: right; padding: 8px 12px; border-radius: 14px; background: var(--bg); }
+.mn-txt { margin: 0; padding: 8px 12px; border-radius: 14px; background: var(--bg); font-size: 14px; line-height: 1.6; white-space: pre-line; overflow-wrap: anywhere; }
+.tw-x-sent { margin: 0; font-size: 13.5px; font-weight: 600; color: var(--muted); }
