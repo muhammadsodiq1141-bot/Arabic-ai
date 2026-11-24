@@ -1,6 +1,6 @@
 // Takrorlash: Xatolar daftari (f.err), Sokin takrorlash (SRS, 5 so'z), Siz bilasiz (KNOWN_WORDS, f.kw), Sinonim va antonim (WF).
 // Mantiq va kalitlar eski ilova bilan bir xil (MASHQ-SPEC §1.10, §4–§6).
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Moon, RotateCcw, Sparkles, Volume2, X } from "lucide-react";
 import { say } from "../lib/audio";
 import { loadData } from "../lib/data";
@@ -84,6 +84,9 @@ export function NightScreen({ bookId }: { bookId: string }) {
   const [show, setShow] = useState(false);
   const [ok, setOk] = useState(0);
   const [fin, setFin] = useState(false);
+  // 24.11.2026 (P2.1): kartadan «Tarjimasini ko'rish»gacha ≤ 3 s va «Esladim» — «oson» (Easy)
+  const shownAt = useRef(Date.now()), recallMs = useRef(99e3);
+  useEffect(() => { shownAt.current = Date.now(); recallMs.current = 99e3; }, [i]);
   useEffect(() => {
     loadBook(bookId).then((b) => {
       setBook(b);
@@ -100,7 +103,7 @@ export function NightScreen({ bookId }: { bookId: string }) {
   }, [bookId]);
   const mark = (good: boolean) => {
     if (!book || !items) return;
-    srsSet(book, items[i].ar, good);
+    srsSet(book, items[i].ar, good, { fast: good && recallMs.current <= 3000 });
     const nok = ok + (good ? 1 : 0);
     setOk(nok); setShow(false);
     if (i + 1 >= items.length) { store.set("f.night", store.get("f.night", 0) + 1); gain("fc", 10); setFin(true); tg.haptic("success"); }
@@ -122,7 +125,7 @@ export function NightScreen({ bookId }: { bookId: string }) {
           <span className="nt-l">Uyqudan oldin takrorlash</span>
           <Ar className="nt-ar">{items[i].ar}</Ar>
           {!show ? (
-            <button type="button" className="btn ghost wide" onClick={() => { setShow(true); void say(items[i].ar); }}>Tarjimasini ko'rish</button>
+            <button type="button" className="btn ghost wide" onClick={() => { recallMs.current = Date.now() - shownAt.current; setShow(true); void say(items[i].ar); }}>Tarjimasini ko'rish</button>
           ) : (
             <>
               <b className="nt-uz">{items[i].uz}</b>

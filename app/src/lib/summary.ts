@@ -1,5 +1,5 @@
 // O'quvchining qisqa hisoboti (_sum) — ustoz va admin panellari FAQAT shuni o'qiydi. Eski ilovadagi mySummary bilan aynan bir xil format:
-// {v:1, at, streak, dq?, ld? (24.11 eslatma), xpw (hafta XP), xpt (BUGUNGI XP), days[14], book, books:{id:[yodlangan, jami]}, mlt, sh, test, ob?, kb?, a0?, ut?, uk?, sm?, er?} (ut, uk, sm, er — 11.11.2026, ustoz «Dars oldidan» va «4 yo'l»)
+// {v:1, at, streak, dq?, ld? (24.11 eslatma), rt?, lt?, hd? (24.11 FSRS), xpw (hafta XP), xpt (BUGUNGI XP), days[14], book, books:{id:[yodlangan, jami]}, mlt, sh, test, ob?, kb?, a0?, ut?, uk?, sm?, er?} (ut, uk, sm, er — 11.11.2026, ustoz «Dars oldidan» va «4 yo'l»)
 // Server sync'da _sum'ni shu bilan almashtiradi; yubormasak — o'chib ketadi va ustoz o'quvchi natijasini ko'rmaydi.
 import { loadData, type BookIndex } from "./data";
 import { loadKb } from "./kb";
@@ -7,6 +7,7 @@ import { bkKey, dayKey, weekId } from "./progress";
 import { store } from "./store";
 import { strandWeek } from "./strand";
 import { dueAhead, lastDay } from "./remind";
+import { dayNum, hardIn, recallOf, srsOf } from "./practice";
 
 const get = <T>(k: string, d: T) => store.get<T>(k, d);
 
@@ -93,6 +94,15 @@ export async function mySummary(): Promise<Record<string, unknown>> {
   } catch { /* */ }
   // 24.11.2026 (P3.1): bot eslatmasi uchun — takrorlanadigan so'zlar (bugun … +7 kun) va oxirgi mashq kuni
   try { out.dq = await dueAhead(); const ld = lastDay(); if (ld !== null) out.ld = ld; } catch { /* */ }
+  // 24.11.2026 (P2.1): FSRS — joriy kitob: rt — o'rtacha eslash ehtimoli (%), lt — uzoq xotirada (barqarorlik ≥ 21 kun), hd — qiyin so'zlar
+  try {
+    const S = srsOf(book), t = dayNum();
+    const R = Object.values(S).map((e) => recallOf(e, t)).filter((r): r is number => r !== null);
+    if (R.length) out.rt = Math.round((R.reduce((a, b) => a + b, 0) / R.length) * 100);
+    out.lt = Object.values(S).filter((e) => (e.x ? e.x[0] : [1, 1, 3, 7, 14, 30, 60][e.b] || 0) >= 21).length;
+    const hd = hardIn(book).length;
+    if (hd) out.hd = hd;
+  } catch { /* */ }
   // birinchi hafta yo'li (eski ilova)
   try {
     const W = get<{ start: number; done?: Record<string, number>; hide?: boolean } | null>("f.ob.wk", null);

@@ -2,6 +2,7 @@
 // Manba tavsifi: _mahalliy/MASHQ-SPEC.md (§0).
 import { useEffect, useState } from "react";
 import { loadData } from "./data";
+import { fromLegacy, legacyB, retrievability, review, type FsrsX, type Rating } from "./fsrs";
 import { bkKey, type Book } from "./progress";
 import { scheduleSync, store } from "./store";
 import { shuffle, strip } from "./words";
@@ -51,8 +52,9 @@ export function checkTyped(it: { ar: string; uz: string }, typed: string, dir: "
 // ===== takrorlash jadvali (SRS) va xatolar daftari =====
 export const SRS_INT = [1, 1, 3, 7, 14, 30, 60];
 export const dayNum = (d = new Date()) => Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 864e5);
-/** b — pog'ona (0 — shu kuni yangi o'rganilgan), d — qaysi kuni takrorlanadi, h — kun ichidagi takror vaqti (ms; 12-partiya, A3) */
-type Srs = Record<string, { b: number; d: number; h?: number }>;
+/** b — pog'ona (0 — shu kuni yangi o'rganilgan), d — qaysi kuni takrorlanadi, h — kun ichidagi takror vaqti (ms; 12-partiya, A3),
+ *  x — FSRS holati [barqarorlik, qiyinlik, oxirgi takror kuni, takrorlar, unutishlar] (24.11.2026, lib/fsrs.ts) */
+type Srs = Record<string, { b: number; d: number; h?: number; x?: FsrsX }>;
 /** yangi so'z shu kuni yana qaytadi — o'rganilgandan 3 soat keyin (Nation, 29–30-betlar: kun ichidagi oraliq) */
 export const LATER_MS = 3 * 3600e3;
 export const isDue = (e: { d: number; h?: number } | undefined, t = dayNum()) => !!e && e.d <= t && !(e.h && e.h > Date.now());
@@ -61,9 +63,21 @@ export function learnLater(bid: string, ars: string[]) {
   const key = bkKey(bid, "srs");
   const Sx = store.get<Srs>(key, {});
   const h = Date.now() + LATER_MS, d = dayNum();
-  let ch = false;
-  for (const ar of ars) if (!Sx[ar]) { Sx[ar] = { b: 0, d, h }; ch = true; }
-  if (ch) { store.set(key, Sx); scheduleSync(); }
+  let ch = 0;
+  for (const ar of ars) if (!Sx[ar]) { Sx[ar] = { b: 0, d, h }; ch++; }
+  if (ch) { store.set(key, Sx); noteNew(ch); scheduleSync(); }
+}
+/** 24.11.2026 (P2.1): bugun yangi o'rganilgan so'zlar soni — [kun, son] */
+export function noteNew(n: number) {
+  const t = dayNum(), v = store.get<[number, number]>("f.newd", [t, 0]);
+  store.set("f.newd", [t, (v[0] === t ? v[1] : 0) + n]);
+}
+export const newToday = () => { const v = store.get<[number, number]>("f.newd", [0, 0]); return v[0] === dayNum() ? v[1] : 0; };
+/** «Bugun» darsidagi yangi so'zlar soni: kuniga 10 (A0–A1 kitobida 8) — foydalanuvchi qarori; takror 20–40 → 3 ta, 40+ → 0 */
+export function newCap(bid: string, dueN: number, perLesson = 5) {
+  const day = /^(a0|a1)$/.test(bid) ? 8 : 10;
+  const byDue = dueN > 40 ? 0 : dueN >= 20 ? 3 : perLesson;
+  return Math.max(0, Math.min(perLesson, byDue, day - newToday()));
 }
 /** chalkashadigan juftlik: sinonim/antonim (rel: "a|b") yoki bitta harfi farq qiladigan so'zlar (قَلْبٌ / كَلْبٌ) — bir kunda takrorlanmaydi */
 const skel = (s: string) => s.replace(/[\u064B-\u0652\u0670\u0640]/g, "").replace(/[أإآ]/g, "ا").replace(/^ال/, "").trim();
@@ -116,33 +130,52 @@ export const hardIn = (bid: string) => Object.entries(hardOf()).filter(([, v]) =
 
 /** true — esladi, "part" — maslahat bilan topdi (oraliq oshmaydi, orqaga ham qaytmaydi, xato hisoblanmaydi), false — bilmadi */
 export type Grade = boolean | "part";
-/** Eski srsSet: xato bo'lsa daftarga; b — 1..6 pog'ona; joriy kitobdagi so'z bo'lsa "yodlangan" belgisi qo'yiladi/olinadi */
-export function srsSet(book: PBook, ar: string, g: Grade) {
-  if (g === false) errAdd(ar, book.id);
-  const key = bkKey(book.id, "srs");
+/** 24.11.2026 (P2.1): FSRS bahosi — 1 unutdi, 2 qiyin eslay oldi, 3 esladi, 4 oson (tez, yordamsiz). Easy faqat 2+ marta takrorlangan so'zga */
+export function srsRate(bid: string, ar: string, g0: Rating): number {
+  const key = bkKey(bid, "srs");
   const S = store.get<Srs>(key, {});
-  const cur = S[ar] || { b: 0, d: 0 };
-  // oldingi takrordan necha kun o'tgani: d = oxirgi takror kuni + SRS_INT[b] (eski ilovada ham shunday)
-  if (S[ar] && cur.b >= 1 && dayNum() - (cur.d - SRS_INT[cur.b]) >= LTM_GAP) ltmLog(g === true);
-  if (S[ar] && cur.b >= 2) {
+  const cur = S[ar];
+  const today = dayNum();
+  const x0 = cur?.x || (cur ? fromLegacy(cur.b, cur.d, SRS_INT, isHard(ar)) : null); // eski yozuv birinchi takrorda ko'chiriladi
+  const reps = x0 ? x0[3] : 0;
+  const g: Rating = g0 === 4 && reps < 2 ? 3 : g0;
+  // uzoq xotira jurnali: kamida 7 kunlik tanaffusdan keyingi takror (eski ilovadagidek — faqat «esladi» to'g'ri hisoblanadi)
+  if (x0 && today - x0[2] >= LTM_GAP) ltmLog(g >= 3);
+  const { x, ivl } = review(x0, g, today);
+  // qiyin so'z: o'rganilgan (2+ takror) so'z 3 marta unutilsa; barqarorlik 30 kunga yetganda belgi olinadi
+  if (x0 && reps >= 2) {
     const H = hardOf();
-    if (g === false) { H[ar] = { n: (H[ar]?.n || 0) + 1, b: book.id }; store.set("f.hard", H); }
-    else if (g === true && H[ar] && cur.b + 1 >= 5) { delete H[ar]; store.set("f.hard", H); }
+    if (g === 1) { H[ar] = { n: (H[ar]?.n || 0) + 1, b: bid }; store.set("f.hard", H); }
+    else if (H[ar] && x[0] >= 30) { delete H[ar]; store.set("f.hard", H); }
   }
-  const b = g === true ? Math.min(cur.b + 1, 6) : g === "part" ? Math.max(cur.b, 1) : 1;
-  S[ar] = { b, d: dayNum() + SRS_INT[b] };
+  S[ar] = { b: legacyB(ivl, SRS_INT), d: today + ivl, x };
   store.set(key, S);
-  const it = g === "part" ? null : allItems(book).find((x) => x.ar === ar);
-  const xt = g === "part" || it ? null : extrasAll(book).find((x) => x.ar === ar);
+  scheduleSync();
+  return ivl;
+}
+/** srsSet: xato bo'lsa daftarga; joriy kitobdagi so'z bo'lsa "yodlangan" belgisi qo'yiladi/olinadi. 24.11: jadval — FSRS (srsRate).
+ *  opt.second — 2-urinishda to'g'ri (foydalanuvchi qarori: «qiyin eslay oldi», belgi o'zgarmaydi); opt.fast — yordamsiz va tez (Easy) */
+export function srsSet(book: PBook, ar: string, g: Grade, opt: { second?: boolean; fast?: boolean } = {}) {
+  if (g === false) errAdd(ar, book.id);
+  const r: Rating = g === true ? (opt.fast ? 4 : 3) : g === "part" || opt.second ? 2 : 1;
+  srsRate(book.id, ar, r);
+  const it = r === 2 ? null : allItems(book).find((x) => x.ar === ar);
+  const xt = r === 2 || it ? null : extrasAll(book).find((x) => x.ar === ar);
   if (it || xt) {
     const kk = it ? bkKey(book.id, `known.${it.u}`) : bkKey(book.id, `xk.${xt!.u}`);
     const k = store.get<Record<string, number>>(kk, {});
     if (g === true) k[ar] = 1; else delete k[ar];
     store.set(kk, k);
+    scheduleSync();
   }
-  scheduleSync();
 }
 export const srsOf = (bid: string) => store.get<Srs>(bkKey(bid, "srs"), {});
+/** so'zni hozir eslash ehtimoli (0–1); jadvalda yo'q — null. Eski yozuv — pog'onadan taxminiy */
+export function recallOf(e: Srs[string] | undefined, t = dayNum()): number | null {
+  if (!e) return null;
+  const x = e.x || fromLegacy(e.b, e.d, SRS_INT);
+  return x ? retrievability(t - x[2], x[0]) : null;
+}
 
 // ===== rasmlar (EMO: harakatsiz arabcha → emoji; FLX: emoji → 3D rasm) =====
 let EMO: Record<string, string> | null = null, FLX: Record<string, number> | null = null;

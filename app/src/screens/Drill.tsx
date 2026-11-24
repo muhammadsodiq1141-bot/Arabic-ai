@@ -46,8 +46,10 @@ function Cards({ book, unit, set }: { book: PBook; unit: number; set?: XSet }) {
   const [state, setState] = useState<"ok" | "near" | "no" | "show" | null>(null);
   const [, force] = useState(0);
   const timer = useRef<number | undefined>(undefined);
+  const shown = useRef(Date.now()); // 24.11.2026 (P2.1): yordamsiz, birinchi urinishda va ≤ 6 s — «oson» (Easy)
   useEffect(() => () => clearTimeout(timer.current), []);
   const card = deck[0];
+  useEffect(() => { shown.current = Date.now(); }, [card]);
   const known = Object.keys(knownOf(book.id, unit)).filter((k) => all.some((x) => x.ar === k)).length;
 
   const nextCard = (learned: boolean) => {
@@ -64,7 +66,8 @@ function Cards({ book, unit, set }: { book: PBook; unit: number; set?: XSet }) {
     if (r === "ok" || r === "near") {
       const first = !tries && !hint;
       // birinchi urinishda — yodlandi; faqat yordam bilan — «qisman» (2-paket, N1); xato urinishdan keyin — takrorlashga va xatolar daftariga
-      srsSet(book, card.ar, first ? true : !tries ? "part" : false);
+      // 24.11.2026: xato urinishdan keyingi to'g'ri javob — «qiyin eslay oldi» (FSRS Hard; foydalanuvchi qarori), xatolar daftariga baribir yoziladi
+      srsSet(book, card.ar, first ? true : !tries ? "part" : false, { second: tries > 0, fast: first && r === "ok" && Date.now() - shown.current <= 6000 });
       gain("fc", first ? 3 : 1);
       report("kartochka", book.units.find((x) => x.n === unit)?.uz || "", null, null, false, unit);
       setState(r); tg.haptic("success");

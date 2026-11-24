@@ -14,7 +14,8 @@ import { STRANDS, strandToday, strandWeek, type Strand } from "../lib/strand";
 import { twGet, twSteps } from "../lib/textwork";
 import { goalOf, MIX } from "../lib/goal";
 import type { Book } from "../lib/progress";
-import { allItemsX, checkTyped, confusable, dayNum, errAdd, isDue, itemsOf, LATER_MS, picOf, SRS_INT, srsOf, usePics, type Item } from "../lib/practice";
+import { allItemsX, checkTyped, confusable, dayNum, errAdd, isDue, itemsOf, LATER_MS, newCap, noteNew, picOf, recallOf, srsOf, srsRate, usePics, type Item } from "../lib/practice";
+import type { Rating } from "../lib/fsrs";
 import { loadData } from "../lib/data";
 import { bkKey, dayKey } from "../lib/progress";
 import { report } from "../lib/report";
@@ -69,10 +70,14 @@ export function planLesson(book: RBook, rel?: Set<string>): Plan {
   for (const x of allItemsX(book)) if (isDue(S[x.ar], t) && !seen.has(x.ar)) { seen.add(x.ar); dueAll.push(x); }
   // chalkashadigan juftlikdan bittasi keyingi darsga qoladi (Nation, 32-bet: birga o'rganilsa 50–100% qiyinroq)
   const due: Item[] = [];
-  for (const x of shuffle(dueAll)) { if (due.length >= 8) break; if (!due.some((y) => confusable(x.ar, y.ar, rel))) due.push(x); }
+  // 24.11.2026 (P2.1): eng unutilayotgani birinchi — FSRS eslash ehtimoli bo'yicha (teng bo'lsa — aralash)
+  const R0 = (x: Item) => recallOf(S[x.ar], t) ?? 0;
+  const order = shuffle(dueAll).sort((a, b) => R0(a) - R0(b));
+  for (const x of order) { if (due.length >= 8) break; if (!due.some((y) => confusable(x.ar, y.ar, rel))) due.push(x); }
   const u: Unit = book.units.find((x) => pctOf(x.words, knownOf(book.id, x.n)) < 100) || book.units[book.units.length - 1];
   const K = knownOf(book.id, u.n);
-  const news = itemsOf(u).filter((x) => !K[x.ar] && !S[x.ar]).slice(0, 5);
+  // 24.11.2026 (P2.1): yangi so'z — darsda 5 tagacha, kuniga 10 (A0–A1 da 8); takror 20–40 bo'lsa 3 ta, 40 dan ko'p bo'lsa yangi yo'q
+  const news = itemsOf(u).filter((x) => !K[x.ar] && !S[x.ar]).slice(0, newCap(book.id, dueAll.length, 5));
   const R = rulesIn(book, u.n);
   let rule: [number, number] | null = null;
   for (let i = 0; i < R.length; i++) if ((ruleBest(book.id, u.n, i) || 0) < 80) { rule = [u.n, i]; break; }
@@ -80,16 +85,19 @@ export function planLesson(book: RBook, rel?: Set<string>): Plan {
   return { u, due, news, rule, mins: Math.max(3, Math.round(due.length * 0.4 + news.length + (rule ? 2 : 0))) };
 }
 
-/** darsdagi javob: to'g'ri — keyingi pog'ona va "yodlangan"; xato — xatolar daftari va ertaga takrorlash (yodlangan belgisi qoladi) */
-function lessonSrs(book: RBook, it: Item, ok: boolean, fresh = false) {
-  if (!ok) errAdd(it.ar, book.id);
-  const key = bkKey(book.id, "srs");
-  const S = store.get<Record<string, { b: number; d: number; h?: number }>>(key, {});
-  const b = ok ? Math.min((S[it.ar]?.b || 0) + 1, 6) : 1;
-  // yangi so'z to'g'ri yozilsa — shu kuni 3 soatdan keyin yana takrorlanadi (0-pog'ona)
-  S[it.ar] = ok && fresh ? { b: 0, d: dayNum(), h: Date.now() + LATER_MS } : { b, d: dayNum() + SRS_INT[b] };
-  store.set(key, S);
-  if (ok) markKnown(book.id, it.u, it.ar);
+/** darsdagi javob. 24.11.2026 (P2.1): jadval FSRS bilan — r: 1 unutdi, 2 qiyin eslay oldi (2-urinishda to'g'ri — foydalanuvchi qarori),
+ *  3 esladi, 4 oson (birinchi urinishda va tez). Esladi — "yodlangan"; xato — xatolar daftari (yodlangan belgisi qoladi) */
+function lessonSrs(book: RBook, it: Item, r: Rating, fresh = false) {
+  if (r <= 2) errAdd(it.ar, book.id);
+  if (r >= 3 && fresh) {
+    // yangi so'z to'g'ri yozilsa — shu kuni 3 soatdan keyin yana takrorlanadi (0-pog'ona; FSRS holati birinchi takrorda boshlanadi)
+    const key = bkKey(book.id, "srs");
+    const S = store.get<Record<string, { b: number; d: number; h?: number }>>(key, {});
+    if (!S[it.ar]) noteNew(1);
+    S[it.ar] = { b: 0, d: dayNum(), h: Date.now() + LATER_MS };
+    store.set(key, S);
+  } else srsRate(book.id, it.ar, r);
+  if (r >= 3) markKnown(book.id, it.u, it.ar);
   scheduleSync();
 }
 
@@ -247,6 +255,9 @@ export function LessonScreen({ bookId, plan }: { bookId: string; plan: Plan }) {
   }, [book]); // eslint-disable-line react-hooks/exhaustive-deps
   const cur = steps?.[i];
   useEffect(() => { if (cur && (cur.k === "rev" || cur.k === "type") && st === null) inp.current?.focus({ preventScroll: true }); }, [cur, st]);
+  // 24.11.2026 (P2.1): karta ko'rsatilgan vaqt — tez va yordamsiz javob «oson» (Easy): yozib ≤ 6 s, o'zi baholab ≤ 3 s
+  const cardAt = useRef(Date.now());
+  useEffect(() => { cardAt.current = Date.now(); }, [i]);
 
   if (!book || !steps) return <main className="round"><p className="muted pad">Yuklanmoqda…</p></main>;
   const n = steps.length;
@@ -279,23 +290,23 @@ export function LessonScreen({ bookId, plan }: { bookId: string; plan: Plan }) {
     const r = checkTyped(cur.it, val, "uz");
     if (!r) return;
     if (r !== "no") {
-      // "yaqin" javob ham to'g'ri; ikkinchi urinishdagi to'g'ri javob takrorlash uchun xato hisoblanadi (eski)
+      // "yaqin" javob ham to'g'ri; 24.11: ikkinchi urinishdagi to'g'ri javob — «qiyin eslay oldi» (Hard; avval «unutdi» edi)
       if (!tries) okN.current++;
-      setSt("ok"); lessonSrs(book, cur.it, tries === 0, cur.k === "type"); gain("fc", tries ? 1 : 3); tg.haptic("success");
+      setSt("ok"); lessonSrs(book, cur.it, tries ? 2 : r === "ok" && Date.now() - cardAt.current <= 6000 ? 4 : 3, cur.k === "type"); gain("fc", tries ? 1 : 3); tg.haptic("success");
     } else {
       const t = tries + 1;
       setTries(t); tg.haptic("error");
       if (t >= 2) {
-        setSt("show"); lessonSrs(book, cur.it, false);
+        setSt("show"); lessonSrs(book, cur.it, 1);
         if (cur.k === "rev" && !cur.again) setSteps([...steps, { ...cur, again: true }]);
       } else { setSt("no"); setVal(""); }
     }
   };
-  const dunno = () => { if (!cur || cur.k === "rq" || cur.k === "intro" || cur.k === "rev2") return; setSt("show"); lessonSrs(book, cur.it, false); };
+  const dunno = () => { if (!cur || cur.k === "rq" || cur.k === "intro" || cur.k === "rev2") return; setSt("show"); lessonSrs(book, cur.it, 1); };
   // teskari yo'nalish: o'quvchi arabchasini eslab, o'zi baholaydi (yozish shart emas — telefonda arabcha klaviatura bo'lmasligi mumkin)
   const rate = (ok: boolean) => {
     if (!cur || cur.k !== "rev2") return;
-    lessonSrs(book, cur.it, ok);
+    lessonSrs(book, cur.it, ok ? (Date.now() - cardAt.current <= 3000 ? 4 : 3) : 1);
     if (ok) { okN.current++; gain("fc", 3); tg.haptic("success"); }
     else { tg.haptic("error"); if (!cur.again) setSteps([...steps, { k: "rev", it: cur.it, again: true }]); }
     next();
