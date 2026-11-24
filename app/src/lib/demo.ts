@@ -4,7 +4,7 @@ import { DEMO } from "./demoFlag";
 import { xDemo, xDemoSub } from "./demoX"; // 3-paket 3-qism
 import { shopDemo } from "./demoShop"; // 3-paket 4-qism
 import { fbDemo } from "./demoFb"; // tashakkur va takliflar
-import { subsDemo, subsNew } from "./demoSubs"; // 24.11.2026 (api 25): ustoz bahosi
+import { subsDemo, subsNew, u3Grade, u3Teacher } from "./demoSubs"; // 24.11.2026 (api 25): ustoz bahosi; api 27: qayta yozish
 export { DEMO };
 const q = new URLSearchParams(location.search);
 
@@ -38,7 +38,7 @@ export async function demoApi(action: string, p: Record<string, unknown>): Promi
   }
   // 24.11.2026 (api 25): javob ovozi / ustozning ovozli izohi — sinovda 0,6 soniyalik jimlik
   if (action === "subAudio") { (window as unknown as { __au?: unknown[] }).__au = [...((window as unknown as { __au?: unknown[] }).__au || []), p]; return { ok: true, url: silentWav() }; }
-  if (!teacher && ["subMine", "subSeen", "subSend"].includes(action)) { const r = subsDemo(action, p); if (r) return r; }
+  if (!teacher && ["subMine", "subSeen", "subSend", "subRedo"].includes(action)) { const r = subsDemo(action, p); if (r) return r; }
   if (action.startsWith("fb")) { const r = fbDemo(action, p); if (r) return r; }
   if (action.startsWith("shop")) { const r = shopDemo(action, p, admin); if (r) return r; }
   if (action.startsWith("x") && /^x[A-Z]/.test(action)) { const x = xDemo(action, p, teacher || admin, q); if (x) return x; }
@@ -174,6 +174,7 @@ function teacherDemo(action: string, p: Record<string, unknown>): Record<string,
     { id: 30, lesson: "a1:3", step: "yozish", item: 9, text: "هَذِهِ جَامِعَتِي. هِيَ كَبِيرَةٌ وَجَمِيلَةٌ.", created_at: iso(60 * 30), grade: 5, comment: "Barakalla!", audio: false, name: "Madina Yusupova", login: "MJ-48877" },
     { id: 29, lesson: "md1:3", step: "matn21", item: 3, text: "الْكِتَابُ عَلَى الْمَكْتَبِ.", created_at: iso(60 * 40), grade: 4, comment: "Gaplar bog'langan, fikr tushunarli · So'z oxiridagi harakatni tekshiring", audio: false,
       name: "Aziz Karimov", login: "MJ-48213", tags: ["Harakat"], praise: "Gaplar bog'langan, fikr tushunarli", fix: "So'z oxiridagi harakatni tekshiring", t_audio: true, t_sec: 21 },
+    u3Teacher(), // api 27: qayta yozish sikli (o'quvchi rejimi bilan umumiy)
   ], coinGrade: { 5: 1000, 4: 600, 3: 300, 2: 0, 1: 0 } };
   if (action === "hwList") return { ok: true, items: [
     { id: 7, group_code: "K7QX2M", book: "a1", unit: 4, title: "Kasblar va ishlar", due: day(2), mine: null, teacher: true, stats: { total: 6, done: 2 } },
@@ -183,6 +184,8 @@ function teacherDemo(action: string, p: Record<string, unknown>): Record<string,
   if (action === "subGrade") {
     const W = window as unknown as { __sg?: unknown[] };
     W.__sg = [...(W.__sg || []), { ...p, audio: p.audio ? `<${String(p.audio).length} belgi>` : undefined }]; // 24.11.2026: sinov tekshiradi
+    if (p.redo === true && [34, 36].includes(Number(p.id))) throw new Error("Uy va qo'shimcha vazifada qayta yozish yo'q — baho qo'ying"); // api 27
+    if (Number(p.id) === 60) return u3Grade(p);
     const paid = [34, 36].includes(Number(p.id)); // tanga faqat uy (34) va qo'shimcha (36) vazifaga — server kabi
     return { ok: true, coins: paid ? ({ 5: 1000, 4: 600, 3: 300 } as Record<number, number>)[Number(p.grade)] || 0 : 0, t_audio: !!p.audio };
   }

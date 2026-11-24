@@ -15,7 +15,7 @@ import { useLets } from "./KbA0";
 import { Avatar, Empty, ScreenHeader } from "../ui/kit";
 import { toast } from "../ui/Toast";
 import { ccResend } from "../lib/classq";
-import { isDunno } from "../lib/subs";
+import { isAsked, isDunno } from "../lib/subs";
 
 export type Sum = {
   streak?: number; xpw?: number; xpt?: number; days?: number[]; book?: string; books?: Record<string, [number, number]>;
@@ -76,8 +76,8 @@ export function TeacherScreen({ fixed }: { fixed?: { code: string; title: string
     setMembers(null); setPending(null);
     api<{ members: Member[] }>("groupMembers", { code: cur.code, week: weekId() })
       .then((r) => alive && setMembers(r.members || [])).catch(() => alive && setMembers("err"));
-    api<{ items: { grade: number | null; item: number; step: string }[] }>("subList", { code: cur.code })
-      .then((r) => alive && setPending((r.items || []).filter((x) => x.grade === null && !isDunno(x)).length)).catch(() => alive && setPending(0)); // 24.11: umumiy filtr (lib/subs)
+    api<{ items: { grade: number | null; item: number; step: string; redo?: string | null }[] }>("subList", { code: cur.code })
+      .then((r) => alive && setPending((r.items || []).filter((x) => x.grade === null && !isDunno(x) && !isAsked(x)).length)).catch(() => alive && setPending(0)); // 24.11: umumiy filtr (lib/subs); qayta yozish so'ralgani — o'quvchida
     api<{ items: { group_code: string; teacher?: boolean }[] }>("hwList")
       .then((r) => alive && setHwN((r.items || []).filter((h) => h.teacher && h.group_code === cur.code).length)).catch(() => alive && setHwN(0));
     setCc(null);

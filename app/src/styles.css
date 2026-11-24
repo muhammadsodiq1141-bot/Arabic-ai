@@ -2792,3 +2792,34 @@ html.obscured .app { filter: blur(22px); }
 .mn-ar { display: block; font-size: 20px; line-height: 1.8; text-align: right; padding: 8px 12px; border-radius: 14px; background: var(--bg); }
 .mn-txt { margin: 0; padding: 8px 12px; border-radius: 14px; background: var(--bg); font-size: 14px; line-height: 1.6; white-space: pre-line; overflow-wrap: anywhere; }
 .tw-x-sent { margin: 0; font-size: 13.5px; font-weight: 600; color: var(--muted); }
+
+/* 24.11.2026 (api 27): qayta yozish — U3 (TeacherSubs, Marks, ui/Tries) */
+.ts-pills { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.ts-try { padding: 2px 8px; border-radius: 8px; background: var(--soft); color: var(--muted); font-size: 12px; font-weight: 800; }
+.ts-asked { padding: 4px 10px; border-radius: 12px; background: var(--gold); color: #2A2418; font-weight: 800; font-size: 13px; }
+.ts-redo { height: 48px; }
+.ts-redo-why { margin-top: -4px; font-size: 12.5px; font-weight: 600; color: var(--muted); line-height: 1.4; }
+.tr-box { border-radius: 14px; background: var(--soft); padding: 0 12px; }
+.tr-box summary { min-height: 44px; display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 14px; color: var(--accent); cursor: pointer; list-style: none; }
+.tr-box summary::-webkit-details-marker { display: none; }
+.tr-box summary::after { content: ""; width: 7px; height: 7px; margin-left: auto; border-right: 2px solid; border-bottom: 2px solid; transform: rotate(45deg); margin-top: -4px; }
+.tr-box[open] summary::after { transform: rotate(-135deg); margin-top: 4px; }
+.tr-box[open] { padding-bottom: 10px; }
+.tr-i { display: flex; flex-direction: column; gap: 8px; padding: 10px 0; border-top: 1px solid var(--line); }
+.tr-n { font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.tr-ar { display: block; font-size: 19px; line-height: 1.8; text-align: right; padding: 6px 10px; border-radius: 12px; background: var(--card); }
+.tr-txt { margin: 0; padding: 6px 10px; border-radius: 12px; background: var(--card); font-size: 14px; line-height: 1.6; white-space: pre-line; overflow-wrap: anywhere; }
+.tr-l { display: flex; gap: 8px; margin: 0; font-size: 14px; line-height: 1.5; }
+.tr-l svg { flex: none; margin-top: 3px; color: var(--ok-line); }
+.tr-l.fix svg { color: var(--accent); }
+.tr-tags { font-size: 12.5px; font-weight: 800; color: var(--muted); }
+.mn-card.redo { box-shadow: var(--shadow), inset 4px 0 0 var(--accent); }
+.mn-redo { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 12px; background: var(--hero); color: var(--gold); font-size: 12.5px; font-weight: 800; }
+:root[data-theme="dark"] .mn-redo { background: var(--gold); color: #1E2118; }
+.mn-rw-note { margin: 0; font-size: 13.5px; font-weight: 600; color: var(--muted); line-height: 1.45; }
+.mn-ed { display: flex; flex-direction: column; gap: 10px; margin: 0 -10px; padding: 12px 8px; border-radius: 16px; background: var(--soft); }
+.mn-ed-h { font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.mn-ed-in { min-height: 84px; background: var(--card); }
+.mn-ed .akb { margin: 0 -4px; background: var(--bg); }
+.mn-ed .kb-rec { justify-content: flex-start; }
+.mn-ed-act { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; }

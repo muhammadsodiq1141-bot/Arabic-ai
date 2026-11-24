@@ -101,7 +101,7 @@ function useStartParam() {
       return;
     }
     // 24.11.2026 (api 25): baho xabaridagi «📋 Baholarni ochish» — marks_<javob raqami> → Baholar → Ustoz izohlari
-    if (fresh && /^marks_\d{1,12}$/.test(v)) { store.set("f.handled", v); marksJump.notes = true; setTab("marks"); return; }
+    if (fresh && /^marks_\d{1,12}$/.test(v)) { store.set("f.handled", v); marksJump.notes = true; marksJump.id = Number(v.slice(6)) || 0; setTab("marks"); return; }
     let code = fresh && /^g_[A-Za-z0-9]{4,10}$/.test(v) ? v.slice(2) : "";
     if (code) store.set("f.handled", v);
     else code = store.get("f.gjoin", "");

@@ -12,8 +12,10 @@ export type SubAi = {
 };
 type Grading = {
   grade: number | null; comment: string | null; title?: string | null; tags?: string[] | null; praise?: string | null; fix?: string | null;
-  t_audio?: boolean; t_sec?: number | null; ai?: SubAi | null; attempt?: number; redo?: string | null;
+  t_audio?: boolean; t_sec?: number | null; ai?: SubAi | null; attempt?: number; redo?: string | null; tries?: Try[] | null;
 };
+/** 27-versiya (U3): oldingi urinish — server yo'llarsiz beradi (ovoz bor/yo'q); ovozi subAudio {id, try: n[, t]} */
+export type Try = { n: number; text: string; audio: boolean; praise: string | null; fix: string | null; tags: string[] | null; t_audio: boolean; t_sec: number | null; at: string | null };
 /** ustoz ro'yxatidagi javob (subList) */
 export type TSub = Grading & {
   id: number; lesson: string; step: string; item: number; text: string; created_at: string; audio: boolean; name: string; login: string;
@@ -23,6 +25,20 @@ export type TSub = Grading & {
 export type MySub = Grading & { id: number; lesson: string; step: string; item: number; text: string; created_at: string; graded_at?: string | null; audio: boolean; seen_at?: string | null };
 
 /** «Tushunmadim» xabari: mashq bandi 300–499 (uy/qo'shimcha vazifa, diktant, yakka gapirish, o'qish — baholanadigan javob) */
+// ===== U3: qayta yozish (Q3 — baho oxirgi urinishga, Q4 — ko'pi bilan 3 urinish, Q5 — uy/qo'shimcha vazifada yo'q) =====
+export const REDO_MAX = 3;
+/** ustoz qayta yozishni so'ragan — o'quvchini kutmoqda */
+export const isAsked = (x: { redo?: string | null }) => x.redo === "asked";
+/** qayta yozishni so'rab bo'lmasa — sababi (bo'lsa — null) */
+export function redoWhy(x: { step: string; attempt?: number }): string | null {
+  if (x.step === "hw") return "Uy vazifasida qayta yozish yo'q — baho qo'ying";
+  if (x.step === "x") return "Qo'shimcha vazifada qayta yozish yo'q — baho qo'ying";
+  if ((x.attempt || 1) >= REDO_MAX) return `${REDO_MAX}-urinish — endi faqat baho qo'yiladi`;
+  return null;
+}
+/** o'quvchi uchun yangi: ustoz bahosi yoki qayta yozish so'rovi, hali ko'rilmagan */
+export const isFresh = (x: { grade: number | null; redo?: string | null; seen_at?: string | null }) => (x.grade !== null || x.redo === "asked") && !x.seen_at;
+
 export const isDunno = (x: { item: number; step: string }) => x.item >= 300 && x.item < 500 && !["hw", "x", "dict", "speak", "read"].includes(x.step);
 /** matnsiz javobning avtomatik yozuvi (🎙 Ovozli javob, 📷 Daftar surati, 🧩 HTML natijasi) — ko'rsatilmaydi */
 export const autoText = (t: string) => /^(🎙|📷|🧩)/.test(t);
@@ -154,4 +170,4 @@ export const dateUz = (iso: string) => { const d = new Date(iso); return `${d.ge
 export const pureAr = (t: string) => /[؀-ۿ]/.test(t) && !/[A-Za-z]{3,}/.test(t);
 
 /** bot xabaridagi «📋 Baholarni ochish» (go=marks_<n>) — «Baholar» ochilganda darhol «Ustoz izohlari» bo'limi */
-export const marksJump = { notes: false };
+export const marksJump = { notes: false, id: 0 }; // id — shu javob kartasi (27-versiya: «✎ Qayta yozish» tugmasi)
