@@ -1,11 +1,12 @@
 // O'quvchining qisqa hisoboti (_sum) — ustoz va admin panellari FAQAT shuni o'qiydi. Eski ilovadagi mySummary bilan aynan bir xil format:
-// {v:1, at, streak, xpw (hafta XP), xpt (BUGUNGI XP), days[14], book, books:{id:[yodlangan, jami]}, mlt, sh, test, ob?, kb?, a0?, ut?, uk?, sm?, er?} (ut, uk, sm, er — 11.11.2026, ustoz «Dars oldidan» va «4 yo'l»)
+// {v:1, at, streak, dq?, ld? (24.11 eslatma), xpw (hafta XP), xpt (BUGUNGI XP), days[14], book, books:{id:[yodlangan, jami]}, mlt, sh, test, ob?, kb?, a0?, ut?, uk?, sm?, er?} (ut, uk, sm, er — 11.11.2026, ustoz «Dars oldidan» va «4 yo'l»)
 // Server sync'da _sum'ni shu bilan almashtiradi; yubormasak — o'chib ketadi va ustoz o'quvchi natijasini ko'rmaydi.
 import { loadData, type BookIndex } from "./data";
 import { loadKb } from "./kb";
 import { bkKey, dayKey, weekId } from "./progress";
 import { store } from "./store";
 import { strandWeek } from "./strand";
+import { dueAhead, lastDay } from "./remind";
 
 const get = <T>(k: string, d: T) => store.get<T>(k, d);
 
@@ -90,6 +91,8 @@ export async function mySummary(): Promise<Record<string, unknown>> {
     const top = Object.values(E).filter((e) => e.n > 0).sort((x, y) => y.n - x.n).slice(0, 10).map((e) => [e.ar, e.n, e.b]);
     if (top.length) out.er = top;
   } catch { /* */ }
+  // 24.11.2026 (P3.1): bot eslatmasi uchun — takrorlanadigan so'zlar (bugun … +7 kun) va oxirgi mashq kuni
+  try { out.dq = await dueAhead(); const ld = lastDay(); if (ld !== null) out.ld = ld; } catch { /* */ }
   // birinchi hafta yo'li (eski ilova)
   try {
     const W = get<{ start: number; done?: Record<string, number>; hide?: boolean } | null>("f.ob.wk", null);

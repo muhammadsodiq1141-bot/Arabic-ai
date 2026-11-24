@@ -47,6 +47,8 @@ import { WordScreen, WordsScreen } from "./WordCard";
 
 // 1-paket: kam ishlatiladigan ekranlar alohida bo'lak bo'lib, kerak bo'lganda yuklanadi (birinchi ochilish yengillashadi).
 // O'quv ekranlari (dars, mashq, diktant, multfilm) asosiy kodda qoladi — kam trafik rejimida internetsiz ham ochilsin.
+// 24.11.2026 (P3.1): shaxsiy vaqtdagi eslatma
+const RemindScreen = lazy(() => import("./Remind").then((m) => ({ default: m.RemindScreen })));
 const AdminScreen = lazy(() => import("./Admin").then((m) => ({ default: m.AdminScreen })));
 const AdminTeachersScreen = lazy(() => import("./Admin").then((m) => ({ default: m.AdminTeachersScreen })));
 const AdminUsersScreen = lazy(() => import("./Admin").then((m) => ({ default: m.AdminUsersScreen })));
@@ -90,6 +92,13 @@ function useStartParam() {
     const v = startGo();
     const fresh = !!v && store.get("f.handled", "") !== v;
     if (fresh && /^d_[A-Za-z0-9]{4,10}$/.test(v)) { store.set("f.handled", v); go("duel", { open: v.slice(2) }); return; }
+    // 24.11.2026: bot eslatmasi tugmalari — rv_<kun> takrorlash, rem_<kun> eslatma sozlamasi, home_<kun> bosh sahifa
+    if (fresh && /^(rv|rem|home)_\d{4,6}$/.test(v)) {
+      store.set("f.handled", v);
+      if (v.startsWith("rv_")) go("night", { book: store.get("a1.book", "a1") });
+      else if (v.startsWith("rem_")) go("remind");
+      return;
+    }
     let code = fresh && /^g_[A-Za-z0-9]{4,10}$/.test(v) ? v.slice(2) : "";
     if (code) store.set("f.handled", v);
     else code = store.get("f.gjoin", "");
@@ -148,6 +157,7 @@ function Screens() {
   if (route.view === "trep") return <TeacherReportScreen key={String(p.code || "")} code={String(p.code || "")} />;
   if (route.view === "t4") return <TeacherStrandsScreen key={String(p.code || "")} code={String(p.code || "")} />;
   if (route.view === "fb") return <FeedbackScreen />;
+  if (route.view === "remind") return <RemindScreen />; // 24.11.2026
   if (route.view === "afb") return <AdminFeedbackScreen />;
   if (route.view === "shop") return <ShopScreen />;
   if (route.view === "ashop") return <AdminShopScreen />;

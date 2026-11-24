@@ -2,7 +2,7 @@
 // ustozlik so'rovi, ustoz va admin panellariga kirish, ko'rinish. Server amallari eski ilova bilan umumiy.
 import { goalOf } from "../lib/goal";
 import { useEffect, useState } from "react";
-import { BookOpen, ChevronRight, Coins, Copy, MessageSquareHeart, GraduationCap, IdCard, KeyRound, LogOut, Moon, MoonStar, Send, ShieldCheck, Sun, SunMoon, Target, UserPen, Users, Gauge } from "lucide-react";
+import { Bell, BookOpen, ChevronRight, Coins, Copy, MessageSquareHeart, GraduationCap, IdCard, KeyRound, LogOut, Moon, MoonStar, Send, ShieldCheck, Sun, SunMoon, Target, UserPen, Users, Gauge } from "lucide-react";
 import { isLite, setLite, slowNet } from "../lib/lite";
 import { api } from "../lib/api";
 import { BOT_LINK } from "../lib/config";
@@ -53,6 +53,11 @@ export function Profile() {
 
       <button type="button" className="rowbtn" onClick={() => go("goal")}>
         <Target size={24} aria-hidden /><span><b>Maqsadim va rejam</b><small>{goalOf() ? "Shaxsiy reja · o'ziga ishonch" : "4 ta savol — shaxsiy reja tuzish"}</small></span><ChevronRight size={20} aria-hidden />
+      </button>
+
+      {/* 24.11.2026 (P3.1): shaxsiy vaqtdagi eslatma */}
+      <button type="button" className="rowbtn" onClick={() => go("remind")}>
+        <Bell size={24} aria-hidden /><span><b>Eslatma</b><small>Qachon mashq qilishni tanlang · bot shu vaqtda yozadi</small></span><ChevronRight size={20} aria-hidden />
       </button>
 
       <h2 className="t-h">Hisob</h2>

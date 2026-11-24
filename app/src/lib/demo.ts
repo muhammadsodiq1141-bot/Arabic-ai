@@ -12,6 +12,7 @@ let demoSpent = 0; // 3-paket: muzlatish uchun sarflangan tanga (sinov)
 const demoClass: Record<string, number> = { k1: 150, k3: 200 }; // 3-paket 2-qism: bugun darsda berilgan (sinov)
 let demoRef = 2; // ?rd=1 — mukofoti olinmagan do'stlar (refClaim kamaytiradi)
 const demoKicked = new Set<string>(["tg104"]); // 23.11.2026: ilovadan chiqarilganlar (sinov)
+let demoRem = { on: true, min: 1140, days: 127, tz: 300 }; // 24.11.2026: eslatma (sinov)
 const people = [
   { sid: "tg101", name: "Aziz Karimov", tgName: "Aziz", user: "aziz_k", level: "A1", group: { code: "K7QX2M", title: "A1-ertalab", teacher: "Domla" }, at: new Date(Date.now() - 5 * 6e4).toISOString(), seen: null },
   { sid: "tg102", name: "Zarina Saidova", tgName: "Zarina", user: "", level: "A0", group: null, at: new Date(Date.now() - 36e5).toISOString(), seen: null, ref: "Aziz Karimov · MJ-48213" },
@@ -21,6 +22,10 @@ const people = [
 
 export async function demoApi(action: string, p: Record<string, unknown>): Promise<Record<string, unknown>> {
   await new Promise((r) => setTimeout(r, 250));
+  // 24.11.2026 (P3.1): eslatma
+  if (action === "remGet") return { ok: true, ...demoRem };
+  if (action === "remSet") { demoRem = { on: !!p.on, min: Math.round((Number(p.min) || 0) / 15) * 15 % 1440, days: Number(p.days) || 0, tz: Number(p.tz) || 300 }; (window as unknown as { __rem?: unknown }).__rem = demoRem; return { ok: true, ...demoRem }; }
+  if (action === "remTest") return { ok: true, sent: true };
   const admin = DEMO === "admin";
   const teacher = DEMO === "teacher";
   if (action === "me" && teacher) {

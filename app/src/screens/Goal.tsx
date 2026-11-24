@@ -150,6 +150,11 @@ export function GoalScreen({ redo, confOnly }: { redo?: boolean; confOnly?: bool
         <span className="gl-ot"><small>Nimadan boshlash</small><b>{start[0]}</b><small>{start[1]}</small></span>
       </button>
 
+      {/* 24.11.2026 (M1 + P3.1): kunlik odat — har kuni bir vaqtda; eslatma shu vaqtda keladi */}
+      <button type="button" className="card gl-start" onClick={() => { tg.haptic(); go("remind"); }}>
+        <span className="gl-ot"><small>Kunlik odat</small><b>Har kuni qachon mashq qilasiz?</b><small>Vaqtni tanlang — bot o'sha paytda eslatadi</small></span>
+      </button>
+
       <section className="card gl-weeks">
         <b>4 haftalik yo'l</b>
         <ol>{WEEKS.map(([a, b], k) => <li key={k} className={k + 1 === wkN ? "on" : k + 1 < wkN ? "dn" : ""}><span>{a}</span>{b}</li>)}</ol>

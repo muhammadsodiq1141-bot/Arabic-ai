@@ -2704,3 +2704,20 @@ html.obscured .app { filter: blur(22px); }
 .kb-lg-dots b.on { background: var(--gold); }
 .kb-lg-note, .kb-lg-off { margin: 0; font-size: 14px; text-align: center; color: var(--muted); }
 .kb-lg-off { padding: 10px 12px; border-radius: 12px; background: var(--soft); color: var(--ink); }
+
+/* 24.11.2026 (P3.1): Eslatma ekrani */
+.rem-lead { margin: 4px 0 4px; font-size: 14px; line-height: 1.5; }
+.rem .seg button svg { flex: none; }
+.rem .cc-lbl .link { border: 0; background: none; padding: 6px 0; min-height: 32px; color: var(--ink); font-weight: 800; font-size: 12.5px; text-transform: none; letter-spacing: 0; text-decoration: underline; text-underline-offset: 3px; }
+.rem-chips { flex-wrap: wrap; overflow: visible; margin: 0 0 4px; padding: 0; }
+.rem-days { gap: 6px; }
+.rem-days button { min-width: 44px; padding: 0 10px; }
+.rem-time { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; padding: 8px 12px; margin: 4px 0 6px; font-weight: 700; font-size: 14px; }
+.rem-time input { font: inherit; font-size: 17px; font-weight: 800; border: 0; background: var(--soft); color: var(--ink); border-radius: 10px; padding: 8px 10px; min-height: 44px; }
+.rem-msg { background: var(--card); border: 1px solid var(--line); border-radius: 16px 16px 16px 4px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 2px 8px -4px rgba(0, 0, 0, .18); }
+.rem-msg b { font-size: 15px; }
+.rem-msg p { margin: 0; font-size: 14px; line-height: 1.45; }
+.rem-btn { display: block; text-align: center; padding: 9px; border-radius: 10px; background: var(--soft); font-weight: 700; font-size: 13.5px; color: var(--ink); }
+.rem-act { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; margin: 16px 0 8px; }
+.rem-act .btn { justify-content: center; }
+.rem-note { font-size: 13px; text-align: center; }
