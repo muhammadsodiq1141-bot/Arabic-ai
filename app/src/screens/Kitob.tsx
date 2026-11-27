@@ -30,6 +30,8 @@ import { strandSet } from "../lib/strand";
 import { rkOn } from "../lib/reaction";
 import { coverage, lookup, RANK, rankFor, useLex, type LexE } from "../lib/lex";
 import { CoverBar, PreWords, TapText, WordPop } from "../ui/Lex";
+import { useBoardMode } from "../lib/board";
+import { Ans, AnsCtx, BoardBtn } from "../ui/BoardBtn";
 
 export function KbScreen({ lessonKey, si, unitN, letter }: { lessonKey: string; si: number; unitN: number; letter?: string }) {
   const { back } = useNav();
@@ -91,6 +93,9 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
   const [heard, setHeard] = useState(false); // 18.11.2026: tinglash bo'limi — audio kamida bir marta oxirigacha eshitildimi
   const [pct, setPct] = useState<number | null>(null);
   const skipped = useRef<number[]>([]);
+  // 26.11.2026: doska rejimi — ikki ustun (javoblar o'ng ustunga portal bilan), to'g'ri javobdan keyin hamma turda o'zi o'tadi
+  const bm = useBoardMode();
+  const [ansEl, setAnsEl] = useState<HTMLDivElement | null>(null);
   const title = `${L.title} · ${st.t}`;
   // 24.11.2026 (api 25): ustozga va «Baholar»ga boradigan joy nomi — «A2 · 3-vahda · Yozish»
   const place = KB_KEY.test(lessonKey) ? kbPlace(lessonKey, st) : title;
@@ -174,11 +179,16 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
   // 18.11.2026 (foydalanuvchi): variant tanlashda faqat TO'G'RI javobda ovoz chiqadi, so'ng ilova o'zi keyingi savolga o'tadi.
   // Noto'g'ri javobda ovoz yo'q (Choose endi o'zi gapirmaydi). «Davom etish» qo'lda bosilsa — ikki marta o'tmaydi (live)
   useEffect(() => {
-    if (ans !== true || !it || !AUTO_NEXT.has(it.type)) return;
+    if (ans !== true || !it) return;
+    const auto = AUTO_NEXT.has(it.type), board = !auto && bm && BM_NEXT.has(it.type);
+    if (!auto && !board) return;
     let live = true;
-    const t = sayAfter(it);
+    const t = auto ? sayAfter(it) : "";
+    // doska rejimi: komponent javobni o'zi aytgan bo'lsa (tinglash, so'z/gap terish) — ovoz tugashini kutamiz, qayta aytmaymiz
+    const spoke = board ? spokenOf(it) : "";
+    const ms = board ? Math.min(5000, Math.max(1600, spoke.replace(/[ً-ْٰـ]/g, "").length * 150)) : 1200;
     void (async () => {
-      if (t) await sayWait(t); else await new Promise((r) => setTimeout(r, 1200));
+      if (t) await sayWait(t); else await new Promise((r) => setTimeout(r, ms));
       if (live) next();
     })();
     return () => { live = false; };
@@ -189,6 +199,7 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
       <header className="r-top">
         <button type="button" className="r-close" aria-label="Chiqish" onClick={() => { reactReset(); back(); }}><X size={22} aria-hidden />Chiqish</button>
         <b>{virt ? L.title : stepLabel(st).name}</b>
+        <BoardBtn />
         {elig && i >= 0 && i < n && <button type="button" className="ibtn r-info" aria-label="Bu mashq haqida" onClick={() => setInfo(true)}><Info size={18} aria-hidden /></button>}
         <span className="r-count">{Math.max(0, Math.min(i, n))} / {n}</span>
       </header>
@@ -253,39 +264,36 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
   const same = it.b ? st.items.filter((x) => x.b === it.b) : [];
   // kitob raqamlari berilgan guruhda raqamsiz savol (masalan zarflarni ustunlarga ajratish) band raqamisiz ko'rinadi
   const band = it.bn ? `${it.bn}-band` : same.length > 1 && !same.some((x) => x.bn) ? `${st.items.slice(0, i).filter((x) => x.b === it.b).length + 1}-band` : "";
-  return (
-    <main className="round kb">
-      {head}
-      {info && (
-        <div className="kbi-ov" role="dialog" aria-modal="true" aria-label="Bu mashq haqida" onClick={(e) => { if (e.target === e.currentTarget) setInfo(false); }}>
-          <KbIntro L={L} st={st} lessonKey={lessonKey} unitN={unitN} onClose={() => setInfo(false)} />
-        </div>
-      )}
-      <section className="kb-card" key={i}>
-        {it.b && <span className="kb-bet">{betParts(it.b)[0]}{betParts(it.b)[1] && <> · <Ar>{betParts(it.b)[1]}</Ar></>}{band && ` · ${band}`}</span>}
-        <div className="kb-ins">{it.ins ? <><Ar className="kb-ins-ar">{it.ins}</Ar><span>{it.insz || (it.type === "free" && seqFree(st, it) ? "Har savolga ovoz yoki yozma javob bering — ilova tekshiradi" : insUz(it.ins, it.type))}</span></> : <span>{tipOf(it.type)}</span>}</div>
-        {isImgPic(it.pic) && <KbImg src={it.pic!} />}
-        {it.type === "nokey" && <NoKey it={it} picked={nk} onPick={() => setNk(true)} />}
-        {it.type === "intro" && <Intro it={it} />}
-        {it.type === "read" && <Read it={it} normKey={`${lessonKey}#${si}.${i}`} lk={lessonKey} />}
-        {(it.type === "choose" || it.type === "qa") && <Choose {...props} />}
-        {it.type === "listen1" && <Listen1 {...props} />}
-        {it.type === "pick" && <Pick {...props} />}
-        {it.type === "tf" && <TrueFalse {...props} />}
-        {(it.type === "letters" || it.type === "order") && <Build {...props} />}
-        {it.type === "match" && <Match {...props} />}
-        {it.type === "classify" && <Classify {...props} />}
-        {it.type === "free" && (seqFree(st, it)
-          ? <FreeSeq it={it} ctx={readCtx} sent={freeSent} onSent={setFreeSent} sub={{ lesson: lessonKey, step: st.k, item: i, title: place }} />
-          : <Free it={it} sent={freeSent} onSent={setFreeSent} sub={{ lesson: lessonKey, step: st.k, item: i, title: place }} />)}
-        {it.type === "hear" && <Hear {...props} />}
-        {it.type === "trace" && <Trace {...props} />}
-        {it.type === "ladder" && <Ladder {...props} />}
-        {it.type === "letter" && <LetterItem {...props} />}
-        {it.type === "alphabet" && <Alphabet />}
-        {!["intro", "read", "choose", "qa", "listen1", "pick", "tf", "letters", "order", "match", "classify", "free", "hear", "trace", "ladder", "letter", "alphabet", "nokey"].includes(it.type) && <p className="muted">Bu turdagi mashq hali yangi ilovada yo'q. Davom etishingiz mumkin.</p>}
-      </section>
-
+  // 26.11.2026: doska rejimida savol turlari ikki ustunda — chapda topshiriq, rasm va savol; o'ngda javoblar, maslahat va «Davom etish»
+  const split = bm && SPLIT.has(it.type);
+  const body = (
+    <>
+      {it.b && <span className="kb-bet">{betParts(it.b)[0]}{betParts(it.b)[1] && <> · <Ar>{betParts(it.b)[1]}</Ar></>}{band && ` · ${band}`}</span>}
+      <div className="kb-ins">{it.ins ? <><Ar className="kb-ins-ar">{it.ins}</Ar><span>{it.insz || (it.type === "free" && seqFree(st, it) ? "Har savolga ovoz yoki yozma javob bering — ilova tekshiradi" : insUz(it.ins, it.type))}</span></> : <span>{tipOf(it.type)}</span>}</div>
+      {isImgPic(it.pic) && <KbImg src={it.pic!} />}
+      {it.type === "nokey" && <NoKey it={it} picked={nk} onPick={() => setNk(true)} />}
+      {it.type === "intro" && <Intro it={it} />}
+      {it.type === "read" && <Read it={it} normKey={`${lessonKey}#${si}.${i}`} lk={lessonKey} />}
+      {(it.type === "choose" || it.type === "qa") && <Choose {...props} />}
+      {it.type === "listen1" && <Listen1 {...props} />}
+      {it.type === "pick" && <Pick {...props} />}
+      {it.type === "tf" && <TrueFalse {...props} />}
+      {(it.type === "letters" || it.type === "order") && <Build {...props} />}
+      {it.type === "match" && <Match {...props} />}
+      {it.type === "classify" && <Classify {...props} />}
+      {it.type === "free" && (seqFree(st, it)
+        ? <FreeSeq it={it} ctx={readCtx} sent={freeSent} onSent={setFreeSent} sub={{ lesson: lessonKey, step: st.k, item: i, title: place }} />
+        : <Free it={it} sent={freeSent} onSent={setFreeSent} sub={{ lesson: lessonKey, step: st.k, item: i, title: place }} />)}
+      {it.type === "hear" && <Hear {...props} />}
+      {it.type === "trace" && <Trace {...props} />}
+      {it.type === "ladder" && <Ladder {...props} />}
+      {it.type === "letter" && <LetterItem {...props} />}
+      {it.type === "alphabet" && <Alphabet />}
+      {!["intro", "read", "choose", "qa", "listen1", "pick", "tf", "letters", "order", "match", "classify", "free", "hear", "trace", "ladder", "letter", "alphabet", "nokey"].includes(it.type) && <p className="muted">Bu turdagi mashq hali yangi ilovada yo'q. Davom etishingiz mumkin.</p>}
+    </>
+  );
+  const tail = (
+    <>
       {tries > 0 && !done && !help && (
         <HintLadder hint={hintOf(it)} onReveal={() => finish(false)} kind={typeFirst(me?.level) ? ERR_KIND[it.type] : undefined}
           rule={st.rule ? <><Ar className="kb-rh small">{st.rule.h}</Ar>{st.rule.p.map((p, k) => <p key={k} dangerouslySetInnerHTML={{ __html: p }} />)}</> : undefined} />
@@ -315,6 +323,32 @@ function Run({ L, st, lessonKey, si, unitN, refs, letter }: { L: KbLesson; st: K
       )}
 
       {canNext && <button type="button" className={`btn wide kb-next ${optFree ? "ghost" : isGraded ? (ans ? "good" : "dark") : "primary"}`} onClick={next}>{i + 1 >= n ? "Natijani ko'rish" : optFree ? "Yubormasdan keyingisiga" : "Davom etish"}</button>}
+    </>
+  );
+  return (
+    <main className={`round kb ${split ? "bm2" : ""}`}>
+      {head}
+      {info && (
+        <div className="kbi-ov" role="dialog" aria-modal="true" aria-label="Bu mashq haqida" onClick={(e) => { if (e.target === e.currentTarget) setInfo(false); }}>
+          <KbIntro L={L} st={st} lessonKey={lessonKey} unitN={unitN} onClose={() => setInfo(false)} />
+        </div>
+      )}
+      {split ? (
+        <AnsCtx.Provider value={{ on: true, el: ansEl }}>
+          <div className="bm-grid">
+            <section className="kb-card bm-l" key={i}>{body}</section>
+            <div className="bm-r">
+              <div className="bm-ans" ref={setAnsEl} />
+              {tail}
+            </div>
+          </div>
+        </AnsCtx.Provider>
+      ) : (
+        <>
+          <section className="kb-card" key={i}>{body}</section>
+          {tail}
+        </>
+      )}
     </main>
   );
 }
@@ -328,6 +362,12 @@ const RETRY = new Set(["choose", "qa", "listen1", "pick", "letters", "order", "c
 const seqFree = (st: KbStep, it: KbItem) => /^(oqish|qiroat|matn)/.test(st.k) && !!it.lines?.length;
 /** to'g'ri javobdan keyin ovoz → avtomatik keyingi savol (18.11.2026) */
 const AUTO_NEXT = new Set(["choose", "qa"]);
+/** 26.11.2026: doska rejimida to'g'ri javobdan keyin o'zi o'tadigan qolgan turlar */
+const BM_NEXT = new Set(["listen1", "pick", "tf", "letters", "order", "match", "classify", "hear"]);
+/** doska rejimida ikki ustunga bo'linadigan turlar (javob qismi — <Ans>) */
+const SPLIT = new Set(["choose", "qa", "listen1", "pick", "tf", "letters", "order", "match", "classify", "nokey", "hear"]);
+/** javob berilganda komponentning o'zi aytgan matn (doska rejimida o'tishdan oldin tugashi kutiladi) */
+const spokenOf = (it: KbItem) => String((it.type === "listen1" || it.type === "pick" ? it.ar : it.type === "hear" ? it.say : it.type === "letters" ? it.show : it.type === "order" ? it.ok : "") || "");
 /** 1-pog'ona: savolning o'zidan olingan ishora */
 function hintOf(it: Prepared): ReactNode {
   const many = (it.opts || []).length >= 4;
@@ -536,6 +576,7 @@ function NoKey({ it, picked, onPick }: { it: Prepared; picked: boolean; onPick: 
   return (
     <>
       {it.q && <Mixed text={it.q} />}
+      <Ans>
       <div className="r-opts">
         {opts.map((o) => (
           <button key={o} type="button" className={`opt ${sel === o ? "sel" : ""} ${isAr(o) ? "opt-r" : ""}`} aria-pressed={sel === o}
@@ -545,6 +586,7 @@ function NoKey({ it, picked, onPick }: { it: Prepared; picked: boolean; onPick: 
         ))}
       </div>
       {picked && <p className="kb-nk">Javobingiz belgilandi. To'g'ri javobni ustoz darsda aytadi.</p>}
+      </Ans>
     </>
   );
 }
@@ -557,8 +599,10 @@ function Choose({ it, done, mark, tries }: P) {
       {it.say && <div className="kb-q"><SayBtn t={it.say} big /></div>}
       {it.q && <Mixed text={it.q} />}
       {it.qz && <p className="kb-uz">{it.qz}</p>}
-      <Opts opts={it.opts || []} ok={String(it.ok)} alt={it.alt} done={done} tries={tries} onPick={answer} />
-      {done && it.full && <div className="kb-full"><SayBtn t={it.full} /><span><Ar>{it.full}</Ar>{it.fz && <small>{it.fz}</small>}</span></div>}
+      <Ans>
+        <Opts opts={it.opts || []} ok={String(it.ok)} alt={it.alt} done={done} tries={tries} onPick={answer} />
+        {done && it.full && <div className="kb-full"><SayBtn t={it.full} /><span><Ar>{it.full}</Ar>{it.fz && <small>{it.fz}</small>}</span></div>}
+      </Ans>
     </>
   );
 }
@@ -567,7 +611,7 @@ function Listen1({ it, done, mark, tries }: P) {
   return (
     <>
       <div className="kb-q"><SayBtn t={it.ar || ""} big />{done && <Ar className="kb-qa">{it.ar}</Ar>}</div>
-      <Opts opts={it.opts || []} ok={String(it.ok)} done={done} tries={tries} onPick={(o) => { mark(o === it.ok); void say(it.ar || ""); }} />
+      <Ans><Opts opts={it.opts || []} ok={String(it.ok)} done={done} tries={tries} onPick={(o) => { mark(o === it.ok); void say(it.ar || ""); }} /></Ans>
     </>
   );
 }
@@ -578,13 +622,13 @@ function Pick({ it, done, mark }: P) {
   return (
     <>
       <div className="kb-q"><SayBtn t={it.ar || ""} big />{done && <Ar className="kb-qa">{it.ar}</Ar>}</div>
-      <div className="r-opts grid">
+      <Ans><div className="r-opts grid">
         {(it.pics || []).map((p) => {
           const s = done ? (p === it.ok ? "ok" : p === pick || bad.includes(p) ? "no" : "dim") : bad.includes(p) ? "no" : "";
           return <button key={p} type="button" className={`opt ${s}`} disabled={done || bad.includes(p)} aria-label={p}
             onClick={() => { setPick(p); if (p !== it.ok) setBad([...bad, p]); mark(p === it.ok); void say(it.ar || ""); }}><Emo e={p} size={72} /><Mark s={s} /></button>;
         })}
-      </div>
+      </div></Ans>
     </>
   );
 }
@@ -596,7 +640,7 @@ function TrueFalse({ it, done, mark }: P) {
     <>
       <div className="kb-q"><SayBtn t={it.s || ""} /><Ar className="kb-qa">{it.s}</Ar></div>
       {done && it.uz && <p className="kb-uz">{it.uz}</p>}
-      <div className="kb-tf">
+      <Ans><div className="kb-tf">
         {[true, false].map((v) => {
           const s = !done ? "" : v === right ? "ok" : v === pick ? "no" : "dim";
           return (
@@ -605,7 +649,7 @@ function TrueFalse({ it, done, mark }: P) {
             </button>
           );
         })}
-      </div>
+      </div></Ans>
     </>
   );
 }
@@ -633,6 +677,7 @@ function Build({ it, done, ans, mark, tries }: P) {
       {it.pic && !isImgPic(it.pic) && <div className="kb-pic"><Emo e={it.pic} size={80} /></div>}
       {it.see && <div className="kb-q"><SayBtn t={it.show || ""} /><Ar className="kb-qa">{it.see}</Ar></div>}
       <p className="kb-uz">{letters ? (it.q || `«${it.uz}» so'zini yasang`) : it.uz}</p>
+      <Ans>
       <div className={`kb-line ${done ? (ans ? "ok" : "bad") : ""} ${letters ? "join" : ""}`} dir="rtl">
         {used.length ? used.map((x, k) => (
           <button key={k} type="button" className="tile on" disabled={done} onClick={() => setUsed(used.filter((_, j) => j !== k))}><Ar>{tiles[x]}</Ar></button>
@@ -644,6 +689,7 @@ function Build({ it, done, ans, mark, tries }: P) {
           : <button key={k} type="button" className="tile" disabled={done} onClick={() => add(k)}><Ar>{t}</Ar></button>))}
       </div>
       {done && (letters ? <Ar className="kb-qa center">{it.show}</Ar> : !ans && <p className="kb-uz">To'g'ri: <Ar>{String(it.ok)}</Ar></p>)}
+      </Ans>
     </>
   );
 }
@@ -670,6 +716,7 @@ function Match({ it, done, mark }: P) {
   return (
     <>
       {it.q && <p className="kb-uz">{it.q}</p>}
+      <Ans>
       <div className="kb-match" dir="rtl">
         <div>
           {pairs.map((p, k) => (
@@ -686,6 +733,7 @@ function Match({ it, done, mark }: P) {
         </div>
       </div>
       {done && <p className="kb-uz">{miss ? `Xatolar: ${miss}` : "Barchasi birinchi urinishda to'g'ri!"}</p>}
+      </Ans>
     </>
   );
 }
@@ -703,6 +751,7 @@ function Classify({ it, done, ans, mark, tries }: P) {
   return (
     <>
       {it.q && <p className="kb-uz">{it.q}</p>}
+      <Ans>
       <div className="kb-chips" dir="rtl">
         {left.length ? left.map((k) => (
           <button key={k} type="button" className={`tile ${sel === k ? "on" : ""}`} onClick={() => { setSel(k); void say(words[k][0]); }}><Ar>{words[k][0]}</Ar></button>
@@ -723,6 +772,7 @@ function Classify({ it, done, ans, mark, tries }: P) {
       {!done && !left.length && <button type="button" className="btn primary wide" onClick={() => mark(Object.keys(put).map(Number).every((k) => words[k][1] === put[k]))}>Tekshirish</button>}
       {done && !ans && <p className="kb-uz">Qizil so'zlar boshqa ustunga tegishli.</p>}
       {!done && left.length > 0 && <p className="kb-tip">{sel === null ? "So'zni bosing, keyin ustunni tanlang." : "Endi ustun nomini bosing."} Joylangan so'zni bossangiz, qaytib chiqadi.</p>}
+      </Ans>
     </>
   );
 }

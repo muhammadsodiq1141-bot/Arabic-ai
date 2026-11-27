@@ -14,6 +14,7 @@ import { useNav } from "../state/nav";
 import { useSession } from "../state/session";
 import { Ar, ScreenHeader } from "../ui/kit";
 import { toast } from "../ui/Toast";
+import { BoardBtn } from "../ui/BoardBtn";
 import { useRBook } from "./Rules";
 import { bookOfLevel } from "./Unit";
 
@@ -66,7 +67,7 @@ export function ClassModeScreen() {
   const u = book?.units.find((x) => x.n === unitN);
   return (
     <main className="screen cm">
-      <ScreenHeader title="Sinf rejimi" ar="وَضْعُ الْفَصْلِ" actions={<FullBtn />} />
+      <ScreenHeader title="Sinf rejimi" ar="وَضْعُ الْفَصْلِ" actions={<><BoardBtn label /><FullBtn /></>} />
       {/* 3-paket 2-qism: darsda tanga — Ustoz panelidagi bilan bir xil ekran (tanlangan guruh) */}
       {!!me?.myGroups?.length && (
         <button type="button" className="rowbtn" onClick={() => go("tcoins")}>

@@ -2823,3 +2823,31 @@ html.obscured .app { filter: blur(22px); }
 .mn-ed .akb { margin: 0 -4px; background: var(--bg); }
 .mn-ed .kb-rec { justify-content: flex-start; }
 .mn-ed-act { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; }
+
+/* 26.11.2026: DOSKA REJIMI (lib/board.ts, html.bm) — mashq ikki ustunda va bitta ekranga sig'adi:
+   chapda topshiriq, rasm va savol; o'ngda javoblar, maslahat, natija va «Davom etish». Telefonda hech narsa o'zgarmaydi */
+.bm-btn.on { background: var(--accent); color: var(--hero-ink); }
+html.bm .app:has(.round.kb) { max-width: 1180px; }
+html.bm .round.kb:not(.bm2) > * { width: 100%; max-width: 860px; margin-inline: auto; }
+html.bm .round.kb.bm2 { height: var(--bmh, 100dvh); min-height: 0; overflow: hidden; padding-bottom: 12px; }
+html.bm .bm2 .bm-grid { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; margin-top: 12px; }
+html.bm .bm2 .bm-l { margin-top: 0; min-height: 0; overflow-y: auto; }
+html.bm .bm2 .bm-l .kb-img { margin: 0; }
+html.bm .bm2 .bm-l .kb-img img { max-height: calc(var(--bmh, 100dvh) * .42); }
+html.bm .bm2 .bm-l .kb-qar, html.bm .bm2 .bm-l .kb-qa { font-size: 30px; }
+html.bm .bm2 .bm-r { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 2px 2px 4px; }
+html.bm .bm2 .bm-ans { display: flex; flex-direction: column; gap: 12px; }
+html.bm .bm2 .bm-ans:empty { display: none; }
+html.bm .bm2 .bm-r > .kb-fb, html.bm .bm2 .bm-r > .hl, html.bm .bm2 .bm-r > .kb-dunno, html.bm .bm2 .bm-r > .kb-help { margin-top: 0; }
+html.bm .bm2 .bm-r > .kb-next { margin-top: 2px; flex: none; }
+html.bm .bm2 .bm-ans .r-opts { margin-top: 0; }
+html.bm .bm2 .bm-ans .opt { min-height: 60px; font-size: 18px; }
+html.bm .bm2 .bm-ans .opt .opt-ar { font-size: 26px; }
+html.bm .app:has(.round.kb.bm2) { min-height: 0; }
+html.bm .bm2 .kb-ins-ar { font-size: 24px; }
+html.bm .bm2 .kb-ins > span:not(.ar) { font-size: 16.5px; }
+html.bm .bm2 .bm-l .kb-uz, html.bm .bm2 .bm-l .kb-qz { font-size: 20px; }
+html.bm .bm2 .bm-ans .r-opts.grid .opt { aspect-ratio: 1 / .56; }
+html.bm .round.kb:not(.bm2) .kb-wl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
+/* kattalashtirilgan ekranda 100dvh ham kattalashib ketadi — pastga yopishgan tugmalar («Mashqni boshlash») ekrandan chiqib qolardi */
+html.board .app, html.board .gate, html.board .round { min-height: var(--bmh, 100dvh); }

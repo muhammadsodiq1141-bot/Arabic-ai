@@ -8,6 +8,7 @@ import { a0Data, a0State, forms, FORM_UZ, FORM_UZ2, info, sound, syl, type Let }
 import { say } from "../lib/audio";
 import type { Prepared } from "../lib/kb";
 import { Ar } from "../ui/kit";
+import { Ans } from "../ui/BoardBtn";
 
 type P = { it: Prepared & { l?: string; f?: number; ltr?: string; rows?: string[][] }; done: boolean; ans: boolean | null; mark: (v: boolean) => void };
 
@@ -28,7 +29,7 @@ export function Hear({ it, done, mark }: P) {
   return (
     <>
       <div className="kb-q"><BigSay t={t} />{done && <Ar className="kb-qa a0-big">{t}</Ar>}</div>
-      <div className="r-opts a0-hear">
+      <Ans><div className="r-opts a0-hear">
         {(it.opts || []).map((o) => {
           const s = !done ? "" : o === it.ok ? "ok" : o === pick ? "no" : "dim";
           return (
@@ -39,7 +40,7 @@ export function Hear({ it, done, mark }: P) {
             </button>
           );
         })}
-      </div>
+      </div></Ans>
     </>
   );
 }
